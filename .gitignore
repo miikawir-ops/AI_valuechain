@@ -1,0 +1,4 @@
+.env
+__pycache__/
+market_data.json
+audit_log.json

@@ -1,0 +1,62 @@
+[
+  {
+    "date": "2026-04-27",
+    "time": "23:25",
+    "scores": {
+      "energy": {
+        "score": 32.31,
+        "color": "Green"
+      },
+      "compute": {
+        "score": 39.48,
+        "color": "Green"
+      },
+      "memory": {
+        "score": 55.37,
+        "color": "Green"
+      },
+      "infra": {
+        "score": 46.3,
+        "color": "Green"
+      },
+      "cloud": {
+        "score": 38.11,
+        "color": "Green"
+      },
+      "software": {
+        "score": 31.0,
+        "color": "Green"
+      }
+    }
+  },
+  {
+    "date": "2026-04-28",
+    "time": "13:53",
+    "scores": {
+      "energy": {
+        "score": 32.31,
+        "color": "Green"
+      },
+      "compute": {
+        "score": 39.98,
+        "color": "Green"
+      },
+      "memory": {
+        "score": 55.37,
+        "color": "Red"
+      },
+      "infra": {
+        "score": 46.3,
+        "color": "Orange"
+      },
+      "cloud": {
+        "score": 38.11,
+        "color": "Green"
+      },
+      "software": {
+        "score": 31.0,
+        "color": "Green"
+      }
+    }
+  }
+]

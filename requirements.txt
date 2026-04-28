@@ -1,0 +1,4 @@
+yfinance
+pandas
+google-generativeai
+python-dotenv
