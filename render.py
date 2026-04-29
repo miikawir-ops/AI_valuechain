@@ -214,25 +214,71 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
  
  
 def _analysis_sections(analysis: str) -> str:
-    """Parse analysis markdown into clean section dicts."""
+    """
+    Parse analysis markdown into clean section dicts.
+    Handles both ## and ### headers, and ** bold markers.
+    """
     sections = []
     current_title = ""
     current_lines = []
+ 
     for line in analysis.split("\n"):
         line = line.strip()
-        if line.startswith("## "):
+ 
+        # Match ## or ### headers, with or without emoji
+        is_header = False
+        if line.startswith("### "):
+            header_text = line[4:].strip()
+            is_header = True
+        elif line.startswith("## "):
+            header_text = line[3:].strip()
+            is_header = True
+        # Also catch **## style** that Gemini sometimes outputs
+        elif line.startswith("**##") or line.startswith("**###"):
+            header_text = line.replace("**##", "").replace("**###", "").replace("**", "").strip()
+            is_header = True
+        else:
+            header_text = ""
+ 
+        if is_header:
             if current_title:
-                sections.append((current_title, " ".join(current_lines)))
-            current_title = line[3:].strip()
+                body = " ".join(current_lines).strip()
+                if body:
+                    sections.append((current_title, body))
+            current_title = header_text
             current_lines = []
         elif line:
-            line = line.replace("**", "").replace("`", "")
-            current_lines.append(line)
-    if current_title:
-        sections.append((current_title, " ".join(current_lines)))
+            # Clean markdown formatting for display
+            cleaned = (line
+                .replace("**", "")
+                .replace("```", "")
+                .replace("`", "")
+                .replace("---", "")
+                .strip())
+            if cleaned:
+                current_lines.append(cleaned)
  
-    main     = sections[:-1] if len(sections) > 1 else sections
-    action   = sections[-1]  if len(sections) > 1 else None
+    # Append final section
+    if current_title and current_lines:
+        sections.append((current_title, " ".join(current_lines).strip()))
+ 
+    # If no sections parsed (Gemini returned plain text), treat whole thing as one section
+    if not sections and analysis.strip():
+        sections = [("Daily Analysis", analysis.strip())]
+ 
+    # Split last section as "One Action" if it contains action keywords
+    main   = sections
+    action = None
+    for i, (title, body) in enumerate(sections):
+        if any(kw in title.upper() for kw in ["ONE ACTION", "ACTION", "💡"]):
+            action = (title, body)
+            main   = sections[:i] + sections[i+1:]
+            break
+ 
+    # Fallback: last section is action
+    if not action and len(sections) > 1:
+        action = sections[-1]
+        main   = sections[:-1]
  
     main_js   = json.dumps([{"title": t, "body": b} for t, b in main])
     action_js = json.dumps({"title": action[0], "body": action[1]}) if action else "null"
@@ -846,4 +892,3 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
- 
