@@ -169,18 +169,39 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
         # Only expose color, direction, and display data
         momentum_band = "strong" if abs(fund_delta*100) > 20 else "moderate" if abs(fund_delta*100) > 5 else "mild"
         momentum_dir  = "+" if fund_delta >= 0 else "-"
+        # Narrative vs fundamental divergence detection
+        # Fires when: news is active BUT fundamentals are weak/negative
+        divergence = False
+        divergence_msg = ""
+        if news_vel >= 2 and fund_delta < 0:
+            divergence = True
+            divergence_msg = (
+                "News narrative is active but revenue growth is decelerating. "
+                "The market story is running ahead of reported financials. "
+                "This layer may be driven by sentiment rather than fundamental acceleration."
+            )
+        elif news_vel >= 3 and fund_delta < 0.05 and color == "Green":
+            divergence = True
+            divergence_msg = (
+                "Elevated news activity but weak fundamental acceleration. "
+                "The investment narrative exists but has not yet shown up in earnings. "
+                "Watch for confirmation in next quarterly results."
+            )
+ 
         layers.append({
             "id":           layer_id,
             "n1":           n1,
             "n2":           n2,
-            "score":        score,           # kept for color band logic only
+            "score":        score,
             "color":        color,
             "news_vel":     int(news_vel),
-            "momentum_label": f"{momentum_dir}{momentum_band}",  # directional label only
-            "delta_score":  delta_score,     # kept for ▲▼ direction only
+            "momentum_label": f"{momentum_dir}{momentum_band}",
+            "delta_score":  delta_score,
             "prev_color":   prev_color,
             "color_changed":color_changed,
             "tickers":      tickers_out,
+            "divergence":   divergence,
+            "divergence_msg": divergence_msg,
         })
  
     return json.dumps(layers)
@@ -348,6 +369,17 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .override{{background:#F8F8F7;border-left:2px solid #B4B2A9;border-radius:0 6px 6px 0;
            padding:8px 10px;font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:12px}}
 .ip-note{{font-size:10px;color:#B4B2A9;text-align:center;line-height:1.6}}
+.div-flag{{display:inline-flex;align-items:center;gap:4px;background:#FFF3CD;
+           border:0.5px solid #EF9F27;border-radius:4px;padding:2px 6px;
+           font-size:9px;font-weight:500;color:#633806;cursor:pointer;
+           margin-top:4px;position:relative}}
+.div-flag:hover .div-tooltip,.div-flag:focus .div-tooltip{{display:block}}
+.div-tooltip{{display:none;position:absolute;bottom:calc(100% + 6px);left:0;
+              background:#1A1A1A;color:#F8F8F7;font-size:10px;line-height:1.5;
+              padding:8px 10px;border-radius:6px;width:220px;z-index:100;
+              font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,.3)}}
+.div-tooltip::after{{content:"";position:absolute;top:100%;left:12px;
+                     border:5px solid transparent;border-top-color:#1A1A1A}}
 .footer{{font-size:10px;color:#B4B2A9;text-align:center;margin-top:8px;padding:0 16px}}
 .pdf-btn{{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);
           border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:500;
@@ -620,6 +652,11 @@ function buildChain() {{
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
       <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
+      ${{l.divergence ? `
+      <div class="div-flag" tabindex="0">
+        ⚡ Narrative ahead of fundamentals
+        <div class="div-tooltip">${{l.divergence_msg}}</div>
+      </div>` : ""}}
       <div class="lyr-tickers">${{tkHtml}}</div>`;
     div.onclick = () => {{ active = active === l.id ? null : l.id; buildChain(); buildExpand(); }};
     wrap.appendChild(div);
