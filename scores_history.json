@@ -61,7 +61,7 @@
   },
   {
     "date": "2026-04-29",
-    "time": "19:08",
+    "time": "16:37",
     "scores": {
       "energy": {
         "score": 33.81,
@@ -76,11 +76,11 @@
         "color": "Red"
       },
       "infra": {
-        "score": 46.3,
+        "score": 47.8,
         "color": "Orange"
       },
       "cloud": {
-        "score": 38.11,
+        "score": 39.61,
         "color": "Green"
       },
       "software": {
