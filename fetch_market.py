@@ -36,7 +36,10 @@ AI_CHAIN_LAYERS = {
                      "megawatt", "gigawatt", "data center power", "utility",
                      "renewable", "solar", "wind farm", "power plant", "natural gas",
                      "constellation", "vistra", "nextera", "quanta", "uranium",
-                     "power demand", "energy crisis", "blackout", "capacity"]
+                     "power demand", "energy crisis", "blackout", "capacity",
+                     "clean energy", "nuclear power", "power purchase", "energy storage",
+                     "grid expansion", "electricity demand", "AI power",
+                     "power infrastructure", "CEG", "VST", "NEE", "PWR"]
     },
     "compute": {
         "name": "Semiconductors & Hardware",

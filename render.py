@@ -249,7 +249,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>AI Investment Agent — {datetime_str}</title>
+<title>AI Valuechain Agent — {datetime_str}</title>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -261,7 +261,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px);
             background-size:32px 32px}}
 .hero-top{{display:flex;justify-content:space-between;align-items:flex-start;
-           margin-bottom:20px;position:relative;flex-wrap:wrap;gap:10px}}
+           margin-bottom:20px;position:relative;flex-wrap:wrap;gap:8px}}
 .hero-title{{font-size:20px;font-weight:500;color:#fff}}
 .hero-sub{{font-size:11px;color:#B5D4F4;margin-top:3px}}
 .reg-pill{{font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;
@@ -279,7 +279,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .card-label{{font-size:10px;font-weight:500;color:#888780;
              letter-spacing:.05em;margin-bottom:12px}}
 .fetch-note{{font-size:10px;color:#B4B2A9;margin-top:4px}}
-.chain-scroll{{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}}
+.chain-scroll{{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;
+              -webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}}
+.layer{{scroll-snap-align:start}}
 .layer{{flex-shrink:0;width:148px;border:1.5px solid;border-radius:10px;
         padding:11px 10px;cursor:pointer;transition:transform .1s,box-shadow .1s}}
 .layer:hover{{transform:translateY(-2px)}}
@@ -347,6 +349,61 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
            padding:8px 10px;font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:12px}}
 .ip-note{{font-size:10px;color:#B4B2A9;text-align:center;line-height:1.6}}
 .footer{{font-size:10px;color:#B4B2A9;text-align:center;margin-top:8px;padding:0 16px}}
+.pdf-btn{{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);
+          border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:500;
+          padding:5px 14px;border-radius:20px;cursor:pointer;transition:background .15s}}
+.pdf-btn:hover{{background:rgba(255,255,255,.25)}}
+@media print{{
+  .pdf-btn,.meth-trigger,.meth-body,.expand{{display:none!important}}
+  .hero{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  .card{{break-inside:avoid;page-break-inside:avoid}}
+  body{{padding:0}}
+  .layer{{min-width:100px}}
+}}
+@media(max-width:600px){{
+  .hero{{padding:16px 14px 24px}}
+  .hero-title{{font-size:16px}}
+  .hero-sub{{font-size:10px}}
+  .hm-grid{{grid-template-columns:1fr 1fr;gap:6px}}
+  .hm-val{{font-size:15px}}
+  .hm-lbl{{font-size:9px}}
+  .hm-note{{font-size:9px}}
+  .body{{padding:0 10px;margin-top:-12px}}
+  .card{{padding:12px 10px;border-radius:8px;margin-bottom:8px}}
+  .card-label{{font-size:9px;margin-bottom:8px}}
+  .chain-scroll{{gap:6px;padding-bottom:6px}}
+  .layer{{min-width:130px;max-width:160px;padding:9px 8px}}
+  .lyr-score{{font-size:22px}}
+  .lyr-name{{font-size:10px}}
+  .lyr-pill{{font-size:8px;padding:2px 6px}}
+  .lyr-delta span{{font-size:9px}}
+  .lyr-meta{{font-size:9px}}
+  .lyr-tk{{font-size:9px}}
+  .heat-grid{{grid-template-columns:44px repeat(7,1fr);gap:2px}}
+  .heat-lbl{{font-size:9px;padding-right:4px}}
+  .heat-day{{font-size:8px}}
+  .heat-cell{{height:14px}}
+  .as-title{{font-size:12px}}
+  .as-body{{font-size:11px;padding-left:30px}}
+  .as-icon{{width:22px;height:22px;font-size:11px}}
+  .action-card{{padding:12px}}
+  .action-title{{font-size:13px}}
+  .action-body{{font-size:11px}}
+  .meth-trigger{{padding:8px 10px}}
+  .sigs{{grid-template-columns:1fr}}
+  .meth-colors{{grid-template-columns:1fr}}
+  #bottleneck-strip{{font-size:10px;padding:6px 8px}}
+  .footer{{font-size:9px;padding:0 10px}}
+  .pdf-btn{{font-size:10px;padding:4px 10px}}
+  .reg-pill{{font-size:10px;padding:4px 10px}}
+  .ex-grid{{grid-template-columns:1fr 1fr}}
+}}
+@media(max-width:380px){{
+  .hm-grid{{grid-template-columns:1fr 1fr}}
+  .layer{{min-width:120px}}
+  .chain-scroll{{gap:4px}}
+  .hero-title{{font-size:14px}}
+}}
 </style>
 </head>
 <body>
@@ -355,7 +412,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="hero-grid"></div>
   <div class="hero-top">
     <div>
-      <div class="hero-title">AI investment agent</div>
+      <div class="hero-title">AI Valuechain Agent</div>
       <div class="hero-sub">{datetime_str}</div>
     </div>
     <div class="reg-pill">{reg_lbl}</div>
@@ -466,7 +523,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 </div>
  
-<div class="footer">AI Investment Agent · {datetime_str} · Not financial advice · Always do your own research</div>
+<div class="footer">AI Valuechain Agent · {datetime_str} · Not financial advice · Always do your own research</div>
  
 <script>
 const LAYERS = {layers_js};
@@ -725,3 +782,4 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
+
