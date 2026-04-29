@@ -360,43 +360,44 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   body{{padding:0}}
   .layer{{min-width:100px}}
 }}
-@media(max-width:600px){{
-  .hero{{padding:16px 14px 24px}}
-  .hero-title{{font-size:16px}}
+@media(max-width:768px){{
+  .hero{{padding:14px 12px 20px}}
+  .hero-title{{font-size:15px}}
   .hero-sub{{font-size:10px}}
   .hm-grid{{grid-template-columns:1fr 1fr;gap:6px}}
-  .hm-val{{font-size:15px}}
-  .hm-lbl{{font-size:9px}}
-  .hm-note{{font-size:9px}}
-  .body{{padding:0 10px;margin-top:-12px}}
-  .card{{padding:12px 10px;border-radius:8px;margin-bottom:8px}}
-  .card-label{{font-size:9px;margin-bottom:8px}}
-  .chain-scroll{{gap:6px;padding-bottom:6px}}
-  .layer{{min-width:130px;max-width:160px;padding:9px 8px}}
-  .lyr-score{{font-size:22px}}
-  .lyr-name{{font-size:10px}}
-  .lyr-pill{{font-size:8px;padding:2px 6px}}
-  .lyr-delta span{{font-size:9px}}
+  .hm-val{{font-size:14px}}
+  .hm-lbl,.hm-note{{font-size:9px}}
+  .body{{padding:0 8px;margin-top:-10px}}
+  .card{{padding:10px 8px;border-radius:8px;margin-bottom:8px}}
+  .card-label{{font-size:9px;margin-bottom:6px}}
+  .chain-scroll{{gap:5px;padding-bottom:6px}}
+  .layer{{min-width:120px;max-width:150px;padding:8px 7px}}
+  .lyr-score{{font-size:20px}}
+  .lyr-name{{font-size:9px}}
+  .lyr-pill{{font-size:8px;padding:1px 5px}}
   .lyr-meta{{font-size:9px}}
   .lyr-tk{{font-size:9px}}
-  .heat-grid{{grid-template-columns:44px repeat(7,1fr);gap:2px}}
+  .lyr-delta span{{font-size:9px}}
+  .heat-grid{{grid-template-columns:40px repeat(7,1fr);gap:2px;margin-top:10px}}
   .heat-lbl{{font-size:9px;padding-right:4px}}
   .heat-day{{font-size:8px}}
-  .heat-cell{{height:14px}}
+  .heat-cell{{height:13px}}
   .as-title{{font-size:12px}}
-  .as-body{{font-size:11px;padding-left:30px}}
-  .as-icon{{width:22px;height:22px;font-size:11px}}
-  .action-card{{padding:12px}}
-  .action-title{{font-size:13px}}
-  .action-body{{font-size:11px}}
+  .as-body{{font-size:11px;padding-left:28px;line-height:1.5}}
+  .as-icon{{width:20px;height:20px;font-size:11px}}
+  .as{{padding:10px 0}}
+  .action-card{{padding:10px}}
+  .action-title{{font-size:12px}}
+  .action-body{{font-size:11px;line-height:1.5}}
   .meth-trigger{{padding:8px 10px}}
   .sigs{{grid-template-columns:1fr}}
   .meth-colors{{grid-template-columns:1fr}}
-  #bottleneck-strip{{font-size:10px;padding:6px 8px}}
-  .footer{{font-size:9px;padding:0 10px}}
-  .pdf-btn{{font-size:10px;padding:4px 10px}}
-  .reg-pill{{font-size:10px;padding:4px 10px}}
+  #bottleneck-strip{{font-size:10px;padding:5px 8px;gap:5px}}
+  .footer{{font-size:9px}}
+  .pdf-btn{{font-size:9px;padding:3px 8px}}
+  .reg-pill{{font-size:9px;padding:3px 8px}}
   .ex-grid{{grid-template-columns:1fr 1fr}}
+  .hero-top{{gap:6px}}
 }}
 @media(max-width:380px){{
   .hm-grid{{grid-template-columns:1fr 1fr}}
@@ -415,7 +416,10 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div class="hero-title">AI Valuechain Agent</div>
       <div class="hero-sub">{datetime_str}</div>
     </div>
-    <div class="reg-pill">{reg_lbl}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="pdf-btn" onclick="window.print()">↓ PDF</button>
+      <div class="reg-pill">{reg_lbl}</div>
+    </div>
   </div>
   <div class="hm-grid">
     <div class="hm-card">
@@ -782,4 +786,3 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
-
