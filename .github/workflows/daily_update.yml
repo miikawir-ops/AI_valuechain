@@ -2,8 +2,11 @@ name: Daily AI Valuechain Update
  
 on:
   schedule:
-    - cron: '0 6 * * 1-5'  # 06:00 UTC = 09:00 Helsinki (Mon-Fri only)
-  workflow_dispatch:         # Allow manual trigger from GitHub UI
+    - cron: '0 6 * * 1-5'  # 06:00 UTC = 09:00 Helsinki (Mon-Fri)
+  workflow_dispatch:         # Manual trigger from GitHub UI
+ 
+permissions:
+  contents: write            # Required to push the updated HTML back
  
 jobs:
   update:
@@ -12,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
  
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -21,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
  
-      - name: Run agent (single report)
+      - name: Run agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.5-flash-lite
