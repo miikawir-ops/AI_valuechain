@@ -1,34 +1,38 @@
-name: Daily Agent Update
-
+name: Daily AI Valuechain Update
+ 
 on:
   schedule:
-    - cron: '0 0 * * *' # Aja joka päivä klo 00:00 UTC
-  workflow_dispatch: # Mahdollistaa manuaalisen ajamisen
-
+    - cron: '0 6 * * 1-5'  # 06:00 UTC = 09:00 Helsinki (Mon-Fri only)
+  workflow_dispatch:         # Allow manual trigger from GitHub UI
+ 
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
+ 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
-
+        uses: actions/checkout@v4
+ 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-
+          python-version: '3.11'
+ 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Run Agent
+ 
+      - name: Run agent (single report)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python main.py
-
-      - name: Commit and push changes
+          GEMINI_MODEL: gemini-2.5-flash-lite
+          DELIVERY_METHOD: console
+          REPORT_TIME: "06:00"
+        run: python main.py --now
+ 
+      - name: Commit and push dashboard
         run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add index.html
-          git commit -m "Auto-update report"
+          git config --global user.name 'AI Valuechain Bot'
+          git config --global user.email 'bot@users.noreply.github.com'
+          git add ai_chain_report.html scores_history.json
+          git diff --staged --quiet || git commit -m "Daily update: $(date +'%Y-%m-%d %H:%M UTC')"
           git push

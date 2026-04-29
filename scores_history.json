@@ -61,18 +61,18 @@
   },
   {
     "date": "2026-04-29",
-    "time": "13:43",
+    "time": "19:08",
     "scores": {
       "energy": {
         "score": 33.81,
         "color": "Green"
       },
       "compute": {
-        "score": 39.61,
+        "score": 38.61,
         "color": "Green"
       },
       "memory": {
-        "score": 55.62,
+        "score": 55.37,
         "color": "Red"
       },
       "infra": {
