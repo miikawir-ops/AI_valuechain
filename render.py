@@ -170,22 +170,28 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
         momentum_band = "strong" if abs(fund_delta*100) > 20 else "moderate" if abs(fund_delta*100) > 5 else "mild"
         momentum_dir  = "+" if fund_delta >= 0 else "-"
         # Narrative vs fundamental divergence detection
-        # Fires when: news is active BUT fundamentals are weak/negative
+        # Fires when news activity exists BUT fundamentals are weak/negative
         divergence = False
         divergence_msg = ""
-        if news_vel >= 2 and fund_delta < 0:
+        if news_vel >= 1 and fund_delta < 0:
             divergence = True
             divergence_msg = (
                 "News narrative is active but revenue growth is decelerating. "
                 "The market story is running ahead of reported financials. "
                 "This layer may be driven by sentiment rather than fundamental acceleration."
             )
-        elif news_vel >= 3 and fund_delta < 0.05 and color == "Green":
+        elif news_vel >= 1 and fund_delta < 0.03 and color == "Green":
             divergence = True
             divergence_msg = (
-                "Elevated news activity but weak fundamental acceleration. "
-                "The investment narrative exists but has not yet shown up in earnings. "
-                "Watch for confirmation in next quarterly results."
+                "News activity detected but fundamental acceleration is weak. "
+                "The investment narrative exists but has not yet shown up in quarterly earnings. "
+                "Watch for confirmation in next results before positioning."
+            )
+        elif news_vel == 0 and color == "Green" and fund_delta < 0:
+            divergence = True
+            divergence_msg = (
+                "Revenue growth is decelerating with no supporting news signal. "
+                "Fundamentals are weakening — monitor for further deterioration."
             )
  
         layers.append({
@@ -255,11 +261,11 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
     nasdaq_r = macro_data.get("nasdaq_vs_spx_20d", 0) * 100
  
     if vix > 30 or yield_ch > 100:
-        reg_lbl, reg_bg, reg_bd, reg_fg = "Risk-Off","#FCEBEB","#E24B4A","#791F1F"
+        reg_lbl, reg_bg, reg_bd, reg_fg = "Market regime: Risk-Off","#FCEBEB","#E24B4A","#791F1F"
     elif vix > 20 or yield_ch > 50:
-        reg_lbl, reg_bg, reg_bd, reg_fg = "Neutral","#FAEEDA","#EF9F27","#633806"
+        reg_lbl, reg_bg, reg_bd, reg_fg = "Market regime: Neutral","#FAEEDA","#EF9F27","#633806"
     else:
-        reg_lbl, reg_bg, reg_bd, reg_fg = "Risk-On","#EAF3DE","#639922","#27500A"
+        reg_lbl, reg_bg, reg_bd, reg_fg = "Market regime: Risk-On","#EAF3DE","#639922","#27500A"
  
     layers_js           = _chain_js_data(scored_data, market_data, yesterday)
     main_sections_js, action_js = _analysis_sections(analysis)
@@ -287,7 +293,15 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .hero-sub{{font-size:11px;color:#B5D4F4;margin-top:3px}}
 .reg-pill{{font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;
            border:1px solid rgba(255,255,255,.3);color:#fff;
-           background:rgba(255,255,255,.15)}}
+           background:rgba(255,255,255,.15);cursor:pointer;position:relative}}
+.reg-pill:hover .reg-tooltip,.reg-pill:focus .reg-tooltip{{display:block}}
+.reg-tooltip{{display:none;position:absolute;top:calc(100% + 8px);right:0;
+              background:#1A1A1A;color:#F8F8F7;font-size:10px;line-height:1.6;
+              padding:10px 12px;border-radius:6px;width:260px;z-index:200;
+              font-weight:400;box-shadow:0 4px 16px rgba(0,0,0,.4);text-align:left}}
+.reg-tooltip::before{{content:"";position:absolute;bottom:100%;right:16px;
+                      border:5px solid transparent;border-bottom-color:#1A1A1A}}
+.reg-tooltip b{{color:#97C459}}
 .hm-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative}}
 .hm-card{{background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.2);
           border-radius:8px;padding:10px 12px}}
@@ -450,7 +464,16 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button class="pdf-btn" onclick="window.print()">↓ PDF</button>
-      <div class="reg-pill">{reg_lbl}</div>
+      <div class="reg-pill" tabindex="0">{reg_lbl}
+        <div class="reg-tooltip">
+          <b>What is Market Regime?</b><br><br>
+          A systemic filter applied to all layer scores. Reflects the overall macro environment for AI investments today.<br><br>
+          <b>Risk-On</b> — VIX low, yields stable, tech leading. All signals at full strength.<br>
+          <b>Neutral</b> — Some uncertainty. Scores dampened. Caution on new positions.<br>
+          <b>Risk-Off</b> — High fear, rising yields, tech selling off. Do not initiate new positions.<br><br>
+          Signals used: VIX · 10Y yield change · NASDAQ vs S&amp;P 500
+        </div>
+      </div>
     </div>
   </div>
   <div class="hm-grid">
@@ -823,3 +846,4 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
+ 
