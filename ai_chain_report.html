@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>AI Valuechain Agent — Wednesday, April 29 2026 · 21:36</title>
+<title>AI Valuechain Agent — Thursday, April 30 2026 · 11:08</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -93,8 +93,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .action-title{font-size:14px;font-weight:500;color:#26215C;margin-bottom:6px}
 .action-body{font-size:12px;color:#3C3489;line-height:1.6}
 .meth-trigger{display:flex;justify-content:space-between;align-items:center;
-               cursor:pointer;padding:10px 14px;background:white;
-               border:0.5px solid #E0DFDC;border-radius:10px;margin-bottom:4px}
+               cursor:pointer;padding:12px 16px;background:white;
+               border:1.5px solid #378ADD;border-radius:10px;margin-bottom:4px;
+               transition:background .15s}
+.meth-trigger:hover{background:#E6F1FB}
 .meth-body{display:none;background:white;border:0.5px solid #E0DFDC;
             border-radius:10px;padding:14px;margin-bottom:12px}
 .meth-body.open{display:block}
@@ -187,7 +189,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="hero-top">
     <div>
       <div class="hero-title">AI Valuechain Agent</div>
-      <div class="hero-sub">Wednesday, April 29 2026 · 21:36</div>
+      <div class="hero-sub">Thursday, April 30 2026 · 11:08</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button class="pdf-btn" onclick="window.print()">↓ PDF</button>
@@ -211,7 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
     <div class="hm-card">
       <div class="hm-lbl">10Y yield change</div>
-      <div class="hm-val">+9.5</div>
+      <div class="hm-val">+10.7</div>
       <div class="hm-note" style="color:#FAC775">bps · rising</div>
     </div>
     <div class="hm-card">
@@ -239,10 +241,49 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#378ADD;margin-right:4px"></span>Cooling</span>
     </div>
   </div>
-  <div class="fetch-note" style="margin-bottom:8px">Fetched 21:36 · Quarterly financials may be up to 90 days old</div>
-  <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-       border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
-       font-size:11px;color:#5F5E5A;margin-bottom:10px;flex-wrap:wrap">
+  <div class="fetch-note" style="margin-bottom:8px">Fetched 11:08 · Quarterly financials may be up to 90 days old</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;
+       gap:8px;margin-bottom:6px;flex-wrap:wrap">
+    <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+         border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
+         font-size:11px;color:#5F5E5A;flex-wrap:wrap;flex:1">
+    </div>
+    <button onclick="toggleAbout()" style="font-size:11px;padding:6px 12px;
+            border:0.5px solid #E0DFDC;border-radius:6px;background:white;
+            color:#5F5E5A;cursor:pointer;white-space:nowrap;flex-shrink:0"
+            id="about-btn">ℹ About</button>
+  </div>
+  <div id="about-section" style="display:none;background:#F8F8F7;border:0.5px solid #E0DFDC;
+       border-radius:8px;padding:14px;margin-bottom:10px;font-size:12px;
+       color:#5F5E5A;line-height:1.7">
+    <div style="font-size:13px;font-weight:500;color:#1A1A1A;margin-bottom:10px">
+      About this dashboard
+    </div>
+    <p style="margin-bottom:8px">A daily signal dashboard tracking the AI supply chain — from power plants to software — identifying where investment opportunities and risks are building.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔴 Hot / Bottleneck</div>
+        <div style="font-size:11px">Current dominant constraint. Supply cannot meet demand. Highest conviction signal.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟠 Emerging</div>
+        <div style="font-size:11px">Building momentum. Becoming the next bottleneck, or price running ahead of fundamentals.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟢 Neutral / Healthy</div>
+        <div style="font-size:11px">Stable. No constraint pressure. Not a concern, not an urgent opportunity.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔵 Cooling</div>
+        <div style="font-size:11px">Previously hot layer. Constraint easing, growth decelerating.</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Warning flags</div>
+    <p style="margin-bottom:4px"><strong>⚡ Narrative ahead of fundamentals</strong> — Investment story exists in news but not yet confirmed in quarterly earnings. Wait for financial confirmation.</p>
+    <p style="margin-bottom:10px"><strong>🟠 Orange card</strong> — Stock price has moved significantly more than revenue growth justifies. Market may have already priced in the good news.</p>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
+    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — Reuters, CNBC, MarketWatch · AI analysis — Google Gemini 2.5</p>
+    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
   </div>
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
@@ -253,7 +294,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
  
 <div class="card">
-  <div class="card-label">Daily analysis — Gemini 2.5-flash · 21:36</div>
+  <div class="card-label">Daily analysis — Gemini 2.5-flash · 11:08</div>
   <div class="as-wrap" id="analysis"></div>
 </div>
  
@@ -309,12 +350,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 </div>
  
-<div class="footer">AI Valuechain Agent · Wednesday, April 29 2026 · 21:36 · Not financial advice · Always do your own research</div>
+<div class="footer">
+    AI Valuechain Agent · Thursday, April 30 2026 · 11:08 · Not financial advice · Always do your own research
+    <br>
+    <span style="font-size:10px;color:#B4B2A9;margin-top:4px;display:inline-block">
+      ⚔️ Powered by COBHC · Built in Espoo, Finland · 
+      <span style="font-style:italic">Are You Dead Yet?</span> — the market will tell you
+    </span>
+  </div>
  
 <script>
-const LAYERS = [{"id": "energy", "n1": "Energy", "n2": "resources", "score": 33.8, "color": "Green", "news_vel": 1, "momentum_label": "+mild", "delta_score": 1.5, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "CEG", "name": "Constellation Energy Corporation", "price": 295.06, "ret30": 5.7, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "VST", "name": "Vistra Corp.", "price": 154.97, "ret30": 3.1, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "NEE", "name": "NextEra Energy, Inc.", "price": 94.67, "ret30": 1.9, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "PWR", "name": "Quanta Services, Inc.", "price": 631.1, "ret30": 15.0, "delta_band": "decelerating", "hype": false, "color": "Blue"}], "divergence": true, "divergence_msg": "News activity detected but fundamental acceleration is weak. The investment narrative exists but has not yet shown up in quarterly earnings. Watch for confirmation in next results before positioning."}, {"id": "compute", "n1": "Semicon", "n2": "hardware", "score": 37.1, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": -2.9, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "NVDA", "name": "NVIDIA Corporation", "price": 208.28, "ret30": 19.4, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "AMD", "name": "Advanced Micro Devices, Inc.", "price": 336.56, "ret30": 65.4, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "AVGO", "name": "Broadcom Inc.", "price": 398.76, "ret30": 28.8, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "ASML", "name": "ASML Holding N.V.", "price": 1381.86, "ret30": 4.9, "delta_band": "decelerating", "hype": false, "color": "Blue"}], "divergence": false, "divergence_msg": ""}, {"id": "memory", "n1": "HBM memory", "n2": "storage", "score": 55.4, "color": "Red", "news_vel": 0, "momentum_label": "+strong", "delta_score": 0.0, "prev_color": "Red", "color_changed": false, "tickers": [{"sym": "MU", "name": "Micron Technology, Inc.", "price": 513.35, "ret30": 51.9, "delta_band": "accelerating", "hype": false, "color": "Red"}, {"sym": "WDC", "name": "Western Digital Corporation", "price": 421.22, "ret30": 55.7, "delta_band": "decelerating", "hype": true, "color": "Blue"}, {"sym": "AMAT", "name": "Applied Materials, Inc.", "price": 378.33, "ret30": 10.8, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "LRCX", "name": "Lam Research Corporation", "price": 242.66, "ret30": 13.6, "delta_band": "accelerating", "hype": false, "color": "Green"}], "divergence": false, "divergence_msg": ""}, {"id": "infra", "n1": "Data center", "n2": "infra", "score": 46.3, "color": "Orange", "news_vel": 0, "momentum_label": "+strong", "delta_score": 0.0, "prev_color": "Orange", "color_changed": false, "tickers": [{"sym": "VRT", "name": "Vertiv Holdings Co", "price": 303.1, "ret30": 21.0, "delta_band": "decelerating", "hype": true, "color": "Blue"}, {"sym": "ANET", "name": "Arista Networks, Inc.", "price": 166.52, "ret30": 35.6, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "EQIX", "name": "Equinix, Inc.", "price": 1086.3, "ret30": 10.8, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "SMCI", "name": "Super Micro Computer, Inc.", "price": 26.23, "ret30": 15.2, "delta_band": "accelerating", "hype": false, "color": "Orange"}], "divergence": false, "divergence_msg": ""}, {"id": "cloud", "n1": "Cloud", "n2": "hyperscalers", "score": 38.1, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": -0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "MSFT", "name": "Microsoft Corporation", "price": 423.35, "ret30": 14.5, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "GOOGL", "name": "Alphabet Inc.", "price": 349.89, "ret30": 21.7, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "AMZN", "name": "Amazon.com, Inc.", "price": 263.81, "ret30": 26.7, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "META", "name": "Meta Platforms, Inc.", "price": 672.82, "ret30": 17.6, "delta_band": "stable", "hype": false, "color": "Green"}], "divergence": false, "divergence_msg": ""}, {"id": "software", "n1": "AI software", "n2": "apps", "score": 31.0, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": 0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "PLTR", "name": "Palantir Technologies Inc.", "price": 137.94, "ret30": -5.7, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "NOW", "name": "ServiceNow, Inc.", "price": 88.57, "ret30": -15.3, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "SNOW", "name": "Snowflake Inc.", "price": 141.72, "ret30": -6.0, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "CRM", "name": "Salesforce, Inc.", "price": 180.92, "ret30": -2.8, "delta_band": "accelerating", "hype": false, "color": "Green"}], "divergence": false, "divergence_msg": ""}];
-const MAIN_SECTIONS = [{"title": "AI Investment Briefing - April 29, 2026", "body": "Global Market Context: Today, the market is operating under a Risk-On regime, characterized by increased investor appetite for growth and innovation. This environment is generally favorable for AI-related investments."}, {"title": "\ud83d\udd29 AI CHAIN BOTTLENECK", "body": "The current dominant constraint layer is MEMORY, indicated by a Red score of 55.37 for MU. This suggests that the supply of memory chips is struggling to keep pace with demand, creating a significant bottleneck. The emerging next constraint appears to be INFRASTRUCTURE, highlighted by the Orange score of 46.3 for SMCI. This sector is showing extreme growth acceleration (+111.2% delta) and a strong 30-day price increase (+15.2%), suggesting it's becoming a critical choke point. Most Critical Companies: 1.  MU (Micron Technology): With a score of 55.37 and a remarkable +64.2% growth acceleration delta, MU is the clear bottleneck in memory. Its performance is crucial for the entire AI supply chain, as memory is fundamental to compute performance. 2.  SMCI (Super Micro Computer): Scoring 46.3 with a massive +111.2% growth delta, SMCI represents the emerging constraint in infrastructure. Its rapid expansion in providing server and storage solutions is critical for scaling AI deployments, but its current growth rate indicates a potential supply-demand imbalance."}, {"title": "\ud83d\ude80 NEXT NVIDIA SIGNAL", "body": "The company showing the strongest Nvidia-like growth acceleration today is MU (Micron Technology), with an astonishing +64.2% delta. This surge, coupled with its strong overall score of 55.37 and a significant 30-day price increase of 51.9%, positions it as a potential leader in a similar vein to Nvidia's past performance in a rapidly expanding market. Bull Case: MU's extreme growth acceleration signals a massive surge in demand for its memory products, driven by AI compute needs. If this demand continues to outpace supply, MU could experience sustained price appreciation and market leadership, similar to Nvidia's trajectory in GPUs. The \"Red\" score also indicates market recognition of this underlying strength. Invalidation: *   A significant slowdown in MU's growth delta in subsequent reporting periods. *   A substantial correction in its 30-day price performance without a corresponding fundamental shift. *   Broader market sentiment shift away from memory solutions or the emergence of a disruptive technology that diminishes the need for current memory architectures."}, {"title": "\u26a0\ufe0f HYPE WARNINGS", "body": "We have two notable Orange signals: *   INFRA (SMCI): With a score of 46.3 and a growth delta of +111.2%, SMCI is exhibiting extremely rapid growth. While this indicates strong demand, the \"Orange\" color suggests a potential for hype or overvaluation if this growth rate is not sustainable or if market expectations outpace execution. The +111.2% delta is exceptionally high and warrants close monitoring. *   INFRA (VRT): While VRT has a \"Blue\" color and a negative delta of -10.2%, its inclusion in the \"Hype Warnings\" section is due to the \"Orange\" signal in the broader INFRA layer and its \"hype=True\" flag. This suggests that while VRT's immediate fundamentals may be cooling, there might have been recent speculative interest or an unsustainable narrative driving its price, which is now correcting. Additionally, WDC (Western Digital) in the MEMORY layer has a \"Blue\" color but a \"hype=True\" flag and a strong 30-day price increase of 55.7%. This divergence, coupled with a growth delta of +16%, suggests that while fundamentals might not fully support the current momentum, speculative interest or short-term demand could be driving its price."}];
-const ACTION = {"title": "\ud83d\udca1 ONE ACTION", "body": "Company: AMD (Advanced Micro Devices) Thesis: Invest in AMD with a focus on its strong fundamentals and compute acceleration. AMD boasts a solid score of 33.75 (Green), a robust growth delta of +9.3%, and a significant 30-day price increase of 65.4%. This combination indicates strong market demand for its products, particularly in the compute sector, which is experiencing a \"Risk-On\" regime. Its growth is substantial without the extreme volatility of the memory or infrastructure bottlenecks, suggesting a more sustainable growth profile. Risk: The primary risk is increased competition in the AI chip market, particularly from Nvidia and other emerging players. A slowdown in the overall demand for AI accelerators or a shift in architectural preferences could impact AMD's growth trajectory. Additionally, broader market corrections in a \"Risk-On\" environment could also affect its valuation."};
+const LAYERS = [{"id": "energy", "n1": "Energy", "n2": "resources", "score": 33.8, "color": "Green", "news_vel": 1, "momentum_label": "+mild", "delta_score": -0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "CEG", "name": "Constellation Energy Corporation", "price": 297.0, "ret30": 6.4, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "VST", "name": "Vistra Corp.", "price": 153.79, "ret30": 2.3, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "NEE", "name": "NextEra Energy, Inc.", "price": 94.17, "ret30": 1.4, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "PWR", "name": "Quanta Services, Inc.", "price": 628.6, "ret30": 14.5, "delta_band": "decelerating", "hype": false, "color": "Blue"}], "divergence": true, "divergence_msg": "News activity detected but fundamental acceleration is weak. The investment narrative exists but has not yet shown up in quarterly earnings. Watch for confirmation in next results before positioning."}, {"id": "compute", "n1": "Semicon", "n2": "hardware", "score": 37.1, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": -0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "NVDA", "name": "NVIDIA Corporation", "price": 209.25, "ret30": 20.0, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "AMD", "name": "Advanced Micro Devices, Inc.", "price": 337.11, "ret30": 65.7, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "AVGO", "name": "Broadcom Inc.", "price": 405.45, "ret30": 31.0, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "ASML", "name": "ASML Holding N.V.", "price": 1394.08, "ret30": 5.8, "delta_band": "decelerating", "hype": false, "color": "Blue"}], "divergence": false, "divergence_msg": ""}, {"id": "memory", "n1": "HBM memory", "n2": "storage", "score": 55.4, "color": "Red", "news_vel": 0, "momentum_label": "+strong", "delta_score": 0.0, "prev_color": "Red", "color_changed": false, "tickers": [{"sym": "MU", "name": "Micron Technology, Inc.", "price": 518.46, "ret30": 53.5, "delta_band": "accelerating", "hype": false, "color": "Red"}, {"sym": "WDC", "name": "Western Digital Corporation", "price": 412.76, "ret30": 52.6, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "AMAT", "name": "Applied Materials, Inc.", "price": 382.59, "ret30": 11.9, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "LRCX", "name": "Lam Research Corporation", "price": 248.75, "ret30": 16.4, "delta_band": "accelerating", "hype": true, "color": "Green"}], "divergence": false, "divergence_msg": ""}, {"id": "infra", "n1": "Data center", "n2": "infra", "score": 46.3, "color": "Orange", "news_vel": 0, "momentum_label": "+strong", "delta_score": 0.0, "prev_color": "Orange", "color_changed": false, "tickers": [{"sym": "VRT", "name": "Vertiv Holdings Co", "price": 306.18, "ret30": 22.2, "delta_band": "decelerating", "hype": true, "color": "Blue"}, {"sym": "ANET", "name": "Arista Networks, Inc.", "price": 168.68, "ret30": 37.4, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "EQIX", "name": "Equinix, Inc.", "price": 1089.07, "ret30": 11.1, "delta_band": "stable", "hype": false, "color": "Orange"}, {"sym": "SMCI", "name": "Super Micro Computer, Inc.", "price": 26.32, "ret30": 15.6, "delta_band": "accelerating", "hype": false, "color": "Orange"}], "divergence": false, "divergence_msg": ""}, {"id": "cloud", "n1": "Cloud", "n2": "hyperscalers", "score": 44.6, "color": "Orange", "news_vel": 0, "momentum_label": "+moderate", "delta_score": 6.5, "prev_color": "Green", "color_changed": true, "tickers": [{"sym": "MSFT", "name": "Microsoft Corporation", "price": 424.46, "ret30": 14.7, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "GOOGL", "name": "Alphabet Inc.", "price": 349.94, "ret30": 21.7, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "AMZN", "name": "Amazon.com, Inc.", "price": 263.04, "ret30": 26.3, "delta_band": "accelerating", "hype": false, "color": "Orange"}, {"sym": "META", "name": "Meta Platforms, Inc.", "price": 669.12, "ret30": 17.0, "delta_band": "stable", "hype": false, "color": "Green"}], "divergence": false, "divergence_msg": ""}, {"id": "software", "n1": "AI software", "n2": "apps", "score": 31.0, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": 0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "PLTR", "name": "Palantir Technologies Inc.", "price": 137.97, "ret30": -5.7, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "NOW", "name": "ServiceNow, Inc.", "price": 88.89, "ret30": -15.0, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "SNOW", "name": "Snowflake Inc.", "price": 141.22, "ret30": -6.4, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "CRM", "name": "Salesforce, Inc.", "price": 181.22, "ret30": -2.7, "delta_band": "accelerating", "hype": false, "color": "Green"}], "divergence": false, "divergence_msg": ""}];
+const MAIN_SECTIONS = [{"title": "Daily AI Investment Briefing: Thursday, April 30, 2026", "body": "Compiled by: Senior AI Investment Analyst"}, {"title": "\ud83c\udf0d MACRO REGIME", "body": "Current Regime: Risk-On Implication: The current \"Risk-On\" regime is supportive of growth-oriented technology sectors. Investors are exhibiting a greater appetite for risk, which generally benefits companies with strong growth prospects and higher valuations. This environment favors investments in areas like Compute and Memory, which are currently showing elevated activity."}, {"title": "\ud83d\udd29 AI CHAIN BOTTLENECK", "body": "Current Dominant Constraint Layer: Memory (55.37, Red) The Memory sector, particularly MU (55.37, Red, +64.2% delta), is the clear bottleneck. Its exceptional growth acceleration and Red score indicate intense demand and potentially supply constraints. Emerging Next Constraint: While not yet a bottleneck, Infra (46.3, Orange) is showing significant upward momentum, with SMCI (46.3, Orange, +111.2% delta) exhibiting explosive growth acceleration. This suggests that the demand for the underlying infrastructure supporting AI workloads is rapidly increasing and could become the next critical constraint if memory supply cannot keep pace. Most Critical Companies: 1.  MU (Micron Technology): Its staggering +64.2% growth acceleration delta in the Memory sector, coupled with a Red score, makes it the most critical component. If MU cannot scale production effectively to meet this surging demand, it will directly impede AI development and deployment across the chain. 2.  SMCI (Super Micro Computer): With an extraordinary +111.2% growth acceleration delta in Infra, SMCI is signaling massive demand for its AI-optimized server and infrastructure solutions. While not yet Red, this level of acceleration points to a rapid build-out of AI capacity, potentially outstripping supply in the near future."}, {"title": "\ud83d\ude80 NEXT NVIDIA SIGNAL", "body": "Strongest Nvidia-like Growth Acceleration: MU (Micron Technology) While NVDA itself shows strong growth (+16.4%), MU in the Memory sector is displaying an even more dramatic growth acceleration with a delta of +64.2%. This surge in memory demand is a fundamental prerequisite for the scaled deployment of AI models, similar to how compute power was the initial catalyst. Bull Case: MU's explosive growth acceleration indicates a significant and sustained demand shock for memory chips, likely driven by the insatiable appetite for AI training and inference hardware. This could lead to substantial revenue and profit growth, positioning MU to become a critical enabler of the next wave of AI advancement. Invalidation: A rapid and unexpected increase in memory supply (potentially from competitors or new fabrication capacity coming online faster than anticipated) could dilute the pricing power and growth trajectory for MU. Additionally, a broad slowdown in AI hardware deployment or a shift in architectural preferences away from the current memory-intensive designs could temper this growth."}, {"title": "\u26a0\ufe0f HYPE WARNINGS", "body": "*   LRCX (Lam Research) - Memory: Although in the Memory sector, LRCX has a Green score but a True hype flag with a +6.4% delta. This suggests that while there is fundamental growth, there might be an element of speculative interest that warrants monitoring. *   SMCI (Super Micro Computer) - Infra: SMCI's Orange score and a remarkable +111.2% growth delta, while indicating strong fundamentals, also flag a potential for extreme enthusiasm that could lead to volatility. The \"Orange\" signal suggests that while the growth is real, it's attracting significant attention that could overshoot. *   AMZN (Amazon) - Cloud: AMZN's Orange score and a strong +11.5% delta in Cloud, while positive, indicates it's a focus of investor attention. The combination of high growth and an Orange signal warrants a closer look for any signs of irrational exuberance within its valuation. *   EQIX (Equinix) - Infra: EQIX shows an Orange score with a +3.2% delta. This suggests it's an area attracting investor interest, but the growth delta is less explosive than others. The Orange signal here might be more about sector enthusiasm than extreme individual company performance."}];
+const ACTION = {"title": "\ud83d\udca1 ONE ACTION", "body": "Company: MU (Micron Technology) Thesis: Capitalize on the critical bottleneck in the Memory sector. MU's unprecedented +64.2% growth acceleration delta and Red score indicate a profound demand-supply imbalance that is fundamentally driving its current valuation and future potential. The current Risk-On regime further supports elevated multiples for companies enabling key technological advancements. Risk: A significant and rapid increase in global memory manufacturing capacity or a sharp deceleration in AI hardware deployment could lead to oversupply and price erosion, negating the current tailwinds. Therefore, continuous monitoring of supply-side metrics and AI adoption rates is crucial."};
 const HAS_YESTERDAY = true;
  
 const CC = {
@@ -346,6 +394,14 @@ function colorChangeBadge(l) {
                         border:0.5px solid ${prev.pill};margin-left:4px">
             was ${prev.lbl}
           </span>`;
+}
+ 
+function toggleAbout() {
+  const sec = document.getElementById("about-section");
+  const btn = document.getElementById("about-btn");
+  const open = sec.style.display === "none";
+  sec.style.display = open ? "block" : "none";
+  btn.textContent = open ? "✕ Close" : "ℹ About";
 }
  
 function buildBottleneckStrip() {

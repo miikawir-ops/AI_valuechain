@@ -412,8 +412,10 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .action-title{{font-size:14px;font-weight:500;color:#26215C;margin-bottom:6px}}
 .action-body{{font-size:12px;color:#3C3489;line-height:1.6}}
 .meth-trigger{{display:flex;justify-content:space-between;align-items:center;
-               cursor:pointer;padding:10px 14px;background:white;
-               border:0.5px solid #E0DFDC;border-radius:10px;margin-bottom:4px}}
+               cursor:pointer;padding:12px 16px;background:white;
+               border:1.5px solid #378ADD;border-radius:10px;margin-bottom:4px;
+               transition:background .15s}}
+.meth-trigger:hover{{background:#E6F1FB}}
 .meth-body{{display:none;background:white;border:0.5px solid #E0DFDC;
             border-radius:10px;padding:14px;margin-bottom:12px}}
 .meth-body.open{{display:block}}
@@ -559,9 +561,48 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
   </div>
   <div class="fetch-note" style="margin-bottom:8px">{fetch_note}</div>
-  <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-       border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
-       font-size:11px;color:#5F5E5A;margin-bottom:10px;flex-wrap:wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;
+       gap:8px;margin-bottom:6px;flex-wrap:wrap">
+    <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+         border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
+         font-size:11px;color:#5F5E5A;flex-wrap:wrap;flex:1">
+    </div>
+    <button onclick="toggleAbout()" style="font-size:11px;padding:6px 12px;
+            border:0.5px solid #E0DFDC;border-radius:6px;background:white;
+            color:#5F5E5A;cursor:pointer;white-space:nowrap;flex-shrink:0"
+            id="about-btn">ℹ About</button>
+  </div>
+  <div id="about-section" style="display:none;background:#F8F8F7;border:0.5px solid #E0DFDC;
+       border-radius:8px;padding:14px;margin-bottom:10px;font-size:12px;
+       color:#5F5E5A;line-height:1.7">
+    <div style="font-size:13px;font-weight:500;color:#1A1A1A;margin-bottom:10px">
+      About this dashboard
+    </div>
+    <p style="margin-bottom:8px">A daily signal dashboard tracking the AI supply chain — from power plants to software — identifying where investment opportunities and risks are building.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔴 Hot / Bottleneck</div>
+        <div style="font-size:11px">Current dominant constraint. Supply cannot meet demand. Highest conviction signal.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟠 Emerging</div>
+        <div style="font-size:11px">Building momentum. Becoming the next bottleneck, or price running ahead of fundamentals.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟢 Neutral / Healthy</div>
+        <div style="font-size:11px">Stable. No constraint pressure. Not a concern, not an urgent opportunity.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔵 Cooling</div>
+        <div style="font-size:11px">Previously hot layer. Constraint easing, growth decelerating.</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Warning flags</div>
+    <p style="margin-bottom:4px"><strong>⚡ Narrative ahead of fundamentals</strong> — Investment story exists in news but not yet confirmed in quarterly earnings. Wait for financial confirmation.</p>
+    <p style="margin-bottom:10px"><strong>🟠 Orange card</strong> — Stock price has moved significantly more than revenue growth justifies. Market may have already priced in the good news.</p>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
+    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — Reuters, CNBC, MarketWatch · AI analysis — Google Gemini 2.5</p>
+    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
   </div>
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
@@ -628,7 +669,14 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 </div>
  
-<div class="footer">AI Valuechain Agent · {datetime_str} · Not financial advice · Always do your own research</div>
+<div class="footer">
+    AI Valuechain Agent · {datetime_str} · Not financial advice · Always do your own research
+    <br>
+    <span style="font-size:10px;color:#B4B2A9;margin-top:4px;display:inline-block">
+      ⚔️ Powered by COBHC · Built in Espoo, Finland · 
+      <span style="font-style:italic">Are You Dead Yet?</span> — the market will tell you
+    </span>
+  </div>
  
 <script>
 const LAYERS = {layers_js};
@@ -665,6 +713,14 @@ function colorChangeBadge(l) {{
                         border:0.5px solid ${{prev.pill}};margin-left:4px">
             was ${{prev.lbl}}
           </span>`;
+}}
+ 
+function toggleAbout() {{
+  const sec = document.getElementById("about-section");
+  const btn = document.getElementById("about-btn");
+  const open = sec.style.display === "none";
+  sec.style.display = open ? "block" : "none";
+  btn.textContent = open ? "✕ Close" : "ℹ About";
 }}
  
 function buildBottleneckStrip() {{
