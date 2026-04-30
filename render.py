@@ -412,10 +412,10 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .action-title{{font-size:14px;font-weight:500;color:#26215C;margin-bottom:6px}}
 .action-body{{font-size:12px;color:#3C3489;line-height:1.6}}
 .meth-trigger{{display:flex;justify-content:space-between;align-items:center;
-               cursor:pointer;padding:12px 16px;background:white;
-               border:1.5px solid #378ADD;border-radius:10px;margin-bottom:4px;
-               transition:background .15s}}
-.meth-trigger:hover{{background:#E6F1FB}}
+               cursor:pointer;padding:14px 16px;background:#E6F1FB;
+               border:2px solid #378ADD;border-radius:10px;margin-bottom:4px;
+               transition:background .15s;box-shadow:0 2px 6px rgba(55,138,221,.15)}}
+.meth-trigger:hover{{background:#D4E8F7}}
 .meth-body{{display:none;background:white;border:0.5px solid #E0DFDC;
             border-radius:10px;padding:14px;margin-bottom:12px}}
 .meth-body.open{{display:block}}
@@ -442,7 +442,12 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
               font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,.3)}}
 .div-tooltip::after{{content:"";position:absolute;top:100%;left:12px;
                      border:5px solid transparent;border-top-color:#1A1A1A}}
-.footer{{font-size:10px;color:#B4B2A9;text-align:center;margin-top:8px;padding:0 16px}}
+.footer{{font-size:12px;color:#5F5E5A;text-align:center;margin-top:16px;
+          padding:20px 16px;border-top:2px solid #E0DFDC;background:white;
+          border-radius:8px;line-height:2.0;box-shadow:0 2px 8px rgba(0,0,0,.06)}}
+.footer-cobhc{{font-size:12px;color:#1A1A1A;font-weight:500;margin-top:6px;
+              letter-spacing:.02em}}
+.footer-cobhc span{{color:#E24B4A;font-style:italic}}
 .pdf-btn{{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);
           border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:500;
           padding:5px 14px;border-radius:20px;cursor:pointer;transition:background .15s}}
@@ -567,10 +572,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
          border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
          font-size:11px;color:#5F5E5A;flex-wrap:wrap;flex:1">
     </div>
-    <button onclick="toggleAbout()" style="font-size:11px;padding:6px 12px;
-            border:0.5px solid #E0DFDC;border-radius:6px;background:white;
-            color:#5F5E5A;cursor:pointer;white-space:nowrap;flex-shrink:0"
-            id="about-btn">ℹ About</button>
+    <button onclick="toggleAbout()" style="font-size:12px;font-weight:500;
+            padding:8px 16px;border:1.5px solid #378ADD;border-radius:6px;
+            background:#E6F1FB;color:#0C447C;cursor:pointer;white-space:nowrap;
+            flex-shrink:0;display:flex;align-items:center;gap:6px"
+            id="about-btn">ℹ️ About this dashboard</button>
   </div>
   <div id="about-section" style="display:none;background:#F8F8F7;border:0.5px solid #E0DFDC;
        border-radius:8px;padding:14px;margin-bottom:10px;font-size:12px;
@@ -670,12 +676,14 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
  
 <div class="footer">
-    AI Valuechain Agent · {datetime_str} · Not financial advice · Always do your own research
-    <br>
-    <span style="font-size:10px;color:#B4B2A9;margin-top:4px;display:inline-block">
+    <div>AI Valuechain Agent · {datetime_str}</div>
+    <div style="font-size:11px;color:#888780;margin-top:2px">
+      Not financial advice · Always do your own research · Data may be up to 90 days old
+    </div>
+    <div class="footer-cobhc">
       ⚔️ Powered by COBHC · Built in Espoo, Finland · 
-      <span style="font-style:italic">Are You Dead Yet?</span> — the market will tell you
-    </span>
+      <span>Are You Dead Yet?</span> — the market will tell you 🤘
+    </div>
   </div>
  
 <script>
@@ -720,7 +728,7 @@ function toggleAbout() {{
   const btn = document.getElementById("about-btn");
   const open = sec.style.display === "none";
   sec.style.display = open ? "block" : "none";
-  btn.textContent = open ? "✕ Close" : "ℹ About";
+  btn.innerHTML = open ? "✕ Close" : "ℹ️ About this dashboard";
 }}
  
 function buildBottleneckStrip() {{
