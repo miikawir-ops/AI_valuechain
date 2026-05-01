@@ -118,5 +118,35 @@
         "color": "Green"
       }
     }
+  },
+  {
+    "date": "2026-05-01",
+    "time": "08:08",
+    "scores": {
+      "energy": {
+        "score": 40.72,
+        "color": "Blue"
+      },
+      "compute": {
+        "score": 38.61,
+        "color": "Green"
+      },
+      "memory": {
+        "score": 55.37,
+        "color": "Red"
+      },
+      "infra": {
+        "score": 47.8,
+        "color": "Orange"
+      },
+      "cloud": {
+        "score": 56.6,
+        "color": "Red"
+      },
+      "software": {
+        "score": 31.5,
+        "color": "Green"
+      }
+    }
   }
 ]
