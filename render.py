@@ -494,7 +494,6 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .radar-conf-MEDIUM{{color:#633806;font-weight:500}}
 .radar-conf-LOW{{color:#888780}}
 .radar-traj{{font-size:12px;letter-spacing:2px}}
-.footer{{font-size:12px;color:#5F5E5A
 .ticker-band{{background:#0C1624;border-bottom:0.5px solid #185FA5;
               overflow:hidden;padding:5px 0}}
 .ticker-scroll{{display:flex;white-space:nowrap;animation:ticker-move 28s linear infinite}}
@@ -1125,38 +1124,3 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

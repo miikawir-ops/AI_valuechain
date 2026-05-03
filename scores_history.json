@@ -151,10 +151,10 @@
   },
   {
     "date": "2026-05-03",
-    "time": "22:01",
+    "time": "22:08",
     "scores": {
       "energy": {
-        "score": 32.31,
+        "score": 33.81,
         "color": "Green"
       },
       "compute": {
