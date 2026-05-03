@@ -287,10 +287,49 @@ def _analysis_sections(analysis: str) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
  
+def _radar_js_data(radar_data: list) -> str:
+    """Build JS-safe radar data — strips internal scoring details."""
+    out = []
+    for r in radar_data[:5]:
+        accel = r.get("accel", {})
+        quarters = r.get("growth_quarters", [])
+        # Show growth trajectory as directional labels only
+        traj = []
+        for i, g in enumerate(quarters[:4]):
+            if g is None:
+                traj.append("?")
+            elif g > 50:
+                traj.append("🔥")
+            elif g > 20:
+                traj.append("↑")
+            elif g > 0:
+                traj.append("→")
+            else:
+                traj.append("↓")
+ 
+        out.append({
+            "ticker":      r.get("ticker", "?"),
+            "name":        r.get("name", "?"),
+            "layer":       r.get("layer", "?"),
+            "score":       r.get("score", 0),
+            "ret_1mo":     r.get("ret_1mo", 0),
+            "ret_3mo":     r.get("ret_3mo", 0),
+            "gross_margin":r.get("gross_margin"),
+            "analyst_count":r.get("analyst_count", 0),
+            "confidence":  accel.get("confidence", "LOW"),
+            "consecutive": accel.get("consecutive_accel", 0),
+            "latest_growth": accel.get("latest_growth"),
+            "trajectory":  traj,  # emoji trajectory — not exact numbers
+        })
+    return json.dumps(out)
+ 
+ 
 def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
-                       market_data: dict = None) -> str:
+                       market_data: dict = None, radar_data: list = None) -> str:
     if market_data is None:
         market_data = {}
+    if radar_data is None:
+        radar_data = []
  
     # Save today's scores for tomorrow's comparison
     save_scores_history(scored_data)
@@ -314,6 +353,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
         reg_lbl, reg_bg, reg_bd, reg_fg = "Market regime: Risk-On","#EAF3DE","#639922","#27500A"
  
     layers_js           = _chain_js_data(scored_data, market_data, yesterday)
+    radar_js            = _radar_js_data(radar_data)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday       = "true" if yesterday else "false"
  
@@ -442,9 +482,36 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
               font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,.3)}}
 .div-tooltip::after{{content:"";position:absolute;top:100%;left:12px;
                      border:5px solid transparent;border-top-color:#1A1A1A}}
+.radar-card{{background:white;border:0.5px solid #E0DFDC;border-radius:8px;
+             padding:10px 12px;display:flex;flex-direction:column;gap:6px}}
+.radar-rank{{font-size:10px;font-weight:500;color:#888780}}
+.radar-sym{{font-size:14px;font-weight:500;color:#1A1A1A}}
+.radar-name{{font-size:10px;color:#888780;margin-bottom:2px}}
+.radar-bar-wrap{{height:4px;background:#F1EFE8;border-radius:2px;margin:4px 0}}
+.radar-bar{{height:4px;border-radius:2px;background:linear-gradient(90deg,#534AB7,#E24B4A)}}
+.radar-meta{{display:flex;gap:8px;flex-wrap:wrap;font-size:10px;color:#5F5E5A}}
+.radar-conf-HIGH{{color:#27500A;font-weight:500}}
+.radar-conf-MEDIUM{{color:#633806;font-weight:500}}
+.radar-conf-LOW{{color:#888780}}
+.radar-traj{{font-size:12px;letter-spacing:2px}}
+.footer{{font-size:12px;color:#5F5E5A
+.ticker-band{{background:#0C1624;border-bottom:0.5px solid #185FA5;
+              overflow:hidden;padding:5px 0}}
+.ticker-scroll{{display:flex;white-space:nowrap;animation:ticker-move 28s linear infinite}}
+.ticker-scroll:hover{{animation-play-state:paused}}
+.t-item{{display:inline-flex;align-items:center;gap:6px;padding:0 18px;
+         font-size:11px;color:#85B7EB;border-right:0.5px solid #1A3A5C;flex-shrink:0}}
+.t-sym{{color:white;font-weight:500}}
+.t-up{{color:#97C459}}.t-dn{{color:#E24B4A}}.t-neu{{color:#888780}}
+@keyframes ticker-move{{0%{{transform:translateX(0)}}100%{{transform:translateX(-50%)}}}}
+.signal-bars{{display:flex;align-items:flex-end;justify-content:center;
+              gap:3px;height:28px;margin-top:12px}}
+.sbar{{width:4px;border-radius:2px;animation:sbar-pulse 1.4s ease-in-out infinite}}
+@keyframes sbar-pulse{{0%,100%{{opacity:.2;transform:scaleY(.35)}}50%{{opacity:1;transform:scaleY(1)}}}}
 .footer{{font-size:12px;color:#5F5E5A;text-align:center;margin-top:16px;
-          padding:20px 16px;border-top:2px solid #E0DFDC;background:white;
-          border-radius:8px;line-height:2.0;box-shadow:0 2px 8px rgba(0,0,0,.06)}}
+         padding:20px 16px;border-top:2px solid #D3D1C7;
+         background:#F1EFE8;border-radius:8px;line-height:2.0;
+         box-shadow:0 2px 8px rgba(0,0,0,.06)}}
 .footer-cobhc{{font-size:12px;color:#1A1A1A;font-weight:500;margin-top:6px;
               letter-spacing:.02em}}
 .footer-cobhc span{{color:#E24B4A;font-style:italic}}
@@ -497,6 +564,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .reg-pill{{font-size:9px;padding:3px 8px}}
   .ex-grid{{grid-template-columns:1fr 1fr}}
   .hero-top{{gap:6px}}
+}}
+@media(max-width:768px){{
+  #radar-grid{{grid-template-columns:repeat(2,1fr)!important}}
 }}
 @media(max-width:380px){{
   .hm-grid{{grid-template-columns:1fr 1fr}}
@@ -553,6 +623,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
  
+<div class="ticker-band">
+  <div class="ticker-scroll" id="top-ticker"></div>
+</div>
 <div class="body">
  
 <div class="card">
@@ -623,6 +696,17 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="as-wrap" id="analysis"></div>
 </div>
  
+<div class="card" id="radar-card" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <div class="card-label" style="margin-bottom:0">🚀 Next Nvidia Radar — Top 5 today</div>
+    <span style="font-size:10px;color:#888780" id="radar-count">Multi-quarter acceleration</span>
+  </div>
+  <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">
+    Ranked by sustained revenue acceleration across multiple quarters — not just latest growth.
+    Low analyst coverage = earlier in discovery cycle.
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
+</div>
 <div class="action-card" id="action"></div>
  
 <div class="meth-trigger" onclick="toggleMeth()">
@@ -684,6 +768,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       ⚔️ Powered by COBHC · Built in Espoo, Finland · 
       <span>Are You Dead Yet?</span> — the market will tell you 🤘
     </div>
+    <div class="signal-bars" id="signal-bars"></div>
   </div>
  
 <script>
@@ -691,6 +776,7 @@ const LAYERS = {layers_js};
 const MAIN_SECTIONS = {main_sections_js};
 const ACTION = {action_js};
 const HAS_YESTERDAY = {has_yesterday};
+const RADAR = {radar_js};
  
 const CC = {{
   Red:    {{bg:"#FCEBEB",border:"#E24B4A",pill:"#E24B4A",pft:"#FCEBEB",lbl:"Hot"}},
@@ -882,6 +968,89 @@ function buildAnalysis() {{
   }}
 }}
  
+function buildRadar() {{
+  const grid = document.getElementById("radar-grid");
+  const card = document.getElementById("radar-card");
+  const count = document.getElementById("radar-count");
+  if (!RADAR || RADAR.length === 0) {{ card.style.display="none"; return; }}
+  card.style.display = "block";
+  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.length}} of 33 companies scored`;
+ 
+  const CONF_COLORS = {{HIGH:"#27500A",MEDIUM:"#854F0B",LOW:"#888780"}};
+  const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱"}};
+ 
+  grid.innerHTML = RADAR.map((r, i) => {{
+    const pct   = Math.min(100, r.score);
+    const conf  = r.confidence || "LOW";
+    const traj  = (r.trajectory || []).join(" ");
+    const ret1  = r.ret_1mo >= 0 ? `+${{r.ret_1mo}}%` : `${{r.ret_1mo}}%`;
+    const retCol = r.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
+    const gm    = r.gross_margin ? `GM ${{r.gross_margin}}%` : "";
+    const ac    = r.analyst_count ? `${{r.analyst_count}} analysts` : "";
+    const lg    = r.latest_growth ? `Rev ${{r.latest_growth > 0 ? "+" : ""}}${{r.latest_growth?.toFixed(0)}}%` : "";
+    const cons  = r.consecutive > 0 ? `${{r.consecutive}}Q accel` : "No accel";
+ 
+    return `<div class="radar-card">
+      <div class="radar-rank">#${{i+1}} ${{LAYER_SHORT[r.layer] || ""}} ${{r.layer}}</div>
+      <div class="radar-sym">${{r.ticker}}</div>
+      <div class="radar-name">${{r.name}}</div>
+      <div class="radar-traj">${{traj}}</div>
+      <div class="radar-bar-wrap">
+        <div class="radar-bar" style="width:${{pct}}%"></div>
+      </div>
+      <div class="radar-meta">
+        <span class="radar-conf-${{conf}}">${{conf}} confidence</span>
+        <span>${{cons}}</span>
+      </div>
+      <div class="radar-meta">
+        <span style="color:${{retCol}}">${{ret1}} (1mo)</span>
+        ${{lg ? `<span>${{lg}}</span>` : ""}}
+        ${{gm ? `<span>${{gm}}</span>` : ""}}
+      </div>
+      <div style="margin-top:4px">
+        <button onclick="sendPrompt('Deep dive on ${{r.ticker}} (${{r.name}}) as a potential Next Nvidia play. Analyse their revenue acceleration, gross margin trend, competitive position and what would confirm or invalidate the bull case.')"
+                style="font-size:10px;padding:3px 8px;border:0.5px solid #E0DFDC;
+                       border-radius:4px;background:white;cursor:pointer;color:#1A1A1A">
+          Deep dive ↗
+        </button>
+      </div>
+    </div>`;
+  }}).join("");
+}}
+ 
+function buildTopTicker(layers) {{
+  const el = document.getElementById("top-ticker");
+  if (!el) return;
+  const CC = {{Red:"Hot",Orange:"Emerging",Green:"Neutral",Blue:"Cooling"}};
+  const items = [];
+  layers.forEach(l => {{
+    l.tickers.slice(0,3).forEach(t => {{
+      const dir = t.ret30 > 1 ? "up" : t.ret30 < -1 ? "dn" : "neu";
+      const col = dir==="up"?"t-up":dir==="dn"?"t-dn":"t-neu";
+      items.push(`<span class="t-item">
+        <span class="t-sym">${{t.sym}}</span>
+        <span>${{l.n1}} · ${{CC[l.color]||"Neutral"}}</span>
+        <span class="${{col}}">${{t.ret30>=0?"+":""}}${{t.ret30.toFixed(1)}}%</span>
+      </span>`);
+    }});
+  }});
+  items.push(`<span class="t-item"><span class="t-sym">VIX</span><span>Macro · ${{document.getElementById("reg-pill")?.textContent||""}}</span></span>`);
+  const doubled = [...items,...items].join("");
+  el.innerHTML = doubled;
+}}
+ 
+function buildSignalBars() {{
+  const wrap = document.getElementById("signal-bars");
+  if (!wrap) return;
+  const heights = [8,14,22,28,24,18,10,14,20,28,22,16,8,12,20,26,28,18,10,8];
+  const colors  = ["#378ADD","#378ADD","#534AB7","#534AB7","#E24B4A","#E24B4A",
+                   "#534AB7","#534AB7","#378ADD","#378ADD","#534AB7","#E24B4A",
+                   "#E24B4A","#534AB7","#378ADD","#378ADD","#534AB7","#534AB7","#E24B4A","#378ADD"];
+  wrap.innerHTML = heights.map((h,i) =>
+    `<div class="sbar" style="height:${{h}}px;background:${{colors[i]}};animation-delay:${{(i*0.07).toFixed(2)}}s"></div>`
+  ).join("");
+}}
+ 
 function toggleMeth() {{
   const b = document.getElementById("meth-body");
   const a = document.getElementById("marrow");
@@ -889,7 +1058,7 @@ function toggleMeth() {{
   a.textContent = open ? "▴" : "▾";
 }}
  
-buildChain(); buildExpand(); buildHeat(); buildAnalysis();
+buildChain(); buildExpand(); buildHeat(); buildAnalysis(); buildRadar(); buildTopTicker(LAYERS); buildSignalBars();
 </script>
 </body>
 </html>"""
@@ -956,3 +1125,38 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

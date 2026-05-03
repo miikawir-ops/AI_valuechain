@@ -95,11 +95,11 @@ def stage_analyze(scored_data: dict, market_data: dict) -> str:
         return f"Analysis unavailable — error: {e}"
  
  
-def stage_render(scored_data: dict, analysis: str, macro_data: dict, market_data: dict = None):
+def stage_render(scored_data: dict, analysis: str, macro_data: dict, market_data: dict = None, radar_data: list = None):
     log.info("[4/4] Rendering and delivering report...")
     try:
         from render import generate_dashboard, deliver
-        html_path = generate_dashboard(scored_data, analysis, macro_data, market_data or {})
+        html_path = generate_dashboard(scored_data, analysis, macro_data, market_data or {}, radar_data or [])
         deliver(analysis, html_path)
         log.info(f"  Dashboard saved: {html_path}")
     except Exception as e:
@@ -127,8 +127,30 @@ def run_full_pipeline(score_only: bool = False):
              for k, v in scored_data.items()}, indent=2))
         return
  
+    # Stage 2.5 — Next Nvidia Radar
+    log.info("[2.5/4] Running Next Nvidia Radar...")
+    try:
+        from next_nvidia import run_radar, load_cached_radar
+        radar_data = load_cached_radar()
+        if not radar_data:
+            radar_data = run_radar(verbose=False)
+        log.info(f"  Radar complete — top pick: {radar_data[0]['ticker'] if radar_data else 'none'}")
+    except Exception as e:
+        log.warning(f"  Radar failed: {e}")
+        radar_data = []
+ 
     analysis = stage_analyze(scored_data, market_data)
-    stage_render(scored_data, analysis, macro_data, market_data)
+    stage_render(scored_data, analysis, macro_data, market_data, radar_data)
+ 
+    # Auto-publish to GitHub Pages
+    try:
+        import importlib.util, sys
+        spec = importlib.util.spec_from_file_location("publish_mod", "publish.py")
+        mod  = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.publish()
+    except Exception as e:
+        log.warning(f"  Publish skipped: {e}")
  
     elapsed = (datetime.datetime.now() - start).seconds
     log.info(f"\n✅ Pipeline complete in {elapsed}s")
@@ -160,20 +182,3 @@ if __name__ == "__main__":
         while True:
             schedule.run_pending()
             time.sleep(30)
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
