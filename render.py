@@ -368,7 +368,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       background:#F8F8F7;color:#1A1A1A;min-height:100vh;padding:0 0 32px}}
 .hero{{background:linear-gradient(135deg,#0C447C 0%,#185FA5 40%,#534AB7 75%,#3C3489 100%);
-       padding:24px 24px 32px;position:relative;overflow:hidden}}
+       padding:24px 24px 20px;position:relative;overflow:hidden}}
 .hero-grid{{position:absolute;inset:0;opacity:.07;
             background-image:linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),
             linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px);
@@ -394,7 +394,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .hm-lbl{{font-size:10px;color:#85B7EB;margin-bottom:3px}}
 .hm-val{{font-size:18px;font-weight:500;color:#fff}}
 .hm-note{{font-size:10px;margin-top:2px}}
-.body{{padding:0 16px;margin-top:-16px;position:relative}}
+.body{{padding:0 16px;margin-top:0;position:relative}}
 .card{{background:white;border:0.5px solid #E0DFDC;border-radius:12px;
        padding:16px;margin-bottom:12px}}
 .card-label{{font-size:10px;font-weight:500;color:#888780;
@@ -495,7 +495,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .radar-conf-LOW{{color:#888780}}
 .radar-traj{{font-size:12px;letter-spacing:2px}}
 .ticker-band{{background:#0C1624;border-bottom:0.5px solid #185FA5;
-              overflow:hidden;padding:5px 0}}
+              overflow:hidden;padding:5px 0;position:relative;z-index:10}}
 .ticker-scroll{{display:flex;white-space:nowrap;animation:ticker-move 28s linear infinite}}
 .ticker-scroll:hover{{animation-play-state:paused}}
 .t-item{{display:inline-flex;align-items:center;gap:6px;padding:0 18px;
