@@ -271,15 +271,15 @@
   },
   {
     "date": "2026-05-08",
-    "time": "12:43",
+    "time": "13:49",
     "scores": {
       "energy": {
-        "score": 33.81,
+        "score": 35.88,
         "color": "Green"
       },
       "compute": {
-        "score": 38.36,
-        "color": "Green"
+        "score": 46.39,
+        "color": "Orange"
       },
       "memory": {
         "score": 57.24,
@@ -294,8 +294,12 @@
         "color": "Green"
       },
       "software": {
-        "score": 31.87,
-        "color": "Green"
+        "score": 46.1,
+        "color": "Blue"
+      },
+      "security": {
+        "score": 34.52,
+        "color": "Blue"
       }
     }
   }
