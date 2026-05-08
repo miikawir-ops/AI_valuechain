@@ -30,25 +30,27 @@ log = logging.getLogger(__name__)
  
 AI_CHAIN_LAYERS = {
     "energy": {
-        "name": "Energy & Resources",
-        "tickers": ["CEG", "VST", "NEE", "PWR"],
+        "name": "Energy & Power Infrastructure",
+        "tickers": ["CEG", "VST", "PWR", "GEV", "ETN"],
         "keywords": ["nuclear", "power", "grid", "electricity", "energy", "ppa",
                      "megawatt", "gigawatt", "data center power", "utility",
-                     "renewable", "solar", "wind farm", "power plant", "natural gas",
-                     "constellation", "vistra", "nextera", "quanta", "uranium",
-                     "power demand", "energy crisis", "blackout", "capacity",
+                     "transformer", "switchgear", "power equipment", "power delivery",
+                     "constellation", "vistra", "quanta", "uranium", "GE vernova",
+                     "eaton", "power demand", "energy crisis", "blackout", "capacity",
                      "clean energy", "nuclear power", "power purchase", "energy storage",
                      "grid expansion", "electricity demand", "AI power",
-                     "power infrastructure", "CEG", "VST", "NEE", "PWR"]
+                     "power infrastructure", "CEG", "VST", "GEV", "ETN", "PWR"]
     },
     "compute": {
-        "name": "Semiconductors & Hardware",
-        "tickers": ["NVDA", "AMD", "AVGO", "ASML", "TSM"],
+        "name": "Semiconductors & Chip Design",
+        "tickers": ["NVDA", "AMD", "AVGO", "ASML", "TSM", "ARM", "CDNS"],
         "keywords": ["gpu", "chip", "semiconductor", "compute", "H100", "H200",
                      "inference", "training", "custom silicon", "ASIC",
                      "nvidia", "AMD chip", "broadcom", "TSMC", "ASML",
                      "chip shortage", "wafer", "foundry", "fab", "AI chip",
-                     "graphics card", "processor", "silicon"]
+                     "graphics card", "processor", "silicon", "ARM architecture",
+                     "chip design", "EDA", "cadence", "IP licensing",
+                     "custom chip", "chip IP", "silicon design"]
     },
     "memory": {
         "name": "HBM Memory & Storage",
@@ -59,13 +61,16 @@ AI_CHAIN_LAYERS = {
                      "high bandwidth", "memory supply", "DRAM price", "memory market"]
     },
     "infra": {
-        "name": "Data Center Infrastructure",
-        "tickers": ["VRT", "ANET", "EQIX", "SMCI"],
+        "name": "Data Center & Networking",
+        "tickers": ["VRT", "ANET", "EQIX", "SMCI", "CSCO", "CIEN"],
         "keywords": ["liquid cooling", "data center", "networking", "cooling",
                      "rack", "interconnect", "InfiniBand", "ethernet",
                      "server", "vertiv", "arista", "equinix", "supermicro",
                      "data centre", "colocation", "hyperscale", "AI infrastructure",
-                     "compute infrastructure", "GPU cluster", "AI server"]
+                     "compute infrastructure", "GPU cluster", "AI server",
+                     "optical networking", "bandwidth", "cisco", "ciena",
+                     "optical transceiver", "fiber", "wavelength", "switching",
+                     "network bandwidth", "data center networking"]
     },
     "cloud": {
         "name": "Cloud & Hyperscalers",
@@ -74,10 +79,22 @@ AI_CHAIN_LAYERS = {
                      "AI investment", "data center spending", "infrastructure"]
     },
     "software": {
-        "name": "AI Software & Applications",
-        "tickers": ["PLTR", "NOW", "SNOW", "CRM"],
+        "name": "AI Software & Observability",
+        "tickers": ["PLTR", "NOW", "SNOW", "CRM", "DDOG"],
         "keywords": ["AI software", "SaaS", "AI agent", "enterprise AI",
-                     "AI platform", "automation", "generative AI"]
+                     "AI platform", "automation", "generative AI",
+                     "observability", "monitoring", "datadog", "AI monitoring",
+                     "model ops", "ML ops", "AI deployment", "AI operations"]
+     },
+    "security": {
+        "name": "AI Security & Governance",
+        "tickers": ["CRWD", "PANW", "S", "OKTA"],
+        "keywords": ["AI security", "cybersecurity", "data protection",
+                     "model security", "AI governance", "zero trust",
+                     "crowdstrike", "palo alto", "sentinelone",
+                     "threat detection", "AI threat", "model protection",
+                     "security AI", "AI compliance", "data privacy",
+                     "incident response", "vulnerability", "AI risk"]
     },
 }
  
