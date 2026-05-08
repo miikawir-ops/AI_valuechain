@@ -85,11 +85,22 @@ Be data-driven. Reference specific scores, deltas, and tickers from the data.
  
  
 def analyze_with_gemini(prompt: str) -> str:
+    import time
     from google import genai
-    client   = genai.Client(api_key=GEMINI_API_KEY)
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-    log.info(f"  Gemini analysis complete ({GEMINI_MODEL})")
-    return response.text
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    # Retry up to 3 times with backoff for 503 errors
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+            log.info(f"  Gemini analysis complete ({GEMINI_MODEL})")
+            return response.text
+        except Exception as e:
+            if "503" in str(e) and attempt < 2:
+                wait = (attempt + 1) * 15
+                log.warning(f"  Gemini 503 — retrying in {wait}s (attempt {attempt+1}/3)...")
+                time.sleep(wait)
+            else:
+                raise
  
  
 def analyze_with_ollama(prompt: str) -> str:
@@ -120,4 +131,3 @@ def run_analysis(scored_data: dict, market_data: dict) -> str:
         except Exception as ollama_err:
             log.error(f"  Both engines failed.")
             return f"Analysis unavailable.\nGemini: {gemini_err}\nOllama: {ollama_err}"
- 
