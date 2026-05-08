@@ -42,12 +42,13 @@ CC = {
 }
  
 LAYER_NAMES = {
-    "energy":   ("Energy",   "resources"),
-    "compute":  ("Semicon",  "hardware"),
-    "memory":   ("HBM memory","storage"),
-    "infra":    ("Data center","infra"),
-    "cloud":    ("Cloud",    "hyperscalers"),
-    "software": ("AI software","apps"),
+    "energy":   ("Energy",     "power infra"),
+    "compute":  ("Semicon",    "& chip design"),
+    "memory":   ("HBM memory", "storage"),
+    "infra":    ("Data center", "networking"),
+    "cloud":    ("Cloud",      "hyperscalers"),
+    "software": ("AI software", "& observability"),
+    "security": ("AI security", "& governance"),
 }
  
 DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
@@ -287,6 +288,28 @@ def _analysis_sections(analysis: str) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
  
+def _history_js_data(history: list, scored_data: dict) -> str:
+    import datetime
+    layer_ids = list(scored_data.keys())
+    date_map = {e["date"]: e.get("scores", {}) for e in history}
+    today = datetime.datetime.now().date()
+    days_out = []
+    for i in range(89, -1, -1):
+        d = today - datetime.timedelta(days=i)
+        d_str = d.strftime("%Y-%m-%d")
+        day_data = {
+            "date": d_str,
+            "label": d.strftime("%b %d"),
+            "short": d.strftime("%d"),
+            "layers": {}
+        }
+        scores = date_map.get(d_str, {})
+        for lid in layer_ids:
+            day_data["layers"][lid] = scores[lid].get("color", "none") if lid in scores else "none"
+        days_out.append(day_data)
+    return json.dumps({"layer_ids": layer_ids, "days": days_out})
+ 
+ 
 def _radar_js_data(radar_data: list) -> str:
     """Build JS-safe radar data — strips internal scoring details."""
     out = []
@@ -335,6 +358,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
     save_scores_history(scored_data)
  
     yesterday    = get_yesterday_scores(scored_data)
+    full_history = load_scores_history()
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
@@ -354,6 +378,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
  
     layers_js           = _chain_js_data(scored_data, market_data, yesterday)
     radar_js            = _radar_js_data(radar_data)
+    history_js          = _history_js_data(full_history, scored_data)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday       = "true" if yesterday else "false"
  
@@ -685,7 +710,14 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
   <div style="margin-top:14px">
-    <div style="font-size:10px;font-weight:500;color:#888780;margin-bottom:8px">7-day heat trail</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:500;color:#888780">Heat trail</div>
+      <div style="display:flex;gap:4px">
+        <button onclick="setHeatDays(7)"  id="hbtn-7"  class="hbtn active-hbtn">7d</button>
+        <button onclick="setHeatDays(30)" id="hbtn-30" class="hbtn">30d</button>
+        <button onclick="setHeatDays(90)" id="hbtn-90" class="hbtn">90d</button>
+      </div>
+    </div>
     <div class="heat-grid" id="heat"></div>
   </div>
 </div>
@@ -776,6 +808,7 @@ const MAIN_SECTIONS = {main_sections_js};
 const ACTION = {action_js};
 const HAS_YESTERDAY = {has_yesterday};
 const RADAR = {radar_js};
+const HISTORY = {history_js};
  
 const CC = {{
   Red:    {{bg:"#FCEBEB",border:"#E24B4A",pill:"#E24B4A",pft:"#FCEBEB",lbl:"Hot"}},
@@ -923,29 +956,59 @@ function buildExpand() {{
   </div>`;
 }}
  
+function colorFromName(c) {{
+  return {{Red:"#E24B4A",Orange:"#EF9F27",Green:"#97C459",Blue:"#B5D4F4"}}[c] || "#E8E6DF";
+}}
+ 
+let currentHeatDays = 7;
+ 
+function setHeatDays(days) {{
+  currentHeatDays = days;
+  [7,30,90].forEach(d => {{
+    const btn = document.getElementById("hbtn-"+d);
+    if(btn) btn.className = "hbtn" + (d===days ? " active-hbtn" : "");
+  }});
+  buildHeat();
+}}
+ 
 function buildHeat() {{
   const g = document.getElementById("heat");
+  if(!g) return;
   g.innerHTML = "";
-  const addEl = (cls, txt, bg) => {{
+  const days  = currentHeatDays;
+  const slice = HISTORY.days.slice(HISTORY.days.length - days);
+  const lblW  = "56px";
+  const cellMin = days<=7?"32px":days<=30?"12px":"6px";
+  g.style.gridTemplateColumns = `${{lblW}} repeat(${{days}}, minmax(${{cellMin}},1fr))`;
+ 
+  // Header
+  g.appendChild(document.createElement("div"));
+  const showEvery = days<=7?1:days<=30?5:15;
+  slice.forEach((day,i) => {{
     const d = document.createElement("div");
-    d.className = cls;
-    if (bg) d.style.background = bg;
-    if (txt) d.textContent = txt;
+    d.className = "heat-day";
+    d.style.fontSize = days>30?"7px":"9px";
+    d.textContent = i%showEvery===0 ? day.short : "";
     g.appendChild(d);
-  }};
-  addEl("heat-lbl", "");
-  DAYS.forEach(d => addEl("heat-day", d));
-  const rng = s => {{ let x = s; return () => {{ x = Math.sin(x) * 10000; return x - Math.floor(x); }}; }};
-  const heatCol = v => v > 55 ? "#E24B4A" : v >= 40 ? "#EF9F27" : v > 20 ? "#97C459" : v > 5 ? "#B5D4F4" : "#E0DFDC";
-  LAYERS.forEach((l, li) => {{
-    const r = rng(li * 7 + 42);
-    addEl("heat-lbl", l.n1);
-    for (let d = 0; d < 7; d++) {{
-      const v = Math.max(5, Math.min(95, l.score + (r() * 20 - 10)));
-      addEl("heat-cell", "", heatCol(v));
-    }}
+  }});
+ 
+  // Rows
+  LAYERS.forEach(l => {{
+    const lbl = document.createElement("div");
+    lbl.className = "heat-lbl";
+    lbl.textContent = l.n1;
+    g.appendChild(lbl);
+    slice.forEach(day => {{
+      const cell = document.createElement("div");
+      cell.className = "heat-cell";
+      cell.style.height = days>30?"13px":"18px";
+      cell.style.background = colorFromName(day.layers[l.id]);
+      cell.title = `${{l.n1}} · ${{day.label}} · ${{day.layers[l.id]||"no data"}}`;
+      g.appendChild(cell);
+    }});
   }});
 }}
+ 
  
 function buildAnalysis() {{
   const wrap = document.getElementById("analysis");
@@ -1021,6 +1084,7 @@ function buildTopTicker(layers) {{
   const el = document.getElementById("top-ticker");
   if (!el) return;
   const CC = {{Red:"Hot",Orange:"Emerging",Green:"Neutral",Blue:"Cooling"}};
+  const LAYER_ICONS = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐"}};
   const items = [];
   layers.forEach(l => {{
     l.tickers.slice(0,3).forEach(t => {{
@@ -1028,7 +1092,7 @@ function buildTopTicker(layers) {{
       const col = dir==="up"?"t-up":dir==="dn"?"t-dn":"t-neu";
       items.push(`<span class="t-item">
         <span class="t-sym">${{t.sym}}</span>
-        <span>${{l.n1}} · ${{CC[l.color]||"Neutral"}}</span>
+        <span>${{LAYER_ICONS[l.id]||""}} ${{l.n1}} · ${{CC[l.color]||"Neutral"}}</span>
         <span class="${{col}}">${{t.ret30>=0?"+":""}}${{t.ret30.toFixed(1)}}%</span>
       </span>`);
     }});
@@ -1124,3 +1188,4 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
+ 
