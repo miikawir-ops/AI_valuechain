@@ -358,6 +358,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
     save_scores_history(scored_data)
  
     yesterday    = get_yesterday_scores(scored_data)
+    full_history = load_scores_history()
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
@@ -714,14 +715,16 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
   <div style="margin-top:14px">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <div style="display:flex;gap:3px;background:#E6F1FB;border-radius:8px;padding:4px;
-                  border:1px solid #378ADD">
-        <button onclick="setHeatDays(7)"  id="hbtn-7"  class="hbtn active-hbtn">7d</button>
-        <button onclick="setHeatDays(30)" id="hbtn-30" class="hbtn">30d</button>
-        <button onclick="setHeatDays(90)" id="hbtn-90" class="hbtn">90d</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex;gap:3px;background:#E6F1FB;border-radius:8px;padding:4px;
+                    border:1.5px solid #378ADD">
+          <button onclick="setHeatDays(7)"  id="hbtn-7"  class="hbtn active-hbtn">7d</button>
+          <button onclick="setHeatDays(30)" id="hbtn-30" class="hbtn">30d</button>
+          <button onclick="setHeatDays(90)" id="hbtn-90" class="hbtn">90d</button>
+        </div>
+        <div style="font-size:10px;font-weight:500;color:#888780" id="heat-label">Signal heat trail</div>
       </div>
-      <div style="font-size:10px;color:#888780" id="heat-label">Signal heat trail</div>
     </div>
     <div class="heat-grid" id="heat"></div>
   </div>
@@ -1250,4 +1253,3 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
- 
