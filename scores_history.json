@@ -339,10 +339,10 @@
   },
   {
     "date": "2026-05-11",
-    "time": "09:34",
+    "time": "11:54",
     "scores": {
       "energy": {
-        "score": 46.71,
+        "score": 43.71,
         "color": "Orange"
       },
       "compute": {
@@ -358,7 +358,7 @@
         "color": "Orange"
       },
       "cloud": {
-        "score": 31.59,
+        "score": 33.09,
         "color": "Green"
       },
       "software": {
