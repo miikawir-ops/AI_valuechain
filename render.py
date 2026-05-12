@@ -288,6 +288,42 @@ def _analysis_sections(analysis: str) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
  
+def _track_record_js_data(history: list, market_data: dict) -> str:
+    """Build track record of last 5 One Action picks with returns."""
+    import datetime
+    # Build ticker price lookup from today's market data
+    price_lookup = {}
+    for tickers in market_data.values():
+        for t in (tickers or []):
+            if t and t.get("ticker") and t.get("price"):
+                price_lookup[t["ticker"]] = t["price"]
+ 
+    track = []
+    seen = set()
+    for entry in reversed(history):
+        ticker = entry.get("action_ticker", "")
+        if not ticker or ticker in seen:
+            continue
+        seen.add(ticker)
+        rec_date = entry.get("date", "")
+        # Calculate return if we have current price
+        # We store action price in history if available
+        entry_price = entry.get("action_price")
+        current_price = price_lookup.get(ticker)
+        ret = None
+        if entry_price and current_price:
+            ret = round((current_price / entry_price - 1) * 100, 1)
+        track.append({
+            "ticker": ticker,
+            "date":   rec_date,
+            "ret_since": ret,
+        })
+        if len(track) >= 5:
+            break
+ 
+    return json.dumps(list(reversed(track)))
+ 
+ 
 def _history_js_data(history: list, scored_data: dict) -> str:
     import datetime
     layer_ids = list(scored_data.keys())
@@ -312,6 +348,38 @@ def _history_js_data(history: list, scored_data: dict) -> str:
  
 def _radar_js_data(radar_data: list) -> str:
     """Build JS-safe radar data — strips internal scoring details."""
+    # Find wildcard: highest score company NOT in main 25, lowest analyst coverage
+    MAIN_25 = {"CEG","VST","PWR","GEV","ETN","NVDA","AMD","AVGO","ASML","TSM","ARM","CDNS",
+                "MU","WDC","AMAT","LRCX","VRT","ANET","EQIX","SMCI","CSCO","CIEN",
+                "MSFT","GOOGL","AMZN","META","PLTR","NOW","SNOW","CRM","DDOG",
+                "CRWD","PANW","S","OKTA"}
+    wildcard = None
+    wc_candidates = [r for r in radar_data if r.get("ticker") not in MAIN_25
+                     and (r.get("accel", {}).get("latest_growth") or 0) >= 10
+                     and (r.get("gross_margin") or 0) > 0]
+    if wc_candidates:
+        # Pick lowest analyst coverage among top scorers
+        wc_candidates.sort(key=lambda x: (x.get("analyst_count", 99), -x.get("score", 0)))
+        wc = wc_candidates[0]
+        accel = wc.get("accel", {})
+        wc_traj = []
+        for g in wc.get("growth_quarters", [])[:4]:
+            wc_traj.append("🔥" if g and g > 50 else "↑" if g and g > 20 else "→" if g and g > 0 else "↓")
+        wildcard = {
+            "ticker":       wc.get("ticker", "?"),
+            "name":         wc.get("name", "?"),
+            "layer":        wc.get("layer", "?"),
+            "score":        wc.get("score", 0),
+            "ret_1mo":      wc.get("ret_1mo", 0),
+            "ret_3mo":      wc.get("ret_3mo", 0),
+            "gross_margin": wc.get("gross_margin"),
+            "analyst_count":wc.get("analyst_count", 0),
+            "confidence":   accel.get("confidence", "LOW"),
+            "consecutive":  accel.get("consecutive_accel", 0),
+            "latest_growth":accel.get("latest_growth"),
+            "trajectory":   wc_traj,
+        }
+ 
     out = []
     for r in radar_data[:5]:
         accel = r.get("accel", {})
@@ -344,7 +412,7 @@ def _radar_js_data(radar_data: list) -> str:
             "latest_growth": accel.get("latest_growth"),
             "trajectory":  traj,  # emoji trajectory — not exact numbers
         })
-    return json.dumps(out)
+    return json.dumps({"top5": out, "wildcard": wildcard})
  
  
 def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
@@ -355,10 +423,18 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
         radar_data = []
  
     # Save today's scores for tomorrow's comparison
-    save_scores_history(scored_data)
+    # Extract One Action ticker from analysis for track record
+    action_ticker = ""
+    try:
+        import re
+        match = re.search(r'Company[:\s]+\*?\*?([A-Z]{1,5})', analysis)
+        if match:
+            action_ticker = match.group(1)
+    except Exception:
+        pass
+    save_scores_history(scored_data, action_ticker)
  
     yesterday    = get_yesterday_scores(scored_data)
-    full_history = load_scores_history()
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
@@ -379,6 +455,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
     layers_js           = _chain_js_data(scored_data, market_data, yesterday)
     radar_js            = _radar_js_data(radar_data)
     history_js          = _history_js_data(full_history, scored_data)
+    track_js            = _track_record_js_data(full_history, market_data)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday       = "true" if yesterday else "false"
  
@@ -746,8 +823,24 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <span style="color:#B4B2A9"> · Confidence improves as quarterly data accumulates over time.</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
+  <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;
+       border-top:0.5px solid #E0DFDC">
+    <div style="font-size:10px;font-weight:500;color:#888780;letter-spacing:.04em;
+                margin-bottom:8px">🃏 WILDCARD — Under the radar</div>
+    <div id="wildcard-card"></div>
+  </div>
 </div>
 <div class="action-card" id="action"></div>
+<div id="track-record" style="display:none;margin-bottom:12px;
+     background:white;border:0.5px solid #E0DFDC;border-radius:10px;padding:14px">
+  <div style="font-size:10px;font-weight:500;color:#888780;letter-spacing:.04em;margin-bottom:10px">
+    📊 ONE ACTION TRACK RECORD — last 5 picks
+  </div>
+  <div id="track-rows"></div>
+  <div style="font-size:10px;color:#B4B2A9;margin-top:8px;line-height:1.5">
+    Returns measured from recommendation date to today. Not financial advice.
+  </div>
+</div>
  
 <div class="meth-trigger" onclick="toggleMeth()">
   <div style="display:flex;align-items:center;gap:8px">
@@ -824,6 +917,7 @@ const ACTION = {action_js};
 const HAS_YESTERDAY = {has_yesterday};
 const RADAR = {radar_js};
 const HISTORY = {history_js};
+const TRACK_RECORD = {track_js};
  
 const CC = {{
   Red:    {{bg:"#FCEBEB",border:"#E24B4A",pill:"#E24B4A",pft:"#FCEBEB",lbl:"Hot"}},
@@ -881,6 +975,99 @@ function getEarningsBadge(layerId) {{
             </span>`;
   }}
   return "";
+}}
+ 
+const sparkCharts = {{}};
+ 
+function toggleTickerDetail(id) {{
+  const el = document.getElementById(id);
+  if (!el) return;
+  const open = el.style.display === "none";
+  document.querySelectorAll('[id^="tk-detail-"]').forEach(d => d.style.display = "none");
+  el.style.display = open ? "block" : "none";
+  if (open) {{
+    // Find ticker data and draw sparkline
+    const sym = id.replace(/^tk-detail-[^-]+-/, "");
+    LAYERS.forEach(l => l.tickers.forEach(t => {{
+      if (t.sym === sym && t.sparkline && t.sparkline.length > 0) {{
+        const canvasId = "spark-" + sym;
+        if (sparkCharts[canvasId]) {{ sparkCharts[canvasId].destroy(); }}
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        const col = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+        sparkCharts[canvasId] = new Chart(ctx, {{
+          type: "line",
+          data: {{
+            labels: t.sparkline.map((_,i) => i),
+            datasets: [{{
+              data: t.sparkline,
+              borderColor: col,
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: true,
+              backgroundColor: col + "18",
+              tension: 0.4
+            }}]
+          }},
+          options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{ legend: {{ display: false }}, tooltip: {{ enabled: false }} }},
+            scales: {{ x: {{ display: false }}, y: {{ display: false }} }},
+            animation: {{ duration: 400 }}
+          }}
+        }});
+      }}
+    }}));
+  }}
+}}
+ 
+function getCompanyContext(sym, layerId) {{
+  const ctx = {{
+    // Energy
+    "CEG": "Constellation Energy is the largest US nuclear operator. Signing AI-specific Power Purchase Agreements with hyperscalers — directly powering data centers with 24/7 carbon-free power.",
+    "VST": "Vistra operates natural gas and nuclear plants. Benefits from surging electricity demand driven by AI data center buildout in Texas and the Southeast.",
+    "PWR": "Quanta Services builds and maintains power grid infrastructure. As data centers require grid upgrades, Quanta executes the physical construction work.",
+    "GEV": "GE Vernova makes transformers, switchgear and grid equipment. These components connect data centers to the power grid — currently on 2-3 year backlog.",
+    "ETN": "Eaton makes power distribution and management systems inside data centers. Every rack of servers needs Eaton's PDUs and UPS systems.",
+    // Compute
+    "NVDA": "Nvidia's H100/H200/B200 GPUs are the primary compute engine for AI training and inference. Near-monopoly on AI accelerators with 70-80% gross margins.",
+    "AMD": "AMD's MI300X competes with Nvidia for AI training workloads. Gaining share with hyperscalers looking to diversify away from single-vendor dependency.",
+    "AVGO": "Broadcom designs custom AI chips (ASICs) for Google, Meta and others. Also makes the networking silicon connecting GPU clusters — two AI revenue streams.",
+    "ASML": "ASML makes EUV lithography machines — the only company in the world that can. Every advanced AI chip requires ASML equipment to manufacture.",
+    "TSM": "TSMC manufactures chips for Nvidia, AMD, Apple and ARM. The world's most advanced semiconductor foundry — 90%+ of leading-edge AI chips are made here.",
+    "ARM": "ARM licenses chip architectures used in virtually every mobile and edge AI device. Royalties from every Apple, Qualcomm and MediaTek chip that ships.",
+    "CDNS": "Cadence Design Systems makes EDA software — the tools used to design every AI chip. Without Cadence, NVDA couldn't design its next GPU.",
+    // Memory
+    "MU": "Micron is the only US-listed pure-play HBM supplier. HBM memory is essential for AI training — each H100 GPU uses Micron or SK Hynix HBM stacks.",
+    "WDC": "Western Digital makes NAND flash storage used in AI data centers. Also pivoting toward HBM with recent product announcements.",
+    "AMAT": "Applied Materials makes the deposition and etch equipment used to manufacture memory chips. Picks-and-shovels play on all memory production expansion.",
+    "LRCX": "Lam Research makes etch equipment critical for advanced memory fabrication. Benefits directly when memory fabs expand capacity for HBM production.",
+    // Infra
+    "VRT": "Vertiv makes liquid cooling systems for dense GPU clusters. As GPU power density increases, air cooling fails — Vertiv's moment is now.",
+    "ANET": "Arista Networks makes the high-speed ethernet switches connecting GPU clusters. Moving from data center to AI networking with Ultra Ethernet Consortium.",
+    "EQIX": "Equinix operates 260+ data centers globally. AI workloads need colocation space close to fiber interconnects — Equinix's core offering.",
+    "SMCI": "Super Micro Computer builds AI-optimized server racks. Fastest to market with liquid-cooled GPU servers — direct beneficiary of Nvidia GPU demand.",
+    "CSCO": "Cisco provides the networking backbone for enterprise AI deployments. Pivoting AI strategy around its silicon and software for data center switching.",
+    "CIEN": "Ciena makes optical networking equipment — the bandwidth pipes connecting AI data centers across distances. Critical for multi-site AI cluster deployments.",
+    // Cloud
+    "MSFT": "Microsoft is the primary distribution partner for OpenAI. Azure AI services and Copilot are the monetization vehicle for the largest AI investment in history.",
+    "GOOGL": "Google DeepMind and Gemini models run on Google Cloud. Also designs its own TPU AI chips — vertically integrated from silicon to application.",
+    "AMZN": "AWS is the largest cloud provider. Amazon Bedrock offers access to multiple AI models. Also deploying Trainium and Inferentia custom AI chips.",
+    "META": "Meta open-sources LLaMA models, driving AI adoption at scale. Investing $65B in AI infrastructure in 2026 — one of the largest capex programs ever.",
+    // Software
+    "PLTR": "Palantir's AIP platform brings AI agents to enterprise operations. Unique position with US government and defense — classified AI applications.",
+    "NOW": "ServiceNow automates enterprise workflows with AI. 80%+ gross margins and sticky multi-year contracts across Fortune 500.",
+    "SNOW": "Snowflake provides the data cloud layer AI models need for training and inference. Clean, governed data is the prerequisite for enterprise AI.",
+    "CRM": "Salesforce embeds AI (Einstein) across its CRM platform. 150,000+ enterprise customers provide a massive distribution channel for AI features.",
+    "DDOG": "Datadog monitors AI infrastructure performance and cost. As AI deployments scale, observability becomes critical — Datadog is the market leader.",
+    // Security
+    "CRWD": "CrowdStrike uses AI to detect and stop cyber threats in real time. The Falcon platform protects AI infrastructure from adversarial attacks.",
+    "PANW": "Palo Alto Networks provides AI-powered network security. Platformization strategy bundles AI security across firewall, cloud and endpoint.",
+    "S": "SentinelOne uses autonomous AI agents for threat detection. Fastest growing pure-play AI security company by revenue.",
+    "OKTA": "Okta manages identity and access for AI applications. As AI agents proliferate, controlling who and what can access systems becomes critical.",
+  }};
+  return ctx[sym] || `${{sym}} is a key player in the ${{layerId}} layer of the AI value chain. Click Deep dive for full analysis.`;
 }}
  
 function toggleAbout() {{
@@ -979,14 +1166,46 @@ function buildExpand() {{
     const rc = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
     const hyp = t.hype ? `<span style="font-size:9px;background:#FAEEDA;color:#854F0B;
                                        padding:1px 5px;border-radius:4px;margin-left:4px">hype</span>` : "";
-    return `<div class="ex-tk">
-      <div style="display:flex;align-items:center">
-        <div class="ex-sym">${{t.sym}}</div>${{hyp}}
+    const trendIcon = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : "—";
+    const trendCol  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
+    const cardId = `tk-detail-${{l.id}}-${{t.sym}}`;
+ 
+    const deepDivePrompt = `Give me a focused investment deep dive on ${{t.sym}} (${{t.name}}) in the context of the AI value chain. Cover: 1) What specific role does ${{t.sym}} play in AI infrastructure? 2) Latest revenue trend and whether growth is accelerating or decelerating. 3) Gross margin trend — is pricing power expanding? 4) The strongest bull case in one paragraph. 5) The main risk that would invalidate the bull case. 6) Compared to peers in the ${{l.n1}} layer, is ${{t.sym}} gaining or losing ground?`;
+ 
+    return `<div class="ex-tk" style="cursor:pointer" onclick="toggleTickerDetail('${{cardId}}')">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="ex-sym">${{t.sym}}</div>${{hyp}}
+        </div>
+        <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
       <div class="ex-name">${{t.name}}</div>
       <div class="ex-row"><span class="ex-lbl">Price</span><span>$${{t.price.toLocaleString()}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{fmt(t.ret30)}}%</span></div>
-      <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{dc}}">${{t.delta_band}}</span></div>
+      <div class="ex-row"><span class="ex-lbl">Trend</span>
+        <span style="color:${{trendCol}}">${{trendIcon}} ${{t.delta_band}}</span>
+      </div>
+      <div id="${{cardId}}" style="display:none;margin-top:10px;padding-top:10px;
+           border-top:0.5px solid #E0DFDC" onclick="event.stopPropagation()">
+        <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
+          6-month price trend
+        </div>
+        <canvas id="spark-${{t.sym}}" height="40"
+                style="width:100%;display:block;margin-bottom:8px"
+                role="img" aria-label="${{t.sym}} 6-month price chart"></canvas>
+        <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
+          Strategic role in AI chain
+        </div>
+        <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:8px">
+          ${{getCompanyContext(t.sym, l.id)}}
+        </div>
+        <button onclick="sendPrompt('${{deepDivePrompt}}')"
+                style="width:100%;padding:7px;border:1px solid #378ADD;border-radius:6px;
+                       background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;
+                       cursor:pointer;text-align:center">
+          🔍 Deep dive with Claude ↗
+        </button>
+      </div>
     </div>`;
   }}).join("");
  
@@ -1047,26 +1266,50 @@ function buildHeat() {{
     g.appendChild(d);
   }});
  
+  // For 7d view — only show days with real data (no grey gaps)
+  const displaySlice = days === 7
+    ? slice.filter(day => HISTORY.layer_ids.some(lid => day.layers[lid] && day.layers[lid] !== "none"))
+    : slice;
+ 
+  // Recalculate columns if 7d filtered
+  if (days === 7 && displaySlice.length !== slice.length) {{
+    g.style.gridTemplateColumns = `${{lblW}} repeat(${{displaySlice.length}}, minmax(32px,1fr))`;
+    // Rebuild header with filtered days
+    // Remove old header cells and rebuild
+    const existingCells = g.children;
+    // Easier: clear and rebuild entirely
+    g.innerHTML = "";
+    g.appendChild(document.createElement("div"));
+    displaySlice.forEach((day, i) => {{
+      const d = document.createElement("div");
+      d.className = "heat-day";
+      d.style.fontSize = "9px";
+      d.textContent = day.short;
+      g.appendChild(d);
+    }});
+  }}
+ 
   // Rows
   LAYERS.forEach((l, li) => {{
     const lbl = document.createElement("div");
     lbl.className = "heat-lbl";
     lbl.textContent = l.n1;
     g.appendChild(lbl);
-    slice.forEach((day, di) => {{
+    displaySlice.forEach((day, di) => {{
       const cell = document.createElement("div");
       cell.className = "heat-cell";
       cell.style.height = days>30?"13px":"18px";
       const realColor = day.layers[l.id];
       let displayColor;
       if (realColor && realColor !== "none") {{
-        // Real data — show actual color
         displayColor = colorFromName(realColor);
         cell.title = `${{l.n1}} · ${{day.label}} · ${{realColor}}`;
       }} else {{
-        // No data yet — honest grey
-        displayColor = "#EDEAE0";
-        cell.title = `${{l.n1}} · ${{day.label}} · no data yet`;
+        // 7d: skip grey — shouldn't happen after filter
+        // 30/90d: honest grey
+        displayColor = days === 7 ? colorFromName(l.color) : "#EDEAE0";
+        cell.style.opacity = days === 7 ? "0.4" : "1";
+        cell.title = `${{l.n1}} · ${{day.label}} · ${{days===7?"estimated":"no data yet"}}`;
       }}
       cell.style.background = displayColor;
       g.appendChild(cell);
@@ -1106,7 +1349,49 @@ function buildRadar() {{
   const CONF_COLORS = {{HIGH:"#27500A",MEDIUM:"#854F0B",LOW:"#888780"}};
   const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱"}};
  
-  grid.innerHTML = RADAR.map((r, i) => {{
+  const radarList = RADAR.top5 || RADAR;
+  const wildcard  = RADAR.wildcard || null;
+  // Render wildcard
+  const wcSection = document.getElementById("wildcard-section");
+  const wcCard    = document.getElementById("wildcard-card");
+  if (wildcard && wcSection && wcCard) {{
+    wcSection.style.display = "block";
+    const wret = wildcard.ret_1mo >= 0 ? `+${{wildcard.ret_1mo}}%` : `${{wildcard.ret_1mo}}%`;
+    const wrc  = wildcard.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
+    const wlg  = wildcard.latest_growth ? `Rev +${{wildcard.latest_growth?.toFixed(0)}}%` : "";
+    const wgm  = wildcard.gross_margin ? `GM ${{wildcard.gross_margin}}%` : "";
+    const wac  = wildcard.analyst_count;
+    const wtraj = (wildcard.trajectory || []).join(" ");
+    const wPrompt = `Deep dive on ${{wildcard.ticker}} (${{wildcard.name}}) as a potential under-the-radar AI play. Only ${{wac}} analysts cover this company. Analyse: revenue acceleration trend, gross margin, competitive moat in the AI value chain, and what specific catalyst could make this the next Nvidia-like breakout.`;
+    wcCard.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
+                  background:#FFFBF0;border:1px solid #EF9F27;border-radius:8px;padding:12px 14px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:16px;font-weight:500;color:#1A1A1A">${{wildcard.ticker}}</span>
+            <span style="font-size:10px;padding:1px 6px;background:#FFF3CD;color:#856404;
+                         border:0.5px solid #EF9F27;border-radius:4px">
+              🔍 Only ${{wac}} analysts covering this
+            </span>
+          </div>
+          <div style="font-size:11px;color:#888780;margin-bottom:8px">${{wildcard.name}} · ${{wildcard.layer}}</div>
+          <div style="display:flex;gap:12px;font-size:11px;color:#5F5E5A;flex-wrap:wrap">
+            ${{wlg ? `<span>${{wlg}}</span>` : ""}}
+            ${{wgm ? `<span>${{wgm}}</span>` : ""}}
+            <span style="color:${{wrc}}">${{wret}} (1mo)</span>
+            <span style="font-size:12px;letter-spacing:2px">${{wtraj}}</span>
+          </div>
+        </div>
+        <button onclick="sendPrompt('${{wPrompt}}')"
+                style="padding:8px 14px;border:1px solid #378ADD;border-radius:6px;
+                       background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;
+                       cursor:pointer;white-space:nowrap">
+          🔍 Deep dive ↗
+        </button>
+      </div>`;
+  }}
+ 
+  grid.innerHTML = radarList.map((r, i) => {{
     const pct   = Math.min(100, r.score);
     const conf  = r.confidence || "LOW";
     const traj  = (r.trajectory || []).join(" ");
@@ -1179,6 +1464,28 @@ function buildSignalBars() {{
   ).join("");
 }}
  
+function buildTrackRecord() {{
+  const section = document.getElementById("track-record");
+  const rows    = document.getElementById("track-rows");
+  if (!TRACK_RECORD || TRACK_RECORD.length === 0) return;
+  section.style.display = "block";
+ 
+  rows.innerHTML = TRACK_RECORD.map(r => {{
+    const retCol = r.ret_since > 0 ? "#27500A" : r.ret_since < 0 ? "#A32D2D" : "#888780";
+    const retTxt = r.ret_since !== null
+      ? `${{r.ret_since >= 0 ? "+" : ""}}${{r.ret_since.toFixed(1)}}%`
+      : "pending";
+    return `<div style="display:flex;justify-content:space-between;align-items:center;
+                         padding:6px 0;border-bottom:0.5px solid #E0DFDC;font-size:11px">
+      <div>
+        <span style="font-weight:500;color:#1A1A1A">${{r.ticker}}</span>
+        <span style="color:#888780;margin-left:8px">${{r.date}}</span>
+      </div>
+      <span style="font-weight:500;color:${{retCol}}">${{retTxt}}</span>
+    </div>`;
+  }}).join("");
+}}
+ 
 function toggleMeth() {{
   const b = document.getElementById("meth-body");
   const a = document.getElementById("marrow");
@@ -1186,8 +1493,14 @@ function toggleMeth() {{
   a.textContent = open ? "▴" : "▾";
 }}
  
-buildChain(); buildExpand(); buildHeat(); buildAnalysis(); buildRadar(); buildTopTicker(LAYERS); buildSignalBars();
+function sendPrompt(text) {{
+  const encoded = encodeURIComponent(text);
+  window.open('https://claude.ai/new?q=' + encoded, '_blank');
+}}
+ 
+buildChain(); buildExpand(); buildHeat(); buildAnalysis(); buildRadar(); buildTopTicker(LAYERS); buildSignalBars(); buildTrackRecord();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>"""
  
@@ -1253,3 +1566,4 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
+ 

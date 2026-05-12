@@ -1,3 +1,6 @@
+Fetch market final · PY
+Copy
+
 """
 fetch_market.py — Market data pipeline for the AI Investment Agent.
  
@@ -85,7 +88,8 @@ AI_CHAIN_LAYERS = {
                      "AI platform", "automation", "generative AI",
                      "observability", "monitoring", "datadog", "AI monitoring",
                      "model ops", "ML ops", "AI deployment", "AI operations"]
-     },
+    },
+,
     "security": {
         "name": "AI Security & Governance",
         "tickers": ["CRWD", "PANW", "S", "OKTA"],
@@ -140,6 +144,12 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
  
         hist    = t.history(period="6mo")
         closes  = hist["Close"].tolist() if not hist.empty else []
+        # Sparkline: sample ~30 points from 6mo history
+        if closes:
+            step = max(1, len(closes) // 30)
+            price_history = [round(closes[i], 2) for i in range(0, len(closes), step)][-30:]
+        else:
+            price_history = []
         volumes = hist["Volume"].tolist() if not hist.empty else []
  
         price_30d  = round((closes[-1] / closes[-21] - 1), 4) if len(closes) >= 21 else 0.0
@@ -259,6 +269,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
             "analyst_upgrades":    analyst_upgrades,
             "short_int_change":    short_int_change,
             "price_30d_return":    price_30d,
+            "price_history":        price_history,
             "price_momentum":      price_momentum,
             "peer_outperformance": 0.0,
             "market_cap":          info.get("marketCap"),
@@ -377,3 +388,5 @@ if __name__ == "__main__":
         print("\n✅ Pipeline complete")
         print(f"   Layers: {list(data.keys())}")
         print(f"   Total tickers: {sum(len(v) for v in data.values())}")
+ 
+

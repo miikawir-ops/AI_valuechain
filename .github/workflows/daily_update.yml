@@ -1,25 +1,24 @@
+Daily update · YML
+Copy
+
 name: Daily AI Valuechain Update
  
 on:
   schedule:
-    - cron: '0 6 * * 1-5'  # 06:00 UTC = 09:00 Helsinki (Mon-Fri)
-  workflow_dispatch:         # Manual trigger from GitHub UI
+    - cron: '0 6 * * 1-5'   # 09:00 Helsinki (06:00 UTC) Mon-Fri — morning run
+    - cron: '30 20 * * 1-5'  # 23:30 Helsinki (20:30 UTC) Mon-Fri — after US close
+  workflow_dispatch:
  
 permissions:
-  contents: write            # Required to push the updated HTML back
+  contents: write
  
 jobs:
   update:
     runs-on: ubuntu-latest
- 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
  
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
  
@@ -29,15 +28,15 @@ jobs:
       - name: Run agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash-lite
-          DELIVERY_METHOD: console
-          REPORT_TIME: "06:00"
         run: python main.py --now
  
       - name: Commit and push dashboard
         run: |
-          git config --global user.name 'AI Valuechain Bot'
-          git config --global user.email 'bot@users.noreply.github.com'
-          git add ai_chain_report.html scores_history.json
-          git diff --staged --quiet || git commit -m "Daily update: $(date +'%Y-%m-%d %H:%M UTC')"
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add ai_chain_report.html scores_history.json next_nvidia_cache.json || true
+          git diff --staged --quiet || git commit -m "Daily update: $(date -u +'%Y-%m-%d %H:%M') UTC"
           git push
+ 
+
+
