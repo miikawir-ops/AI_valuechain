@@ -370,5 +370,39 @@
         "color": "Blue"
       }
     }
+  },
+  {
+    "date": "2026-05-12",
+    "time": "06:34",
+    "scores": {
+      "energy": {
+        "score": 47.44,
+        "color": "Orange"
+      },
+      "compute": {
+        "score": 49.59,
+        "color": "Orange"
+      },
+      "memory": {
+        "score": 62.74,
+        "color": "Red"
+      },
+      "infra": {
+        "score": 47.36,
+        "color": "Orange"
+      },
+      "cloud": {
+        "score": 33.09,
+        "color": "Green"
+      },
+      "software": {
+        "score": 31.0,
+        "color": "Green"
+      },
+      "security": {
+        "score": 36.14,
+        "color": "Blue"
+      }
+    }
   }
 ]
