@@ -998,29 +998,47 @@ function toggleTickerDetail(id) {{
   if (!el) return;
   const open = el.style.display === "none";
   document.querySelectorAll('[id^="tk-detail-"]').forEach(d => d.style.display = "none");
+  // Destroy all existing charts
+  Object.keys(sparkCharts).forEach(k => {{ try {{ sparkCharts[k].destroy(); }} catch(e) {{}} }});
+  Object.keys(sparkCharts).forEach(k => delete sparkCharts[k]);
   el.style.display = open ? "block" : "none";
-  if (open) {{
-    const sym = id.replace(/^tk-detail-[^-]+-/, "");
-    LAYERS.forEach(l => l.tickers.forEach(t => {{
-      if (t.sym !== sym || !t.sparkline || t.sparkline.length < 3) return;
-      const canvasId = "spark-" + sym;
-      if (sparkCharts[canvasId]) {{ sparkCharts[canvasId].destroy(); }}
-      const ctx = document.getElementById(canvasId);
-      if (!ctx) return;
-      const data = t.sparkline;
-      const mn   = Math.min(...data);
-      const mx   = Math.max(...data);
-      const pad  = (mx - mn) * 0.15 || 1;
-      const col  = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
-      const bgCol = t.ret30 >= 0 ? "rgba(39,80,10,0.08)" : "rgba(163,45,45,0.08)";
-      // Generate readable month labels
-      const today = new Date();
-      const labels = data.map((_, i) => {{
-        const d = new Date(today);
-        d.setDate(d.getDate() - (data.length - 1 - i) * 6);
-        return d.toLocaleDateString("en", {{month:"short", day:"numeric"}});
-      }});
-      sparkCharts[canvasId] = new Chart(ctx, {{
+  if (!open) return;
+ 
+  const sym = id.replace(/^tk-detail-[^-]+-/, "");
+  LAYERS.forEach(l => l.tickers.forEach(t => {{
+    if (t.sym !== sym || !t.sparkline || t.sparkline.length < 5) return;
+    const data = t.sparkline;
+    const mn   = Math.min(...data);
+    const mx   = Math.max(...data);
+    const range = mx - mn;
+ 
+    // If data has no meaningful range, show message
+    const canvasWrap = document.getElementById("spark-wrap-" + sym);
+    if (range < 1) {{
+      if (canvasWrap) canvasWrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:#B4B2A9;font-style:italic">Fetching 6-month history...</div>';
+      return;
+    }}
+ 
+    const pad   = range * 0.12;
+    const col   = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+    const bgCol = t.ret30 >= 0 ? "rgba(39,80,10,0.07)" : "rgba(163,45,45,0.07)";
+    const today = new Date();
+    const step  = Math.max(1, Math.floor(180 / data.length));
+    const labels = data.map((_, i) => {{
+      const d = new Date(today);
+      d.setDate(d.getDate() - (data.length - 1 - i) * step);
+      return d.toLocaleDateString("en", {{month:"short", day:"numeric"}});
+    }});
+ 
+    // Recreate canvas fresh to avoid Chart.js reuse issues
+    if (canvasWrap) {{
+      canvasWrap.innerHTML = '<canvas id="spark-' + sym + '" style="width:100%;height:100%"></canvas>';
+    }}
+ 
+    setTimeout(() => {{
+      const freshCanvas = document.getElementById("spark-" + sym);
+      if (!freshCanvas) return;
+      sparkCharts["spark-" + sym] = new Chart(freshCanvas, {{
         type: "line",
         data: {{
           labels: labels,
@@ -1029,10 +1047,10 @@ function toggleTickerDetail(id) {{
             borderColor: col,
             borderWidth: 2,
             pointRadius: 0,
-            pointHoverRadius: 4,
+            pointHoverRadius: 3,
             fill: true,
             backgroundColor: bgCol,
-            tension: 0.3
+            tension: 0.35
           }}]
         }},
         options: {{
@@ -1043,15 +1061,16 @@ function toggleTickerDetail(id) {{
             legend: {{ display: false }},
             tooltip: {{
               callbacks: {{
-                label: ctx => "$" + ctx.parsed.y.toFixed(2),
-                title: ctx => ctx[0].label
+                label: c => "$" + c.parsed.y.toFixed(2),
+                title: c => c[0].label
               }}
             }}
           }},
           scales: {{
             x: {{
               display: true,
-              ticks: {{ maxTicksLimit: 4, font: {{ size: 9 }}, color: "#888780" }},
+              ticks: {{ maxTicksLimit: 5, font: {{ size: 9 }}, color: "#888780",
+                        maxRotation: 0 }},
               grid: {{ display: false }},
               border: {{ display: false }}
             }},
@@ -1060,7 +1079,7 @@ function toggleTickerDetail(id) {{
               min: mn - pad,
               max: mx + pad,
               ticks: {{ maxTicksLimit: 4, font: {{ size: 9 }}, color: "#888780",
-                        callback: v => "$" + v.toFixed(0) }},
+                        callback: v => "$" + Math.round(v) }},
               grid: {{ color: "rgba(0,0,0,0.04)" }},
               border: {{ display: false }}
             }}
@@ -1068,8 +1087,8 @@ function toggleTickerDetail(id) {{
           animation: {{ duration: 500 }}
         }}
       }});
-    }}));
-  }}
+    }}, 80);
+  }}));
 }}
  
 function getCompanyContext(sym, layerId) {{
@@ -1240,9 +1259,12 @@ function buildExpand() {{
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
           6-month price trend
         </div>
-        <canvas id="spark-${{t.sym}}"
-                style="width:100%;height:120px;display:block;margin-bottom:8px"
-                role="img" aria-label="${{t.sym}} 6-month price chart"></canvas>
+        <div id="spark-wrap-${{t.sym}}"
+             style="position:relative;width:100%;height:120px;margin-bottom:8px;background:#F8F8F7;border-radius:4px">
+          <canvas id="spark-${{t.sym}}"
+                  style="width:100%;height:100%"
+                  role="img" aria-label="${{t.sym}} 6-month price chart"></canvas>
+        </div>
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
           Strategic role in AI chain
         </div>
