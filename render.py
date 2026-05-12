@@ -156,6 +156,14 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             # fund_delta shown as directional band only — protects scoring calibration
             raw_delta  = (t_scored.get("fund_delta") or 0) * 100
             delta_band = "accelerating" if raw_delta > 5 else "decelerating" if raw_delta < -5 else "stable"
+            # Sparkline: normalised 0-100 for chart display
+            hist_raw = raw.get("price_history", [])
+            if hist_raw and len(hist_raw) >= 5:
+                mn, mx = min(hist_raw), max(hist_raw)
+                rng = mx - mn if mx != mn else 1
+                sparkline = [round((p - mn) / rng * 100, 1) for p in hist_raw[-30:]]
+            else:
+                sparkline = []
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
@@ -164,6 +172,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
                 "delta_band": delta_band,
                 "hype":       t_scored.get("is_hype", False),
                 "color":      t_scored.get("color", "Green"),
+                "sparkline":  sparkline,
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -912,6 +921,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="signal-bars" id="signal-bars"></div>
   </div>
  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const LAYERS = {layers_js};
 const MAIN_SECTIONS = {main_sections_js};
@@ -1502,7 +1512,6 @@ function sendPrompt(text) {{
  
 buildChain(); buildExpand(); buildHeat(); buildAnalysis(); buildRadar(); buildTopTicker(LAYERS); buildSignalBars(); buildTrackRecord();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>"""
  

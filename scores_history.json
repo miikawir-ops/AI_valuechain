@@ -373,7 +373,7 @@
   },
   {
     "date": "2026-05-12",
-    "time": "19:21",
+    "time": "19:39",
     "action_ticker": "",
     "scores": {
       "energy": {
@@ -381,8 +381,8 @@
         "color": "Orange"
       },
       "compute": {
-        "score": 54.09,
-        "color": "Orange"
+        "score": 55.59,
+        "color": "Red"
       },
       "memory": {
         "score": 55.37,
