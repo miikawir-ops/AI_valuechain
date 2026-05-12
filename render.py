@@ -477,7 +477,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>AI Valuechain Agent — {datetime_str}</title>
+<title>RayDar — AI value chain intelligence · {datetime_str}</title>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -490,7 +490,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             background-size:32px 32px}}
 .hero-top{{display:flex;justify-content:space-between;align-items:flex-start;
            margin-bottom:20px;position:relative;flex-wrap:wrap;gap:8px}}
-.hero-title{{font-size:20px;font-weight:500;color:#fff}}
+.hero-title{{font-size:22px;color:#fff;line-height:1.2;letter-spacing:-0.3px}}
 .hero-sub{{font-size:11px;color:#B5D4F4;margin-top:3px}}
 .reg-pill{{font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;
            border:1px solid rgba(255,255,255,.3);color:#fff;
@@ -701,7 +701,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="hero-grid"></div>
   <div class="hero-top">
     <div>
-      <div class="hero-title">AI Valuechain Agent</div>
+      <div class="hero-title">
+        <span style="font-weight:700;letter-spacing:-0.5px">RayDar</span><span style="font-weight:300;opacity:0.85"> — AI value chain intelligence</span>
+      </div>
       <div class="hero-sub">{datetime_str}</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -912,7 +914,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
  
 <div class="footer">
-    <div>AI Valuechain Agent · {datetime_str}</div>
+    <div><strong>RayDar</strong> · {datetime_str}</div>
     <div style="font-size:11px;color:#888780;margin-top:2px">
       Not financial advice · Always do your own research · Data may be up to 90 days old
     </div>
