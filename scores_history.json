@@ -373,22 +373,23 @@
   },
   {
     "date": "2026-05-12",
-    "time": "08:35",
+    "time": "19:21",
+    "action_ticker": "",
     "scores": {
       "energy": {
-        "score": 48.94,
+        "score": 42.21,
         "color": "Orange"
       },
       "compute": {
-        "score": 49.59,
+        "score": 54.09,
         "color": "Orange"
       },
       "memory": {
-        "score": 62.74,
+        "score": 55.37,
         "color": "Red"
       },
       "infra": {
-        "score": 47.36,
+        "score": 45.61,
         "color": "Orange"
       },
       "cloud": {
@@ -400,7 +401,7 @@
         "color": "Green"
       },
       "security": {
-        "score": 36.14,
+        "score": 31.27,
         "color": "Blue"
       }
     }

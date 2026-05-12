@@ -66,7 +66,7 @@ def load_scores_history() -> list:
         return []
  
  
-def save_scores_history(scored_data: dict):
+def save_scores_history(scored_data: dict, action_ticker: str = ""):
     history = load_scores_history()
     today   = datetime.datetime.now().strftime("%Y-%m-%d")
     # Remove existing entry for today if re-running
@@ -74,6 +74,7 @@ def save_scores_history(scored_data: dict):
     history.append({
         "date":   today,
         "time":   datetime.datetime.now().strftime("%H:%M"),
+        "action_ticker": action_ticker,
         "scores": {
             layer_id: {
                 "score": result["best"].get("score", 0),
@@ -435,6 +436,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
     save_scores_history(scored_data, action_ticker)
  
     yesterday    = get_yesterday_scores(scored_data)
+    full_history = load_scores_history()
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
@@ -1566,4 +1568,3 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
- 

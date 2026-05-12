@@ -1,6 +1,3 @@
-Fetch market final · PY
-Copy
-
 """
 fetch_market.py — Market data pipeline for the AI Investment Agent.
  
@@ -89,7 +86,6 @@ AI_CHAIN_LAYERS = {
                      "observability", "monitoring", "datadog", "AI monitoring",
                      "model ops", "ML ops", "AI deployment", "AI operations"]
     },
-,
     "security": {
         "name": "AI Security & Governance",
         "tickers": ["CRWD", "PANW", "S", "OKTA"],
@@ -388,5 +384,3 @@ if __name__ == "__main__":
         print("\n✅ Pipeline complete")
         print(f"   Layers: {list(data.keys())}")
         print(f"   Total tickers: {sum(len(v) for v in data.values())}")
- 
-
