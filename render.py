@@ -66,15 +66,22 @@ def load_scores_history() -> list:
         return []
  
  
-def save_scores_history(scored_data: dict, action_ticker: str = ""):
+def save_scores_history(scored_data: dict, action_ticker: str = "", action_price: float = None):
     history = load_scores_history()
     today   = datetime.datetime.now().strftime("%Y-%m-%d")
     # Remove existing entry for today if re-running
     history = [e for e in history if e.get("date") != today]
+    # Store entry price for track record return calculation
+    action_price = None
+    if action_ticker:
+        # Will be populated by generate_dashboard which has market_data
+        pass
+ 
     history.append({
         "date":   today,
         "time":   datetime.datetime.now().strftime("%H:%M"),
         "action_ticker": action_ticker,
+        "action_price":  action_price,
         "scores": {
             layer_id: {
                 "score": result["best"].get("score", 0),
@@ -156,14 +163,9 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             # fund_delta shown as directional band only — protects scoring calibration
             raw_delta  = (t_scored.get("fund_delta") or 0) * 100
             delta_band = "accelerating" if raw_delta > 5 else "decelerating" if raw_delta < -5 else "stable"
-            # Sparkline: normalised 0-100 for chart display
+            # Sparkline: raw prices for proper chart display (not normalised)
             hist_raw = raw.get("price_history", [])
-            if hist_raw and len(hist_raw) >= 5:
-                mn, mx = min(hist_raw), max(hist_raw)
-                rng = mx - mn if mx != mn else 1
-                sparkline = [round((p - mn) / rng * 100, 1) for p in hist_raw[-30:]]
-            else:
-                sparkline = []
+            sparkline = [round(p, 2) for p in hist_raw[-30:]] if hist_raw else []
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
@@ -998,38 +1000,74 @@ function toggleTickerDetail(id) {{
   document.querySelectorAll('[id^="tk-detail-"]').forEach(d => d.style.display = "none");
   el.style.display = open ? "block" : "none";
   if (open) {{
-    // Find ticker data and draw sparkline
     const sym = id.replace(/^tk-detail-[^-]+-/, "");
     LAYERS.forEach(l => l.tickers.forEach(t => {{
-      if (t.sym === sym && t.sparkline && t.sparkline.length > 0) {{
-        const canvasId = "spark-" + sym;
-        if (sparkCharts[canvasId]) {{ sparkCharts[canvasId].destroy(); }}
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-        const col = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
-        sparkCharts[canvasId] = new Chart(ctx, {{
-          type: "line",
-          data: {{
-            labels: t.sparkline.map((_,i) => i),
-            datasets: [{{
-              data: t.sparkline,
-              borderColor: col,
-              borderWidth: 1.5,
-              pointRadius: 0,
-              fill: true,
-              backgroundColor: col + "18",
-              tension: 0.4
-            }}]
+      if (t.sym !== sym || !t.sparkline || t.sparkline.length < 3) return;
+      const canvasId = "spark-" + sym;
+      if (sparkCharts[canvasId]) {{ sparkCharts[canvasId].destroy(); }}
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
+      const data = t.sparkline;
+      const mn   = Math.min(...data);
+      const mx   = Math.max(...data);
+      const pad  = (mx - mn) * 0.15 || 1;
+      const col  = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+      const bgCol = t.ret30 >= 0 ? "rgba(39,80,10,0.08)" : "rgba(163,45,45,0.08)";
+      // Generate readable month labels
+      const today = new Date();
+      const labels = data.map((_, i) => {{
+        const d = new Date(today);
+        d.setDate(d.getDate() - (data.length - 1 - i) * 6);
+        return d.toLocaleDateString("en", {{month:"short", day:"numeric"}});
+      }});
+      sparkCharts[canvasId] = new Chart(ctx, {{
+        type: "line",
+        data: {{
+          labels: labels,
+          datasets: [{{
+            data: data,
+            borderColor: col,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: true,
+            backgroundColor: bgCol,
+            tension: 0.3
+          }}]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {{ mode: "index", intersect: false }},
+          plugins: {{
+            legend: {{ display: false }},
+            tooltip: {{
+              callbacks: {{
+                label: ctx => "$" + ctx.parsed.y.toFixed(2),
+                title: ctx => ctx[0].label
+              }}
+            }}
           }},
-          options: {{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {{ legend: {{ display: false }}, tooltip: {{ enabled: false }} }},
-            scales: {{ x: {{ display: false }}, y: {{ display: false }} }},
-            animation: {{ duration: 400 }}
-          }}
-        }});
-      }}
+          scales: {{
+            x: {{
+              display: true,
+              ticks: {{ maxTicksLimit: 4, font: {{ size: 9 }}, color: "#888780" }},
+              grid: {{ display: false }},
+              border: {{ display: false }}
+            }},
+            y: {{
+              display: true,
+              min: mn - pad,
+              max: mx + pad,
+              ticks: {{ maxTicksLimit: 4, font: {{ size: 9 }}, color: "#888780",
+                        callback: v => "$" + v.toFixed(0) }},
+              grid: {{ color: "rgba(0,0,0,0.04)" }},
+              border: {{ display: false }}
+            }}
+          }},
+          animation: {{ duration: 500 }}
+        }}
+      }});
     }}));
   }}
 }}
@@ -1202,8 +1240,8 @@ function buildExpand() {{
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
           6-month price trend
         </div>
-        <canvas id="spark-${{t.sym}}" height="40"
-                style="width:100%;display:block;margin-bottom:8px"
+        <canvas id="spark-${{t.sym}}"
+                style="width:100%;height:120px;display:block;margin-bottom:8px"
                 role="img" aria-label="${{t.sym}} 6-month price chart"></canvas>
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
           Strategic role in AI chain
@@ -1375,6 +1413,18 @@ function buildRadar() {{
     const wac  = wildcard.analyst_count;
     const wtraj = (wildcard.trajectory || []).join(" ");
     const wPrompt = `Deep dive on ${{wildcard.ticker}} (${{wildcard.name}}) as a potential under-the-radar AI play. Only ${{wac}} analysts cover this company. Analyse: revenue acceleration trend, gross margin, competitive moat in the AI value chain, and what specific catalyst could make this the next Nvidia-like breakout.`;
+    const wcContextMap = {{
+      "memory":   "memory chips and storage — the fuel every AI model runs on",
+      "compute":  "chip design and processing — the brain of AI systems",
+      "infra":    "data center hardware and networking — the physical backbone",
+      "energy":   "power delivery and grid equipment — the electricity AI needs",
+      "cloud":    "cloud platforms and hyperscaler infrastructure",
+      "software": "AI applications and observability tooling",
+      "security": "AI security and governance platforms",
+      "edge":     "edge computing and on-device AI processing",
+    }};
+    const wcContext = wcContextMap[wildcard.layer] || wildcard.layer;
+ 
     wcCard.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
                   background:#FFFBF0;border:1px solid #EF9F27;border-radius:8px;padding:12px 14px">
@@ -1382,8 +1432,9 @@ function buildRadar() {{
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
             <span style="font-size:16px;font-weight:500;color:#1A1A1A">${{wildcard.ticker}}</span>
             <span style="font-size:10px;padding:1px 6px;background:#FFF3CD;color:#856404;
-                         border:0.5px solid #EF9F27;border-radius:4px">
-              🔍 Only ${{wac}} analysts covering this
+                         border:0.5px solid #EF9F27;border-radius:4px;cursor:help"
+                  title="Low analyst coverage = institutional money has not yet fully discovered this company. When fundamentals accelerate before Wall Street notices, that is historically the setup for outsized returns.">
+              🔍 Only ${{wac}} analysts — early discovery signal
             </span>
           </div>
           <div style="font-size:11px;color:#888780;margin-bottom:8px">${{wildcard.name}} · ${{wildcard.layer}}</div>

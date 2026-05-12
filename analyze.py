@@ -29,31 +29,35 @@ def build_prompt(scored_data: dict, market_data: dict) -> str:
         for t in all_tickers:
             delta     = t.get("fund_delta")
             delta_str = f"{delta*100:+.1f}%" if delta is not None else "N/A"
+            growth    = t.get("growth_curr", 0) or 0
             ticker_lines.append(
-                f"    {t.get('ticker','?')}: score={t.get('score',0)} "
+                f"    {t.get('ticker','?')}: score={t.get('score',0):.0f} "
                 f"color={t.get('color','?')} delta={delta_str} "
-                f"hype={t.get('is_hype',False)}"
+                f"growth={growth*100:.0f}% hype={t.get('is_hype',False)}"
             )
         layer_lines.append(
-            f"\n  {layer_id.upper()} — best={best.get('score',0)} "
-            f"color={best.get('color','?')} regime={best.get('regime','?')}\n"
+            f"\n  {layer_id.upper()} — best={best.get('score',0):.0f} "
+            f"color={best.get('color','?')}\n"
             + "\n".join(ticker_lines)
         )
  
     top_tickers = []
     for layer_id, tickers in market_data.items():
-        for t in tickers:
+        for t in (tickers or []):
             g = t.get("growth_curr")
             if g and g > 0.15:
                 top_tickers.append(
                     f"  {t['ticker']} ({layer_id}): growth={g*100:.0f}% "
-                    f"vol_spike={t.get('vol_spike')} price_30d={t.get('price_30d_return',0)*100:.1f}%"
+                    f"vol_spike={t.get('vol_spike',0):.2f} "
+                    f"price_30d={t.get('price_30d_return',0)*100:.1f}%"
                 )
  
-    return f"""You are a senior AI investment analyst. Today: {datetime.datetime.now().strftime('%A, %B %d %Y')}.
+    today = datetime.datetime.now().strftime("%A, %B %d %Y")
  
-Scoring model: 50% fundamentals (growth acceleration delta) / 25% constraints / 25% smart money.
-Colors: Red=bottleneck/hot, Orange=hype warning, Green=neutral, Blue=cooling.
+    return f"""You are a senior AI investment analyst. Today: {today}.
+ 
+Scoring: 50% fundamentals (revenue growth acceleration) / 25% constraints / 25% smart money.
+Colors: Red=current bottleneck, Orange=emerging/hype, Green=neutral, Blue=cooling.
  
 SCORED LAYERS:
 {"".join(layer_lines)}
@@ -61,26 +65,24 @@ SCORED LAYERS:
 HIGH-GROWTH TICKERS (>15% revenue growth):
 {chr(10).join(top_tickers[:10]) if top_tickers else "  None today"}
  
-Produce a concise professional daily briefing:
+OUTPUT INSTRUCTIONS — follow this EXACT format. No markdown bold (**). No bullet points inside sections. Plain sentences only. Each section starts with the emoji header shown.
  
-## 🌍 MACRO REGIME
-Current regime and what it means for AI investments today.
+### 🌍 MACRO REGIME
+Write 2-3 plain sentences. State the current regime (Risk-On / Neutral / Risk-Off) and what it means for AI investments today. No bullet points.
  
-## 🔩 AI CHAIN BOTTLENECK
-Current dominant constraint layer. Emerging next constraint.
-Name the 1-2 most critical companies and why.
+### 🔩 AI CHAIN BOTTLENECK
+Write 3-4 plain sentences. Name the dominant constraint layer and its score. Name the emerging next constraint. Identify the 1-2 most critical companies with specific delta and growth figures. No bullet points.
  
-## 🚀 NEXT NVIDIA SIGNAL
-Which single company shows the strongest Nvidia-like growth acceleration today?
-Bull case and what would invalidate it.
+### 🚀 NEXT NVIDIA SIGNAL
+Write 3-4 plain sentences. Name one company with the strongest Nvidia-like growth acceleration. State the bull case in one sentence. State what would invalidate it in one sentence. No bullet points.
  
-## ⚠️ HYPE WARNINGS
-Any Orange signals or momentum/fundamental divergences to flag?
+### ⚠️ HYPE WARNINGS
+Write 2-3 plain sentences. Name any Orange signals or hype=True tickers with cooling fundamentals. Be specific with scores and deltas. No bullet points.
  
-## 💡 ONE ACTION
-One specific investment decision: company, thesis, risk.
+### 💡 ONE ACTION
+Write exactly 3 plain sentences. Sentence 1: Company name and action (Buy/Watch/Avoid). Sentence 2: Thesis with specific data. Sentence 3: Primary risk. No bullet points. Format: "Company: TICKER (Name)"
  
-Be data-driven. Reference specific scores, deltas, and tickers from the data.
+RULES: No asterisks. No bold. No bullet points. No dashes. No markdown. Plain professional sentences only.
 """
  
  
@@ -88,10 +90,12 @@ def analyze_with_gemini(prompt: str) -> str:
     import time
     from google import genai
     client = genai.Client(api_key=GEMINI_API_KEY)
-    # Retry up to 3 times with backoff for 503 errors
     for attempt in range(3):
         try:
-            response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt
+            )
             log.info(f"  Gemini analysis complete ({GEMINI_MODEL})")
             return response.text
         except Exception as e:
