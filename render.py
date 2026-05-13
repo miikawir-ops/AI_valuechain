@@ -377,6 +377,9 @@ def _radar_js_data(radar_data: list) -> str:
         wc_traj = []
         for g in wc.get("growth_quarters", [])[:4]:
             wc_traj.append("🔥" if g and g > 50 else "↑" if g and g > 20 else "→" if g and g > 0 else "↓")
+        # Get sparkline for wildcard from main tracked tickers if available
+        wc_spark = []
+        # Will be populated from market_data in generate_dashboard
         wildcard = {
             "ticker":       wc.get("ticker", "?"),
             "name":         wc.get("name", "?"),
@@ -390,6 +393,7 @@ def _radar_js_data(radar_data: list) -> str:
             "consecutive":  accel.get("consecutive_accel", 0),
             "latest_growth":accel.get("latest_growth"),
             "trajectory":   wc_traj,
+            "sparkline":    wc_spark,
         }
  
     out = []
@@ -829,7 +833,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 <div class="card" id="radar-card" style="display:none">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-    <div class="card-label" style="margin-bottom:0">🚀 Next Nvidia Radar — Top 5 today</div>
+    <div class="card-label" style="margin-bottom:0">🚀 <strong>RayDar</strong> — Next Nvidia Top 5 today</div>
     <span style="font-size:10px;color:#888780" id="radar-count">Multi-quarter acceleration</span>
   </div>
   <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">
@@ -840,8 +844,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
   <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;
        border-top:0.5px solid #E0DFDC">
-    <div style="font-size:10px;font-weight:500;color:#888780;letter-spacing:.04em;
-                margin-bottom:8px">🃏 WILDCARD — Under the radar</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:16px">🃏</span>
+      <span style="font-size:13px;font-weight:600;color:#1A1A1A;letter-spacing:.02em">WILDCARD</span>
+      <span style="font-size:11px;color:#888780">— under the radar</span>
+    </div>
     <div id="wildcard-card"></div>
   </div>
 </div>
@@ -1418,10 +1425,10 @@ function buildRadar() {{
   const count = document.getElementById("radar-count");
   if (!RADAR || RADAR.length === 0) {{ card.style.display="none"; return; }}
   card.style.display = "block";
-  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.length}} of 33 companies scored`;
+  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.length}} of 45 companies scored`;
  
   const CONF_COLORS = {{HIGH:"#27500A",MEDIUM:"#854F0B",LOW:"#888780"}};
-  const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱"}};
+  const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐",edge:"📡"}};
  
   const radarList = RADAR.top5 || RADAR;
   const wildcard  = RADAR.wildcard || null;
@@ -1450,33 +1457,53 @@ function buildRadar() {{
     const wcContext = wcContextMap[wildcard.layer] || wildcard.layer;
  
     wcCard.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
-                  background:#FFFBF0;border:1px solid #EF9F27;border-radius:8px;padding:12px 14px">
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:16px;font-weight:500;color:#1A1A1A">${{wildcard.ticker}}</span>
-            <span style="font-size:10px;padding:1px 6px;background:#FFF3CD;color:#856404;
-                         border:0.5px solid #EF9F27;border-radius:4px;cursor:help"
-                  title="Low analyst coverage = institutional money has not yet fully discovered this company. When fundamentals accelerate before Wall Street notices, that is historically the setup for outsized returns.">
-              🔍 Only ${{wac}} analysts — early discovery signal
-            </span>
+      <div style="background:white;border:1px solid #EF9F27;border-radius:10px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                    padding:12px 14px;gap:12px;border-bottom:0.5px solid #E0DFDC">
+          <div>
+            <div style="font-size:20px;font-weight:500;color:#1A1A1A;margin-bottom:2px">${{wildcard.ticker}}</div>
+            <div style="font-size:11px;color:#888780">${{wildcard.name}} · ${{wildcard.layer}}</div>
           </div>
-          <div style="font-size:11px;color:#888780;margin-bottom:8px">${{wildcard.name}} · ${{wildcard.layer}}</div>
-          <div style="display:flex;gap:12px;font-size:11px;color:#5F5E5A;flex-wrap:wrap">
-            ${{wlg ? `<span>${{wlg}}</span>` : ""}}
-            ${{wgm ? `<span>${{wgm}}</span>` : ""}}
-            <span style="color:${{wrc}}">${{wret}} (1mo)</span>
-            <span style="font-size:12px;letter-spacing:2px">${{wtraj}}</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;
+                         border:0.5px solid #EF9F27;border-radius:4px;cursor:help"
+                  title="Low analyst coverage means institutional money has not fully discovered this yet. When fundamentals accelerate before Wall Street notices, that is historically the setup for outsized returns.">
+              Only ${{wac}} analysts — early discovery signal
+            </span>
+            <button onclick="sendPrompt('${{wPrompt}}')"
+                    style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;
+                           border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
+              🔍 Deep dive ↗
+            </button>
           </div>
         </div>
-        <button onclick="sendPrompt('${{wPrompt}}')"
-                style="padding:8px 14px;border:1px solid #378ADD;border-radius:6px;
-                       background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;
-                       cursor:pointer;white-space:nowrap">
-          🔍 Deep dive ↗
-        </button>
+        <div style="display:flex;border-bottom:0.5px solid #E0DFDC;overflow:hidden">
+          ${{[["Revenue",wlg,wrc],["Gross margin",wgm,"#1A1A1A"],["1mo return",wret,wrc],["Analysts",wac+" covering","#EF9F27"],["Momentum",wtraj,"#1A1A1A"]].map(([l,v,c])=>v?`<div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC"><div style="font-size:10px;color:#888780;margin-bottom:3px">${{l}}</div><div style="font-size:12px;font-weight:500;color:${{c}}">${{v}}</div></div>`:"").join("")}}
+        </div>
+        <div style="padding:10px 14px;background:#F8F8F7">
+          <div style="font-size:10px;color:#888780;margin-bottom:6px">6-month price trend</div>
+          <div style="position:relative;height:80px"><canvas id="wc-spark" style="width:100%;height:100%"></canvas></div>
+        </div>
+        <div style="padding:10px 14px;font-size:11px;color:#5F5E5A;line-height:1.6;border-top:0.5px solid #E0DFDC">
+          ${{wildcard.ticker}} operates in ${{wcContext}}. Only ${{wac}} Wall Street analysts cover it — meaning most institutional funds have not built a position yet. When revenue fundamentals accelerate before analyst coverage catches up, that is historically the earliest signal of an outsized opportunity. Monitor for analyst upgrades as a confirmation signal.
+        </div>
       </div>`;
-  }}
+ 
+    const wcSpark = document.getElementById("wc-spark");
+    if (wcSpark && wildcard.sparkline && wildcard.sparkline.length > 3) {{
+      const wcData = wildcard.sparkline;
+      const wcMn = Math.min(...wcData);
+      const wcMx = Math.max(...wcData);
+      if (wcMx - wcMn > 1) {{
+        const wcPad = (wcMx-wcMn)*0.12;
+        const wcCol = wildcard.ret_1mo >= 0 ? "#3B6D11" : "#A32D2D";
+        const wcToday = new Date();
+        const wcLabels = wcData.map((_,i) => {{ const d=new Date(wcToday); d.setDate(d.getDate()-(wcData.length-1-i)*6); return d.toLocaleDateString("en",{{month:"short",day:"numeric"}}); }});
+        setTimeout(() => {{
+          try {{ new Chart(wcSpark, {{type:"line",data:{{labels:wcLabels,datasets:[{{data:wcData,borderColor:wcCol,borderWidth:2,pointRadius:0,fill:true,backgroundColor:wcCol==="#3B6D11"?"rgba(39,80,10,0.07)":"rgba(163,45,45,0.07)",tension:0.4}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>"$"+c.parsed.y.toFixed(0)}}}}}},scales:{{x:{{display:true,ticks:{{maxTicksLimit:5,font:{{size:9}},color:"#888780",maxRotation:0}},grid:{{display:false}},border:{{display:false}}}},y:{{display:true,min:wcMn-wcPad,max:wcMx+wcPad,ticks:{{maxTicksLimit:3,font:{{size:9}},color:"#888780",callback:v=>"$"+Math.round(v)}},grid:{{color:"rgba(0,0,0,0.04)"}},border:{{display:false}}}}}},animation:{{duration:500}}}}}}); }} catch(e) {{}}
+        }}, 100);
+      }}
+    }}
  
   grid.innerHTML = radarList.map((r, i) => {{
     const pct   = Math.min(100, r.score);
