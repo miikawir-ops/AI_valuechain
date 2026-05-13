@@ -1547,6 +1547,7 @@ function buildRadar() {{
         }}
       }}
     }}, 150);
+  }}
  
   grid.innerHTML = radarList.map((r, i) => {{
     const pct   = Math.min(100, r.score);
@@ -1585,7 +1586,6 @@ function buildRadar() {{
       </div>
     </div>`;
   }}).join("");
-}}
 }}
  
 function buildTopTicker(layers) {{
