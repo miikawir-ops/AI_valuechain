@@ -1458,52 +1458,95 @@ function buildRadar() {{
  
     wcCard.innerHTML = `
       <div style="background:white;border:1px solid #EF9F27;border-radius:10px;overflow:hidden">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;
-                    padding:12px 14px;gap:12px;border-bottom:0.5px solid #E0DFDC">
+        <div style="padding:12px 14px;border-bottom:0.5px solid #E0DFDC;display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div style="font-size:20px;font-weight:500;color:#1A1A1A;margin-bottom:2px">${{wildcard.ticker}}</div>
-            <div style="font-size:11px;color:#888780">${{wildcard.name}} · ${{wildcard.layer}}</div>
+            <div style="font-size:20px;font-weight:500;color:#1A1A1A">${{wildcard.ticker}}</div>
+            <div style="font-size:11px;color:#888780;margin-top:2px">${{wildcard.name}} · ${{wildcard.layer}}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-            <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;
-                         border:0.5px solid #EF9F27;border-radius:4px;cursor:help"
-                  title="Low analyst coverage means institutional money has not fully discovered this yet. When fundamentals accelerate before Wall Street notices, that is historically the setup for outsized returns.">
+            <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
               Only ${{wac}} analysts — early discovery signal
             </span>
             <button onclick="sendPrompt('${{wPrompt}}')"
-                    style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;
-                           border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
+                    style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
               🔍 Deep dive ↗
             </button>
           </div>
         </div>
-        <div style="display:flex;border-bottom:0.5px solid #E0DFDC;overflow:hidden">
-          ${{[["Revenue",wlg,wrc],["Gross margin",wgm,"#1A1A1A"],["1mo return",wret,wrc],["Analysts",wac+" covering","#EF9F27"],["Momentum",wtraj,"#1A1A1A"]].map(([l,v,c])=>v?`<div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC"><div style="font-size:10px;color:#888780;margin-bottom:3px">${{l}}</div><div style="font-size:12px;font-weight:500;color:${{c}}">${{v}}</div></div>`:"").join("")}}
+        <div style="display:flex;border-bottom:0.5px solid #E0DFDC">
+          <div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">Revenue</div>
+            <div style="font-size:12px;font-weight:500;color:${{wrc}}">${{wlg}}</div>
+          </div>
+          <div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">Gross margin</div>
+            <div style="font-size:12px;font-weight:500;color:#1A1A1A">${{wgm}}</div>
+          </div>
+          <div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">1-month return</div>
+            <div style="font-size:12px;font-weight:500;color:${{wrc}}">${{wret}}</div>
+          </div>
+          <div style="flex:1;padding:8px 12px">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">Momentum</div>
+            <div style="font-size:12px;font-weight:500;color:#1A1A1A">${{wtraj}}</div>
+          </div>
         </div>
         <div style="padding:10px 14px;background:#F8F8F7">
           <div style="font-size:10px;color:#888780;margin-bottom:6px">6-month price trend</div>
-          <div style="position:relative;height:80px"><canvas id="wc-spark" style="width:100%;height:100%"></canvas></div>
+          <div id="wc-chart-wrap" style="position:relative;height:80px">
+            <canvas id="wc-spark" style="width:100%;height:100%"></canvas>
+          </div>
         </div>
         <div style="padding:10px 14px;font-size:11px;color:#5F5E5A;line-height:1.6;border-top:0.5px solid #E0DFDC">
-          ${{wildcard.ticker}} operates in ${{wcContext}}. Only ${{wac}} Wall Street analysts cover it — meaning most institutional funds have not built a position yet. When revenue fundamentals accelerate before analyst coverage catches up, that is historically the earliest signal of an outsized opportunity. Monitor for analyst upgrades as a confirmation signal.
+          ${{wildcard.ticker}} operates in ${{wcContext}}. Only ${{wac}} Wall Street analysts cover it. When revenue fundamentals accelerate before analyst coverage catches up, that is historically the earliest signal of an outsized opportunity.
         </div>
       </div>`;
  
-    const wcSpark = document.getElementById("wc-spark");
-    if (wcSpark && wildcard.sparkline && wildcard.sparkline.length > 3) {{
-      const wcData = wildcard.sparkline;
-      const wcMn = Math.min(...wcData);
-      const wcMx = Math.max(...wcData);
-      if (wcMx - wcMn > 1) {{
-        const wcPad = (wcMx-wcMn)*0.12;
-        const wcCol = wildcard.ret_1mo >= 0 ? "#3B6D11" : "#A32D2D";
-        const wcToday = new Date();
-        const wcLabels = wcData.map((_,i) => {{ const d=new Date(wcToday); d.setDate(d.getDate()-(wcData.length-1-i)*6); return d.toLocaleDateString("en",{{month:"short",day:"numeric"}}); }});
-        setTimeout(() => {{
-          try {{ new Chart(wcSpark, {{type:"line",data:{{labels:wcLabels,datasets:[{{data:wcData,borderColor:wcCol,borderWidth:2,pointRadius:0,fill:true,backgroundColor:wcCol==="#3B6D11"?"rgba(39,80,10,0.07)":"rgba(163,45,45,0.07)",tension:0.4}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>"$"+c.parsed.y.toFixed(0)}}}}}},scales:{{x:{{display:true,ticks:{{maxTicksLimit:5,font:{{size:9}},color:"#888780",maxRotation:0}},grid:{{display:false}},border:{{display:false}}}},y:{{display:true,min:wcMn-wcPad,max:wcMx+wcPad,ticks:{{maxTicksLimit:3,font:{{size:9}},color:"#888780",callback:v=>"$"+Math.round(v)}},grid:{{color:"rgba(0,0,0,0.04)"}},border:{{display:false}}}}}},animation:{{duration:500}}}}}}); }} catch(e) {{}}
-        }}, 100);
+    setTimeout(() => {{
+      const wcSpark = document.getElementById("wc-spark");
+      if (wcSpark && wildcard.sparkline && wildcard.sparkline.length > 3) {{
+        const wcData = wildcard.sparkline;
+        const wcMn = Math.min(...wcData);
+        const wcMx = Math.max(...wcData);
+        if (wcMx - wcMn > 1) {{
+          const wcPad = (wcMx - wcMn) * 0.12;
+          const wcCol = wildcard.ret_1mo >= 0 ? "#3B6D11" : "#A32D2D";
+          const wcToday = new Date();
+          const wcLabels = wcData.map((_, i) => {{
+            const d = new Date(wcToday);
+            d.setDate(d.getDate() - (wcData.length - 1 - i) * 6);
+            return d.toLocaleDateString("en", {{month:"short", day:"numeric"}});
+          }});
+          try {{
+            new Chart(wcSpark, {{
+              type: "line",
+              data: {{
+                labels: wcLabels,
+                datasets: [{{
+                  data: wcData,
+                  borderColor: wcCol,
+                  borderWidth: 2,
+                  pointRadius: 0,
+                  fill: true,
+                  backgroundColor: wcCol === "#3B6D11" ? "rgba(39,80,10,0.07)" : "rgba(163,45,45,0.07)",
+                  tension: 0.4
+                }}]
+              }},
+              options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{legend: {{display: false}}, tooltip: {{callbacks: {{label: c => "$" + c.parsed.y.toFixed(0)}}}}}},
+                scales: {{
+                  x: {{display: true, ticks: {{maxTicksLimit: 5, font: {{size: 9}}, color: "#888780", maxRotation: 0}}, grid: {{display: false}}, border: {{display: false}}}},
+                  y: {{display: true, min: wcMn - wcPad, max: wcMx + wcPad, ticks: {{maxTicksLimit: 3, font: {{size: 9}}, color: "#888780", callback: v => "$" + Math.round(v)}}, grid: {{color: "rgba(0,0,0,0.04)"}}, border: {{display: false}}}}
+                }},
+                animation: {{duration: 500}}
+              }}
+            }});
+          }} catch(e) {{ console.log("WC chart error:", e); }}
+        }}
       }}
-    }}
+    }}, 150);
  
   grid.innerHTML = radarList.map((r, i) => {{
     const pct   = Math.min(100, r.score);
