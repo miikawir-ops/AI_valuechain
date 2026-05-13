@@ -1586,6 +1586,7 @@ function buildRadar() {{
     </div>`;
   }}).join("");
 }}
+}}
  
 function buildTopTicker(layers) {{
   const el = document.getElementById("top-ticker");
