@@ -1,6 +1,3 @@
-Daily update · YML
-Copy
-
 name: Daily AI Valuechain Update
  
 on:
@@ -37,6 +34,3 @@ jobs:
           git add ai_chain_report.html scores_history.json next_nvidia_cache.json || true
           git diff --staged --quiet || git commit -m "Daily update: $(date -u +'%Y-%m-%d %H:%M') UTC"
           git push
- 
-
-
