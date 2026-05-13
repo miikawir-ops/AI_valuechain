@@ -1,16 +1,16 @@
 [
   {
     "date": "2026-05-13",
-    "time": "11:46",
+    "time": "14:50",
     "action_ticker": "",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 49.09,
+        "score": 46.09,
         "color": "Orange"
       },
       "compute": {
-        "score": 54.09,
+        "score": 52.59,
         "color": "Orange"
       },
       "memory": {
@@ -18,11 +18,11 @@
         "color": "Red"
       },
       "infra": {
-        "score": 45.61,
+        "score": 47.11,
         "color": "Orange"
       },
       "cloud": {
-        "score": 35.46,
+        "score": 33.96,
         "color": "Green"
       },
       "software": {
