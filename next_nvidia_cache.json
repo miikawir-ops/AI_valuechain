@@ -1,0 +1,892 @@
+{
+  "date": "2026-05-13",
+  "time": "11:24",
+  "top5": [
+    {
+      "ticker": "MU",
+      "name": "Micron Technology",
+      "layer": "memory",
+      "score": 45.6,
+      "price": 766.58,
+      "market_cap": 864498352128,
+      "ret_1mo": 64.6,
+      "ret_3mo": 86.9,
+      "gross_margin": 58.4,
+      "analyst_count": 42,
+      "fwd_pe": 7.5,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 196.3,
+        "confidence": "LOW",
+        "accel_score": 40,
+        "all_quarters": [
+          196.3
+        ]
+      },
+      "growth_quarters": [
+        196.3
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "name": "AMD",
+      "layer": "compute",
+      "score": 33.7,
+      "price": 448.29,
+      "market_cap": 730981924864,
+      "ret_1mo": 75.8,
+      "ret_3mo": 109.9,
+      "gross_margin": 53.1,
+      "analyst_count": 48,
+      "fwd_pe": 34.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 34.1,
+        "confidence": "LOW",
+        "accel_score": 13.6,
+        "all_quarters": [
+          34.1
+        ]
+      },
+      "growth_quarters": [
+        34.1
+      ]
+    },
+    {
+      "ticker": "PLTR",
+      "name": "Palantir",
+      "layer": "software",
+      "score": 33.6,
+      "price": 136.0,
+      "market_cap": 326034423808,
+      "ret_1mo": 0.2,
+      "ret_3mo": 0.2,
+      "gross_margin": 84.1,
+      "analyst_count": 27,
+      "fwd_pe": 65.9,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 84.7,
+        "confidence": "LOW",
+        "accel_score": 33.9,
+        "all_quarters": [
+          84.7
+        ]
+      },
+      "growth_quarters": [
+        84.7
+      ]
+    },
+    {
+      "ticker": "APP",
+      "name": "AppLovin",
+      "layer": "software",
+      "score": 33.4,
+      "price": 490.69,
+      "market_cap": 164842160128,
+      "ret_1mo": 13.2,
+      "ret_3mo": 7.4,
+      "gross_margin": 88.4,
+      "analyst_count": 29,
+      "fwd_pe": 22.4,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 59.0,
+        "confidence": "LOW",
+        "accel_score": 23.6,
+        "all_quarters": [
+          59.0
+        ]
+      },
+      "growth_quarters": [
+        59.0
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "name": "Nvidia",
+      "layer": "compute",
+      "score": 33.2,
+      "price": 220.78,
+      "market_cap": 5366057795584,
+      "ret_1mo": 12.4,
+      "ret_3mo": 16.2,
+      "gross_margin": 71.1,
+      "analyst_count": 57,
+      "fwd_pe": 19.5,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 73.2,
+        "confidence": "LOW",
+        "accel_score": 29.3,
+        "all_quarters": [
+          73.2
+        ]
+      },
+      "growth_quarters": [
+        73.2
+      ]
+    }
+  ],
+  "all": [
+    {
+      "ticker": "MU",
+      "name": "Micron Technology",
+      "layer": "memory",
+      "score": 45.6,
+      "price": 766.58,
+      "market_cap": 864498352128,
+      "ret_1mo": 64.6,
+      "ret_3mo": 86.9,
+      "gross_margin": 58.4,
+      "analyst_count": 42,
+      "fwd_pe": 7.5,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 196.3,
+        "confidence": "LOW",
+        "accel_score": 40,
+        "all_quarters": [
+          196.3
+        ]
+      },
+      "growth_quarters": [
+        196.3
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "name": "AMD",
+      "layer": "compute",
+      "score": 33.7,
+      "price": 448.29,
+      "market_cap": 730981924864,
+      "ret_1mo": 75.8,
+      "ret_3mo": 109.9,
+      "gross_margin": 53.1,
+      "analyst_count": 48,
+      "fwd_pe": 34.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 34.1,
+        "confidence": "LOW",
+        "accel_score": 13.6,
+        "all_quarters": [
+          34.1
+        ]
+      },
+      "growth_quarters": [
+        34.1
+      ]
+    },
+    {
+      "ticker": "PLTR",
+      "name": "Palantir",
+      "layer": "software",
+      "score": 33.6,
+      "price": 136.0,
+      "market_cap": 326034423808,
+      "ret_1mo": 0.2,
+      "ret_3mo": 0.2,
+      "gross_margin": 84.1,
+      "analyst_count": 27,
+      "fwd_pe": 65.9,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 84.7,
+        "confidence": "LOW",
+        "accel_score": 33.9,
+        "all_quarters": [
+          84.7
+        ]
+      },
+      "growth_quarters": [
+        84.7
+      ]
+    },
+    {
+      "ticker": "APP",
+      "name": "AppLovin",
+      "layer": "software",
+      "score": 33.4,
+      "price": 490.69,
+      "market_cap": 164842160128,
+      "ret_1mo": 13.2,
+      "ret_3mo": 7.4,
+      "gross_margin": 88.4,
+      "analyst_count": 29,
+      "fwd_pe": 22.4,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 59.0,
+        "confidence": "LOW",
+        "accel_score": 23.6,
+        "all_quarters": [
+          59.0
+        ]
+      },
+      "growth_quarters": [
+        59.0
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "name": "Nvidia",
+      "layer": "compute",
+      "score": 33.2,
+      "price": 220.78,
+      "market_cap": 5366057795584,
+      "ret_1mo": 12.4,
+      "ret_3mo": 16.2,
+      "gross_margin": 71.1,
+      "analyst_count": 57,
+      "fwd_pe": 19.5,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 73.2,
+        "confidence": "LOW",
+        "accel_score": 29.3,
+        "all_quarters": [
+          73.2
+        ]
+      },
+      "growth_quarters": [
+        73.2
+      ]
+    },
+    {
+      "ticker": "WDC",
+      "name": "Western Digital",
+      "layer": "memory",
+      "score": 28.7,
+      "price": 488.74,
+      "market_cap": 168459943936,
+      "ret_1mo": 33.5,
+      "ret_3mo": 78.6,
+      "gross_margin": 45.4,
+      "analyst_count": 23,
+      "fwd_pe": 28.1,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 45.5,
+        "confidence": "LOW",
+        "accel_score": 18.2,
+        "all_quarters": [
+          45.5
+        ]
+      },
+      "growth_quarters": [
+        45.5
+      ]
+    },
+    {
+      "ticker": "SMCI",
+      "name": "Super Micro Computer",
+      "layer": "infra",
+      "score": 27.3,
+      "price": 32.79,
+      "market_cap": 19720513536,
+      "ret_1mo": 20.6,
+      "ret_3mo": 2.3,
+      "gross_margin": 8.4,
+      "analyst_count": 16,
+      "fwd_pe": 10.2,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 123.4,
+        "confidence": "LOW",
+        "accel_score": 40,
+        "all_quarters": [
+          123.4
+        ]
+      },
+      "growth_quarters": [
+        123.4
+      ]
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Broadcom",
+      "layer": "compute",
+      "score": 26.9,
+      "price": 419.3,
+      "market_cap": 1985246396416,
+      "ret_1mo": 10.1,
+      "ret_3mo": 22.6,
+      "gross_margin": 76.7,
+      "analyst_count": 42,
+      "fwd_pe": 23.1,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 29.5,
+        "confidence": "LOW",
+        "accel_score": 11.8,
+        "all_quarters": [
+          29.5
+        ]
+      },
+      "growth_quarters": [
+        29.5
+      ]
+    },
+    {
+      "ticker": "META",
+      "name": "Meta",
+      "layer": "cloud",
+      "score": 25.3,
+      "price": 603.0,
+      "market_cap": 1530669301760,
+      "ret_1mo": -9.0,
+      "ret_3mo": -9.7,
+      "gross_margin": 81.9,
+      "analyst_count": 58,
+      "fwd_pe": 16.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 33.1,
+        "confidence": "LOW",
+        "accel_score": 13.2,
+        "all_quarters": [
+          33.1
+        ]
+      },
+      "growth_quarters": [
+        33.1
+      ]
+    },
+    {
+      "ticker": "SNOW",
+      "name": "Snowflake",
+      "layer": "software",
+      "score": 25.3,
+      "price": 151.98,
+      "market_cap": 52539486208,
+      "ret_1mo": 12.2,
+      "ret_3mo": -15.0,
+      "gross_margin": 67.2,
+      "analyst_count": 47,
+      "fwd_pe": 62.5,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 30.1,
+        "confidence": "LOW",
+        "accel_score": 12.0,
+        "all_quarters": [
+          30.1
+        ]
+      },
+      "growth_quarters": [
+        30.1
+      ]
+    },
+    {
+      "ticker": "AXON",
+      "name": "Axon Enterprise",
+      "layer": "software",
+      "score": 23.6,
+      "price": 393.66,
+      "market_cap": 31729815552,
+      "ret_1mo": 3.4,
+      "ret_3mo": -9.4,
+      "gross_margin": 59.5,
+      "analyst_count": 18,
+      "fwd_pe": 37.2,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 38.5,
+        "confidence": "LOW",
+        "accel_score": 15.4,
+        "all_quarters": [
+          38.5
+        ]
+      },
+      "growth_quarters": [
+        38.5
+      ]
+    },
+    {
+      "ticker": "CIEN",
+      "name": "Ciena Corp",
+      "layer": "infra",
+      "score": 23.6,
+      "price": 577.15,
+      "market_cap": 81608105984,
+      "ret_1mo": 23.5,
+      "ret_3mo": 94.2,
+      "gross_margin": 42.1,
+      "analyst_count": 19,
+      "fwd_pe": 66.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 33.1,
+        "confidence": "LOW",
+        "accel_score": 13.2,
+        "all_quarters": [
+          33.1
+        ]
+      },
+      "growth_quarters": [
+        33.1
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet",
+      "layer": "cloud",
+      "score": 23.5,
+      "price": 387.35,
+      "market_cap": 4692917092352,
+      "ret_1mo": 16.4,
+      "ret_3mo": 24.7,
+      "gross_margin": 60.4,
+      "analyst_count": 52,
+      "fwd_pe": 26.8,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 21.8,
+        "confidence": "LOW",
+        "accel_score": 8.7,
+        "all_quarters": [
+          21.8
+        ]
+      },
+      "growth_quarters": [
+        21.8
+      ]
+    },
+    {
+      "ticker": "NOW",
+      "name": "ServiceNow",
+      "layer": "software",
+      "score": 23.1,
+      "price": 89.0,
+      "market_cap": 91786412032,
+      "ret_1mo": 1.4,
+      "ret_3mo": -11.5,
+      "gross_margin": 76.6,
+      "analyst_count": 44,
+      "fwd_pe": 17.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 22.1,
+        "confidence": "LOW",
+        "accel_score": 8.8,
+        "all_quarters": [
+          22.1
+        ]
+      },
+      "growth_quarters": [
+        22.1
+      ]
+    },
+    {
+      "ticker": "MRVL",
+      "name": "Marvell Technology",
+      "layer": "infra",
+      "score": 23.1,
+      "price": 164.5,
+      "market_cap": 143848374272,
+      "ret_1mo": 22.9,
+      "ret_3mo": 102.3,
+      "gross_margin": 51.0,
+      "analyst_count": 39,
+      "fwd_pe": 30.3,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 22.1,
+        "confidence": "LOW",
+        "accel_score": 8.8,
+        "all_quarters": [
+          22.1
+        ]
+      },
+      "growth_quarters": [
+        22.1
+      ]
+    },
+    {
+      "ticker": "CDNS",
+      "name": "Cadence Design Systems",
+      "layer": "compute",
+      "score": 23.0,
+      "price": 358.04,
+      "market_cap": 98753159168,
+      "ret_1mo": 22.5,
+      "ret_3mo": 19.5,
+      "gross_margin": 86.1,
+      "analyst_count": 26,
+      "fwd_pe": 38.2,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 18.7,
+        "confidence": "LOW",
+        "accel_score": 7.5,
+        "all_quarters": [
+          18.7
+        ]
+      },
+      "growth_quarters": [
+        18.7
+      ]
+    },
+    {
+      "ticker": "TSM",
+      "name": "TSMC",
+      "layer": "compute",
+      "score": 21.6,
+      "price": 397.28,
+      "market_cap": 2060453150720,
+      "ret_1mo": 4.6,
+      "ret_3mo": 6.5,
+      "gross_margin": 61.9,
+      "analyst_count": 18,
+      "fwd_pe": 20.6,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 20.5,
+        "confidence": "LOW",
+        "accel_score": 8.2,
+        "all_quarters": [
+          20.5
+        ]
+      },
+      "growth_quarters": [
+        20.5
+      ]
+    },
+    {
+      "ticker": "ANET",
+      "name": "Arista Networks",
+      "layer": "infra",
+      "score": 21.5,
+      "price": 142.54,
+      "market_cap": 179482001408,
+      "ret_1mo": -7.7,
+      "ret_3mo": 1.3,
+      "gross_margin": 63.5,
+      "analyst_count": 26,
+      "fwd_pe": 32.1,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 35.1,
+        "confidence": "LOW",
+        "accel_score": 14.0,
+        "all_quarters": [
+          35.1
+        ]
+      },
+      "growth_quarters": [
+        35.1
+      ]
+    },
+    {
+      "ticker": "CRM",
+      "name": "Salesforce",
+      "layer": "software",
+      "score": 21.3,
+      "price": 171.31,
+      "market_cap": 140140789760,
+      "ret_1mo": 0.0,
+      "ret_3mo": -7.2,
+      "gross_margin": 77.7,
+      "analyst_count": 53,
+      "fwd_pe": 11.5,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 12.1,
+        "confidence": "LOW",
+        "accel_score": 4.8,
+        "all_quarters": [
+          12.1
+        ]
+      },
+      "growth_quarters": [
+        12.1
+      ]
+    },
+    {
+      "ticker": "TTD",
+      "name": "The Trade Desk",
+      "layer": "software",
+      "score": 21.3,
+      "price": 21.14,
+      "market_cap": 9938089984,
+      "ret_1mo": 0.6,
+      "ret_3mo": -22.4,
+      "gross_margin": 77.8,
+      "analyst_count": 31,
+      "fwd_pe": 9.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 11.8,
+        "confidence": "LOW",
+        "accel_score": 4.7,
+        "all_quarters": [
+          11.8
+        ]
+      },
+      "growth_quarters": [
+        11.8
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft",
+      "layer": "cloud",
+      "score": 20.0,
+      "price": 407.77,
+      "market_cap": 3029092794368,
+      "ret_1mo": 3.7,
+      "ret_3mo": 1.1,
+      "gross_margin": 68.3,
+      "analyst_count": 54,
+      "fwd_pe": 21.1,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 18.3,
+        "confidence": "LOW",
+        "accel_score": 7.3,
+        "all_quarters": [
+          18.3
+        ]
+      },
+      "growth_quarters": [
+        18.3
+      ]
+    },
+    {
+      "ticker": "VRT",
+      "name": "Vertiv Holdings",
+      "layer": "infra",
+      "score": 19.6,
+      "price": 367.13,
+      "market_cap": 141017858048,
+      "ret_1mo": 18.2,
+      "ret_3mo": 47.8,
+      "gross_margin": 37.2,
+      "analyst_count": 25,
+      "fwd_pe": 42.0,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 30.1,
+        "confidence": "LOW",
+        "accel_score": 12.0,
+        "all_quarters": [
+          30.1
+        ]
+      },
+      "growth_quarters": [
+        30.1
+      ]
+    },
+    {
+      "ticker": "ASML",
+      "name": "ASML",
+      "layer": "compute",
+      "score": 19.0,
+      "price": 1520.94,
+      "market_cap": 586197106688,
+      "ret_1mo": 0.4,
+      "ret_3mo": 6.2,
+      "gross_margin": 52.6,
+      "analyst_count": 15,
+      "fwd_pe": 31.6,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 13.2,
+        "confidence": "LOW",
+        "accel_score": 5.3,
+        "all_quarters": [
+          13.2
+        ]
+      },
+      "growth_quarters": [
+        13.2
+      ]
+    },
+    {
+      "ticker": "LRCX",
+      "name": "Lam Research",
+      "layer": "memory",
+      "score": 18.2,
+      "price": 289.24,
+      "market_cap": 361715138560,
+      "ret_1mo": 6.2,
+      "ret_3mo": 23.2,
+      "gross_margin": 50.0,
+      "analyst_count": 32,
+      "fwd_pe": 36.6,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 23.8,
+        "confidence": "LOW",
+        "accel_score": 9.5,
+        "all_quarters": [
+          23.8
+        ]
+      },
+      "growth_quarters": [
+        23.8
+      ]
+    },
+    {
+      "ticker": "VST",
+      "name": "Vistra Corp",
+      "layer": "energy",
+      "score": 17.4,
+      "price": 146.87,
+      "market_cap": 49521987584,
+      "ret_1mo": -10.4,
+      "ret_3mo": -8.2,
+      "gross_margin": 38.6,
+      "analyst_count": 19,
+      "fwd_pe": 13.0,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 43.4,
+        "confidence": "LOW",
+        "accel_score": 17.4,
+        "all_quarters": [
+          43.4
+        ]
+      },
+      "growth_quarters": [
+        43.4
+      ]
+    },
+    {
+      "ticker": "PWR",
+      "name": "Quanta Services",
+      "layer": "energy",
+      "score": 16.6,
+      "price": 765.81,
+      "market_cap": 114917556224,
+      "ret_1mo": 28.8,
+      "ret_3mo": 46.2,
+      "gross_margin": 15.1,
+      "analyst_count": 24,
+      "fwd_pe": 46.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 26.3,
+        "confidence": "LOW",
+        "accel_score": 10.5,
+        "all_quarters": [
+          26.3
+        ]
+      },
+      "growth_quarters": [
+        26.3
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon",
+      "layer": "cloud",
+      "score": 15.3,
+      "price": 265.82,
+      "market_cap": 2859454955520,
+      "ret_1mo": 6.7,
+      "ret_3mo": 30.3,
+      "gross_margin": 50.6,
+      "analyst_count": 62,
+      "fwd_pe": 26.9,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 16.6,
+        "confidence": "LOW",
+        "accel_score": 6.6,
+        "all_quarters": [
+          16.6
+        ]
+      },
+      "growth_quarters": [
+        16.6
+      ]
+    },
+    {
+      "ticker": "COHR",
+      "name": "Coherent Corp",
+      "layer": "infra",
+      "score": 12.0,
+      "price": 374.01,
+      "market_cap": 73171066880,
+      "ret_1mo": 19.3,
+      "ret_3mo": 67.2,
+      "gross_margin": 37.0,
+      "analyst_count": 21,
+      "fwd_pe": 46.7,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 17.5,
+        "confidence": "LOW",
+        "accel_score": 7.0,
+        "all_quarters": [
+          17.5
+        ]
+      },
+      "growth_quarters": [
+        17.5
+      ]
+    },
+    {
+      "ticker": "CEG",
+      "name": "Constellation Energy",
+      "layer": "energy",
+      "score": 7.9,
+      "price": 293.6,
+      "market_cap": 106045399040,
+      "ret_1mo": -1.0,
+      "ret_3mo": 6.2,
+      "gross_margin": 23.3,
+      "analyst_count": 20,
+      "fwd_pe": 21.6,
+      "accel": {
+        "consecutive_accel": 0,
+        "trend_delta": 0,
+        "latest_growth": 12.9,
+        "confidence": "LOW",
+        "accel_score": 5.2,
+        "all_quarters": [
+          12.9
+        ]
+      },
+      "growth_quarters": [
+        12.9
+      ]
+    }
+  ]
+}
