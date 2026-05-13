@@ -409,7 +409,7 @@
   },
   {
     "date": "2026-05-13",
-    "time": "13:58",
+    "time": "14:09",
     "action_ticker": "",
     "action_price": null,
     "scores": {
@@ -418,23 +418,23 @@
         "color": "Orange"
       },
       "compute": {
-        "score": 51.09,
-        "color": "Orange"
+        "score": 63.09,
+        "color": "Red"
       },
       "memory": {
-        "score": 56.87,
+        "score": 55.37,
         "color": "Red"
       },
       "infra": {
-        "score": 45.61,
+        "score": 50.11,
         "color": "Orange"
       },
       "cloud": {
-        "score": 32.46,
+        "score": 33.96,
         "color": "Green"
       },
       "software": {
-        "score": 31.0,
+        "score": 32.5,
         "color": "Green"
       },
       "security": {
