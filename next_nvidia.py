@@ -62,6 +62,20 @@ RADAR_UNIVERSE = [
     {"ticker": "CIEN",  "layer": "infra",    "name": "Ciena Corp"},
     {"ticker": "COHR",  "layer": "infra",    "name": "Coherent Corp"},
     {"ticker": "WOLF",  "layer": "compute",  "name": "Wolfspeed"},
+    # New additions from gap analysis
+    {"ticker": "GEV",   "layer": "energy",   "name": "GE Vernova"},
+    {"ticker": "ETN",   "layer": "energy",   "name": "Eaton Corp"},
+    {"ticker": "ARM",   "layer": "compute",  "name": "ARM Holdings"},
+    {"ticker": "CSCO",  "layer": "infra",    "name": "Cisco Systems"},
+    {"ticker": "DDOG",  "layer": "software", "name": "Datadog"},
+    {"ticker": "CRWD",  "layer": "security", "name": "CrowdStrike"},
+    {"ticker": "PANW",  "layer": "security", "name": "Palo Alto Networks"},
+    {"ticker": "S",     "layer": "security", "name": "SentinelOne"},
+    {"ticker": "KLAC",  "layer": "memory",   "name": "KLA Corporation"},
+    {"ticker": "TER",   "layer": "compute",  "name": "Teradyne"},
+    # Edge computing watch list
+    {"ticker": "QCOM",  "layer": "edge",     "name": "Qualcomm"},
+    {"ticker": "INTC",  "layer": "edge",     "name": "Intel"},
 ]
  
 RADAR_CACHE_FILE = "next_nvidia_cache.json"
@@ -85,6 +99,12 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
         closes = hist["Close"].tolist() if not hist.empty else []
         ret_1mo = round((closes[-1]/closes[-21]-1)*100, 1) if len(closes) >= 21 else 0
         ret_3mo = round((closes[-1]/closes[-63]-1)*100, 1) if len(closes) >= 63 else 0
+        # Sparkline: sample 30 points from 6mo history
+        if closes and len(closes) >= 5:
+            step = max(1, len(closes) // 30)
+            price_history = [round(closes[j], 2) for j in range(0, len(closes), step)][-30:]
+        else:
+            price_history = []
  
         # Fundamentals
         market_cap    = info.get("marketCap", 0)
@@ -164,6 +184,7 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
         return {
             "ticker":         ticker,
             "price":          round(float(price), 2),
+            "price_history":  price_history,
             "market_cap":     market_cap,
             "gross_margin":   round(gross_margin * 100, 1) if gross_margin else None,
             "analyst_count":  analyst_count,
@@ -313,6 +334,13 @@ def run_radar(verbose: bool = True) -> list:
         accel = compute_acceleration_score(data["growth_quarters"])
         score = compute_nvidia_score(data, accel)
  
+        # Build sparkline from price history
+        ph = data.get("price_history", [])
+        if ph and len(ph) >= 5:
+            sparkline = [round(float(p), 2) for p in ph[-30:]]
+        else:
+            sparkline = []
+ 
         results.append({
             "ticker":      ticker,
             "name":        entry["name"],
@@ -327,6 +355,7 @@ def run_radar(verbose: bool = True) -> list:
             "fwd_pe":      data["fwd_pe"],
             "accel":       accel,
             "growth_quarters": data["growth_quarters"],
+            "sparkline":   sparkline,
         })
  
     # Filter out weak candidates:

@@ -393,7 +393,7 @@ def _radar_js_data(radar_data: list) -> str:
             "consecutive":  accel.get("consecutive_accel", 0),
             "latest_growth":accel.get("latest_growth"),
             "trajectory":   wc_traj,
-            "sparkline":    wc_spark,
+            "sparkline":    [round(float(p),2) for p in wc.get("sparkline",[])][-30:],
         }
  
     out = []
