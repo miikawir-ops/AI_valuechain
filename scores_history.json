@@ -1,24 +1,24 @@
 [
   {
     "date": "2026-05-13",
-    "time": "20:56",
+    "time": "21:51",
     "action_ticker": "",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 42.21,
+        "score": 46.46,
         "color": "Orange"
       },
       "compute": {
-        "score": 51.09,
+        "score": 49.59,
         "color": "Orange"
       },
       "memory": {
-        "score": 56.87,
+        "score": 57.37,
         "color": "Red"
       },
       "infra": {
-        "score": 47.11,
+        "score": 45.61,
         "color": "Orange"
       },
       "cloud": {
@@ -37,12 +37,12 @@
   },
   {
     "date": "2026-05-14",
-    "time": "10:36",
+    "time": "10:46",
     "action_ticker": "",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 46.59,
+        "score": 48.09,
         "color": "Orange"
       },
       "compute": {
