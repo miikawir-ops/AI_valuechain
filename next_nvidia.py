@@ -76,6 +76,33 @@ RADAR_UNIVERSE = [
     # Edge computing watch list
     {"ticker": "QCOM",  "layer": "edge",     "name": "Qualcomm"},
     {"ticker": "INTC",  "layer": "edge",     "name": "Intel"},
+    # Expanded screener — energy & power equipment
+    {"ticker": "PWR",   "layer": "energy",   "name": "Quanta Services"},
+    {"ticker": "HUBB",  "layer": "energy",   "name": "Hubbell"},
+    {"ticker": "ACLS",  "layer": "memory",   "name": "Axcelis Technologies"},
+    {"ticker": "ENTG",  "layer": "memory",   "name": "Entegris"},
+    # AI infrastructure — servers & networking
+    {"ticker": "DELL",  "layer": "infra",    "name": "Dell Technologies"},
+    {"ticker": "HPE",   "layer": "infra",    "name": "HP Enterprise"},
+    {"ticker": "NTAP",  "layer": "infra",    "name": "NetApp"},
+    {"ticker": "PSTG",  "layer": "infra",    "name": "Pure Storage"},
+    {"ticker": "ZS",    "layer": "security", "name": "Zscaler"},
+    # AI software & platforms
+    {"ticker": "ADSK",  "layer": "software", "name": "Autodesk"},
+    {"ticker": "HUBS",  "layer": "software", "name": "HubSpot"},
+    {"ticker": "WDAY",  "layer": "software", "name": "Workday"},
+    {"ticker": "VEEV",  "layer": "software", "name": "Veeva Systems"},
+    {"ticker": "AI",    "layer": "software", "name": "C3.ai"},
+    {"ticker": "SOUN",  "layer": "software", "name": "SoundHound AI"},
+    # Robotics & physical AI
+    {"ticker": "ISRG",  "layer": "software", "name": "Intuitive Surgical"},
+    {"ticker": "NUAN",  "layer": "software", "name": "Nuance"},
+    # Chip design & IP
+    {"ticker": "MPWR",  "layer": "compute",  "name": "Monolithic Power Systems"},
+    {"ticker": "MCHP",  "layer": "compute",  "name": "Microchip Technology"},
+    {"ticker": "ON",    "layer": "compute",  "name": "ON Semiconductor"},
+    {"ticker": "SWKS",  "layer": "compute",  "name": "Skyworks Solutions"},
+    {"ticker": "FORM",  "layer": "memory",   "name": "FormFactor"},
 ]
  
 RADAR_CACHE_FILE = "next_nvidia_cache.json"

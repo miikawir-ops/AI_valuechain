@@ -1144,6 +1144,23 @@ function getCompanyContext(sym, layerId) {{
     "PANW": "Palo Alto Networks provides AI-powered network security. Platformization strategy bundles AI security across firewall, cloud and endpoint.",
     "S": "SentinelOne uses autonomous AI agents for threat detection. Fastest growing pure-play AI security company by revenue.",
     "OKTA": "Okta manages identity and access for AI applications. As AI agents proliferate, controlling who and what can access systems becomes critical.",
+    // Expanded screener
+    "MRVL": "Marvell designs custom AI chips and high-speed data center networking silicon. Growing rapidly as hyperscalers seek Nvidia alternatives for inference workloads.",
+    "ONTO": "Onto Innovation makes optical metrology equipment for inspecting semiconductor wafers — essential quality control for HBM memory production. Only ~8 analysts cover it.",
+    "AXON": "Axon Enterprise deploys AI in law enforcement — body cameras, tasers, digital evidence platform. High gross margins, recurring revenue, expanding internationally.",
+    "TTD": "The Trade Desk operates an AI-powered programmatic advertising platform. Benefits from the shift to connected TV and real-time bidding driven by AI optimization.",
+    "APP": "AppLovin uses AI to optimize mobile advertising performance. 88%+ gross margins and accelerating revenue growth — one of the highest-margin software companies in AI.",
+    "COHR": "Coherent Corp makes optical transceivers and laser components used in AI data center networking. Critical supplier for high-bandwidth interconnects.",
+    "KLAC": "KLA Corporation makes process control equipment for semiconductor fabs. Every advanced chip — including AI accelerators — requires KLA's inspection systems.",
+    "DELL": "Dell Technologies sells AI-optimized servers and storage. Growing rapidly as enterprises deploy on-premise AI infrastructure rather than pure cloud.",
+    "HPE": "HP Enterprise provides AI infrastructure for enterprise customers. GreenLake platform offers on-premise AI compute with cloud-like flexibility.",
+    "PSTG": "Pure Storage makes all-flash storage arrays optimized for AI training workloads. Data storage is a critical bottleneck as model sizes scale.",
+    "ZS": "Zscaler provides cloud-native zero-trust security — essential as AI workloads move across hybrid environments. High growth, high retention rates.",
+    "ON": "ON Semiconductor makes power management chips for data centers, EVs and AI edge devices. Benefits from the power efficiency demands of AI inference.",
+    "MPWR": "Monolithic Power Systems makes highly efficient power ICs used inside AI servers and GPUs. Critical for managing power density in high-performance compute.",
+    "ENTG": "Entegris makes specialty materials and process chemicals for advanced semiconductor manufacturing. Every leading-edge AI chip requires Entegris materials.",
+    "FORM": "FormFactor makes semiconductor test equipment used in wafer-level testing. Niche but essential — quality gate before AI chips reach market.",
+    "AI": "C3.ai provides enterprise AI applications. Early mover in AI software with government and industrial customers — high revenue growth but path to profitability watched closely.",
   }};
   return ctx[sym] || `${{sym}} is a key player in the ${{layerId}} layer of the AI value chain. Click Deep dive for full analysis.`;
 }}
@@ -1425,7 +1442,7 @@ function buildRadar() {{
   const count = document.getElementById("radar-count");
   if (!RADAR || RADAR.length === 0) {{ card.style.display="none"; return; }}
   card.style.display = "block";
-  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.length}} of 45 companies scored`;
+  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.length}} of 67 companies scored`;
  
   const CONF_COLORS = {{HIGH:"#27500A",MEDIUM:"#854F0B",LOW:"#888780"}};
   const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐",edge:"📡"}};

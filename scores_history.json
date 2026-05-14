@@ -34,5 +34,41 @@
         "color": "Blue"
       }
     }
+  },
+  {
+    "date": "2026-05-14",
+    "time": "10:36",
+    "action_ticker": "",
+    "action_price": null,
+    "scores": {
+      "energy": {
+        "score": 46.59,
+        "color": "Orange"
+      },
+      "compute": {
+        "score": 49.59,
+        "color": "Orange"
+      },
+      "memory": {
+        "score": 57.62,
+        "color": "Red"
+      },
+      "infra": {
+        "score": 45.61,
+        "color": "Orange"
+      },
+      "cloud": {
+        "score": 31.59,
+        "color": "Green"
+      },
+      "software": {
+        "score": 30.68,
+        "color": "Green"
+      },
+      "security": {
+        "score": 31.39,
+        "color": "Blue"
+      }
+    }
   }
 ]
