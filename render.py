@@ -366,9 +366,15 @@ def _radar_js_data(radar_data: list) -> str:
                 "MSFT","GOOGL","AMZN","META","PLTR","NOW","SNOW","CRM","DDOG",
                 "CRWD","PANW","S","OKTA"}
     wildcard = None
+    # Debug: show all non-MAIN_25 companies and their growth
+    import logging as _log
+    non_main = [(r.get("ticker"), r.get("accel",{}).get("latest_growth"), r.get("gross_margin")) 
+                for r in radar_data if r.get("ticker") not in MAIN_25]
+    _log.getLogger(__name__).info(f"  Non-MAIN_25 companies: {non_main[:10]}")
+    
     wc_candidates = [r for r in radar_data if r.get("ticker") not in MAIN_25
-                     and (r.get("accel", {}).get("latest_growth") or 0) >= 10
-                     and (r.get("gross_margin") or 0) > 0]
+                     and (r.get("accel", {}).get("latest_growth") or 0) >= 5]
+    _log.getLogger(__name__).info(f"  Wildcard candidates: {[r.get('ticker') for r in wc_candidates[:5]]}")
     if wc_candidates:
         # Pick lowest analyst coverage among top scorers
         wc_candidates.sort(key=lambda x: (x.get("analyst_count", 99), -x.get("score", 0)))
@@ -1440,14 +1446,15 @@ function buildRadar() {{
   const grid = document.getElementById("radar-grid");
   const card = document.getElementById("radar-card");
   const count = document.getElementById("radar-count");
-  if (!RADAR || RADAR.length === 0) {{ card.style.display="none"; return; }}
+  const radarTop5 = RADAR.top5 || RADAR;
+  if (!radarTop5 || radarTop5.length === 0) {{ card.style.display="none"; return; }}
   card.style.display = "block";
-  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.length}} of 67 companies scored`;
+  if (count) count.textContent = `Multi-quarter acceleration · ${{radarTop5.length}} of 67 companies scored`;
  
   const CONF_COLORS = {{HIGH:"#27500A",MEDIUM:"#854F0B",LOW:"#888780"}};
   const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐",edge:"📡"}};
  
-  const radarList = RADAR.top5 || RADAR;
+  const radarList = radarTop5;
   const wildcard  = RADAR.wildcard || null;
   // Render wildcard
   const wcSection = document.getElementById("wildcard-section");
