@@ -420,6 +420,18 @@ def _radar_js_data(radar_data: list) -> str:
             else:
                 traj.append("↓")
  
+        # Why this stock one-liner
+        why_parts = []
+        if accel.get("consecutive_accel", 0) >= 2:
+            why_parts.append(f"{accel['consecutive_accel']}Q revenue acceleration")
+        if r.get("gross_margin") and r["gross_margin"] > 70:
+            why_parts.append(f"{r['gross_margin']}% gross margin")
+        if accel.get("latest_growth") and accel["latest_growth"] > 50:
+            why_parts.append(f"Rev +{accel['latest_growth']:.0f}% YoY")
+        if r.get("analyst_count") and r["analyst_count"] < 20:
+            why_parts.append(f"only {r['analyst_count']} analysts covering")
+        why = " · ".join(why_parts[:2]) if why_parts else ""
+ 
         out.append({
             "ticker":      r.get("ticker", "?"),
             "name":        r.get("name", "?"),
@@ -432,7 +444,9 @@ def _radar_js_data(radar_data: list) -> str:
             "confidence":  accel.get("confidence", "LOW"),
             "consecutive": accel.get("consecutive_accel", 0),
             "latest_growth": accel.get("latest_growth"),
-            "trajectory":  traj,  # emoji trajectory — not exact numbers
+            "trajectory":  traj,
+            "sparkline":   [round(float(p),2) for p in r.get("sparkline",[])[-30:]],
+            "why":         why,
         })
     return json.dumps({"top5": out, "wildcard": wildcard})
  
@@ -1584,16 +1598,22 @@ function buildRadar() {{
     const lg    = r.latest_growth ? `Rev ${{r.latest_growth > 0 ? "+" : ""}}${{r.latest_growth?.toFixed(0)}}%` : "";
     const cons  = r.consecutive > 0 ? `${{r.consecutive}}Q accel` : "No accel";
  
+    const sparkId = `radar-spark-${{r.ticker}}-${{i}}`;
+    const why = r.why || "";
     return `<div class="radar-card">
       <div class="radar-rank">#${{i+1}} ${{LAYER_SHORT[r.layer] || ""}} ${{r.layer}}</div>
       <div class="radar-sym">${{r.ticker}}</div>
       <div class="radar-name">${{r.name}}</div>
+      ${{why ? `<div style="font-size:10px;color:#534AB7;margin:2px 0;font-style:italic">${{why}}</div>` : ""}}
       <div class="radar-traj">${{traj}}</div>
+      <div style="height:60px;margin:4px 0;background:#F8F8F7;border-radius:4px">
+        <canvas id="${{sparkId}}" style="width:100%;height:100%"></canvas>
+      </div>
       <div class="radar-bar-wrap">
         <div class="radar-bar" style="width:${{pct}}%"></div>
       </div>
       <div class="radar-meta">
-        <span class="radar-conf-${{conf}}">${{conf}} confidence</span>
+        <span class="radar-conf-${{conf.replace(' ','_')}}" style="color:${{conf==='HIGH'?'#27500A':conf==='MEDIUM'?'#854F0B':conf==='1Q data'?'#B4B2A9':'#888780'}}">${{conf==='1Q data'?'1Q data only':conf==='HIGH'?'HIGH confidence':conf==='MEDIUM'?'MEDIUM confidence':'LOW confidence'}}</span>
         <span>${{cons}}</span>
       </div>
       <div class="radar-meta">
@@ -1610,6 +1630,49 @@ function buildRadar() {{
       </div>
     </div>`;
   }}).join("");
+ 
+  // Draw sparklines on radar cards
+  setTimeout(() => {{
+    radarList.forEach((r, i) => {{
+      if (!r.sparkline || r.sparkline.length < 3) return;
+      const canvasId = `radar-spark-${{r.ticker}}-${{i}}`;
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
+      const data = r.sparkline;
+      const mn = Math.min(...data);
+      const mx = Math.max(...data);
+      if (mx - mn < 1) return;
+      const pad = (mx - mn) * 0.1;
+      const col = r.ret_1mo >= 0 ? "#3B6D11" : "#A32D2D";
+      try {{
+        new Chart(ctx, {{
+          type: "line",
+          data: {{
+            labels: data.map((_,j) => j),
+            datasets: [{{
+              data: data,
+              borderColor: col,
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: true,
+              backgroundColor: col === "#3B6D11" ? "rgba(39,80,10,0.06)" : "rgba(163,45,45,0.06)",
+              tension: 0.4
+            }}]
+          }},
+          options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{ legend: {{ display: false }}, tooltip: {{ enabled: false }} }},
+            scales: {{
+              x: {{ display: false }},
+              y: {{ display: false, min: mn-pad, max: mx+pad }}
+            }},
+            animation: {{ duration: 400 }}
+          }}
+        }});
+      }} catch(e) {{}}
+    }});
+  }}, 200);
 }}
  
 function buildTopTicker(layers) {{
