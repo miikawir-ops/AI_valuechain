@@ -263,8 +263,11 @@ def compute_acceleration_score(growth_quarters: list) -> dict:
         deltas.append(growth_quarters[i] - growth_quarters[i+1])
     trend_delta = round(sum(deltas) / len(deltas), 1) if deltas else 0
  
-    # Confidence level
-    if consecutive >= 3:
+    # Confidence level based on data quantity and consistency
+    quarters_available = len([q for q in growth_quarters if q is not None])
+    if quarters_available < 2:
+        confidence = "1Q data"   # Honest label — only one quarter available
+    elif consecutive >= 3:
         confidence = "HIGH"
     elif consecutive >= 2:
         confidence = "MEDIUM"
