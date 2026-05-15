@@ -96,7 +96,7 @@ RADAR_UNIVERSE = [
     {"ticker": "SOUN",  "layer": "software", "name": "SoundHound AI"},
     # Robotics & physical AI
     {"ticker": "ISRG",  "layer": "software", "name": "Intuitive Surgical"},
-    {"ticker": "NUAN",  "layer": "software", "name": "Nuance"},
+ 
     # Chip design & IP
     {"ticker": "MPWR",  "layer": "compute",  "name": "Monolithic Power Systems"},
     {"ticker": "MCHP",  "layer": "compute",  "name": "Microchip Technology"},
@@ -415,7 +415,7 @@ def run_radar(verbose: bool = True) -> list:
                   f"revenue={latest:.0f}% " if latest else f"  #{i+1} {r['ticker']:<6} score={r['score']:.0f} "
                   f"accel={consec}Q {conf} confidence")
  
-    return ranked[:5]
+    return ranked  # Return all for wildcard detection; caller slices top5
  
  
 def load_cached_radar() -> list:
@@ -426,7 +426,7 @@ def load_cached_radar() -> list:
     try:
         data = json.loads(p.read_text())
         if data.get("date") == datetime.datetime.now().strftime("%Y-%m-%d"):
-            return data.get("top5", [])
+            return data.get("all", data.get("top5", []))
     except Exception:
         pass
     return []
