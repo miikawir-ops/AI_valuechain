@@ -37,7 +37,7 @@
   },
   {
     "date": "2026-05-15",
-    "time": "16:37",
+    "time": "16:53",
     "action_ticker": "",
     "action_price": null,
     "scores": {
@@ -54,7 +54,7 @@
         "color": "Red"
       },
       "infra": {
-        "score": 47.11,
+        "score": 45.61,
         "color": "Orange"
       },
       "cloud": {
