@@ -41,6 +41,20 @@ CC = {
     "Blue":   {"bg":"#E6F1FB","border":"#378ADD","pill":"#378ADD","pft":"#E6F1FB","lbl":"Cooling",   "tc":"#0C447C"},
 }
  
+def company_rating(score: float, delta: float, color: str, is_hype: bool) -> str:
+    """A/B/C/D rating for individual companies."""
+    if color in ("Red", "Orange") and delta > 20 and not is_hype:
+        return "A"
+    elif color in ("Red", "Orange", "Green") and delta > 0 and not is_hype:
+        return "B"
+    elif is_hype or delta < -5:
+        return "C"
+    elif delta < 0:
+        return "C"
+    else:
+        return "B"
+ 
+ 
 LAYER_NAMES = {
     "energy":   ("Energy",     "power infra"),
     "compute":  ("Semicon",    "& chip design"),
@@ -166,6 +180,10 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             # Sparkline: raw prices for proper chart display (not normalised)
             hist_raw = raw.get("price_history", [])
             sparkline = [round(p, 2) for p in hist_raw[-30:]] if hist_raw else []
+            t_color  = t_scored.get("color", "Green")
+            t_hype   = t_scored.get("is_hype", False)
+            t_delta  = (t_scored.get("fund_delta") or 0) * 100
+            t_rating = company_rating(t_scored.get("score", 0), t_delta, t_color, t_hype)
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
@@ -175,6 +193,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
                 "hype":       t_scored.get("is_hype", False),
                 "color":      t_scored.get("color", "Green"),
                 "sparkline":  sparkline,
+                "rating":     t_rating,
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -386,8 +405,12 @@ def _radar_js_data(radar_data: list) -> str:
         # Get sparkline for wildcard from main tracked tickers if available
         wc_spark = []
         # Will be populated from market_data in generate_dashboard
+        wc_delta  = (wc.get("accel", {}).get("latest_growth") or 0)
+        wc_color  = "Orange"  # wildcards are typically emerging
+        wc_rating = company_rating(wc.get("score", 0), wc_delta, wc_color, False)
         wildcard = {
             "ticker":       wc.get("ticker", "?"),
+            "rating":       wc_rating,
             "name":         wc.get("name", "?"),
             "layer":        wc.get("layer", "?"),
             "score":        wc.get("score", 0),
@@ -638,6 +661,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .radar-conf-MEDIUM{{color:#633806;font-weight:500}}
 .radar-conf-LOW{{color:#888780}}
 .radar-traj{{font-size:12px;letter-spacing:2px}}
+.rating-A{{background:#EAF3DE;color:#27500A;border:0.5px solid #639922;font-weight:600}}
+.rating-B{{background:#E6F1FB;color:#0C447C;border:0.5px solid #378ADD;font-weight:600}}
+.rating-C{{background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27;font-weight:600}}
+.rating-D{{background:#FCEBEB;color:#791F1F;border:0.5px solid #E24B4A;font-weight:600}}
+.rating-badge{{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-block}}
 .ticker-band{{background:#0C1624;border-bottom:0.5px solid #185FA5;
               overflow:hidden;padding:5px 0;position:relative;z-index:10}}
 .ticker-scroll{{display:flex;white-space:nowrap;animation:ticker-move 28s linear infinite}}
@@ -944,6 +972,15 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div><strong>RayDar</strong> · {datetime_str}</div>
     <div style="font-size:11px;color:#888780;margin-top:2px">
       Not financial advice · Always do your own research · Data may be up to 90 days old
+    </div>
+    <div style="margin-bottom:8px">
+      <a href="https://miikawir-ops.github.io/RayDar-Vice/raydar_vice.html"
+         target="_blank"
+         style="font-size:12px;color:#378ADD;text-decoration:none;font-weight:500;
+                padding:5px 14px;border:1px solid #378ADD;border-radius:20px;
+                background:#E6F1FB;display:inline-block">
+        📡 RayDar Vice — AI News Intelligence ↗
+      </a>
     </div>
     <div class="footer-cobhc">
       ⚔️ Powered by COBHC · Built in Espoo, Finland · 
@@ -1290,7 +1327,9 @@ function buildExpand() {{
     return `<div class="ex-tk" style="cursor:pointer" onclick="toggleTickerDetail('${{cardId}}')">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:6px">
-          <div class="ex-sym">${{t.sym}}</div>${{hyp}}
+          <div class="ex-sym">${{t.sym}}</div>
+          <span class="rating-badge rating-${{t.rating}}">${{t.rating}}</span>
+          ${{hyp}}
         </div>
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
@@ -1502,9 +1541,12 @@ function buildRadar() {{
             <div style="font-size:11px;color:#888780;margin-top:2px">${{wildcard.name}} · ${{wildcard.layer}}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-            <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
-              Only ${{wac}} analysts — early discovery signal
-            </span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
+                Only ${{wac}} analysts — early discovery signal
+              </span>
+              <span class="rating-badge rating-${{wildcard.rating || 'B'}}">${{wildcard.rating || 'B'}}</span>
+            </div>
             <button onclick="sendPrompt('${{wPrompt}}')"
                     style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
               🔍 Deep dive ↗
@@ -1606,8 +1648,8 @@ function buildRadar() {{
       <div class="radar-name">${{r.name}}</div>
       ${{why ? `<div style="font-size:10px;color:#534AB7;margin:2px 0;font-style:italic">${{why}}</div>` : ""}}
       <div class="radar-traj">${{traj}}</div>
-      <div style="height:60px;margin:4px 0;background:#F8F8F7;border-radius:4px">
-        <canvas id="${{sparkId}}" style="width:100%;height:100%"></canvas>
+      <div style="position:relative;height:60px;margin:4px 0;background:#F8F8F7;border-radius:4px">
+        <canvas id="${{sparkId}}" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
       </div>
       <div class="radar-bar-wrap">
         <div class="radar-bar" style="width:${{pct}}%"></div>
@@ -1672,7 +1714,7 @@ function buildRadar() {{
         }});
       }} catch(e) {{}}
     }});
-  }}, 200);
+  }}, 300);
 }}
  
 function buildTopTicker(layers) {{
