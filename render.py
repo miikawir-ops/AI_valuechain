@@ -55,6 +55,47 @@ def company_rating(score: float, delta: float, color: str, is_hype: bool) -> str
         return "B"
  
  
+def rating_forecast(current_rating: str, delta: float, delta_band: str,
+                    is_hype: bool, color: str) -> dict:
+    """Forecast where rating is heading based on momentum signals."""
+    # Determine trajectory
+    accelerating = delta_band == "accelerating"
+    decelerating = delta_band == "decelerating"
+    hype_risk    = is_hype
+    hot_layer    = color in ("Red", "Orange")
+ 
+    if current_rating == "A":
+        if decelerating or hype_risk:
+            return {"direction": "↓", "target": "B", "label": "Watch for pullback",
+                    "color": "#EF9F27", "reason": "Growth decelerating from peak"}
+        else:
+            return {"direction": "→", "target": "A", "label": "Holding strong",
+                    "color": "#27500A", "reason": "Sustained acceleration"}
+ 
+    elif current_rating == "B":
+        if accelerating and hot_layer and not hype_risk:
+            return {"direction": "↑", "target": "A", "label": "Upgrade likely",
+                    "color": "#27500A", "reason": "Accelerating into bottleneck layer"}
+        elif decelerating or hype_risk:
+            return {"direction": "↓", "target": "C", "label": "Downgrade risk",
+                    "color": "#E24B4A", "reason": "Growth slowing or hype risk rising"}
+        else:
+            return {"direction": "→", "target": "B", "label": "Stable",
+                    "color": "#378ADD", "reason": "Fundamentals holding steady"}
+ 
+    elif current_rating == "C":
+        if accelerating and not hype_risk:
+            return {"direction": "↑", "target": "B", "label": "Recovery signal",
+                    "color": "#EF9F27", "reason": "Momentum improving from trough"}
+        else:
+            return {"direction": "↓", "target": "D", "label": "Further risk",
+                    "color": "#E24B4A", "reason": "Deterioration continuing"}
+ 
+    else:  # D
+        return {"direction": "↓", "target": "D", "label": "Avoid",
+                "color": "#E24B4A", "reason": "No recovery signals yet"}
+ 
+ 
 LAYER_NAMES = {
     "energy":   ("Energy",     "power infra"),
     "compute":  ("Semicon",    "& chip design"),
@@ -216,6 +257,8 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
                 "prev_rating":  t_prev_rating,
                 "rating_up":    rating_up,
                 "rating_down":  rating_down,
+                "forecast":     rating_forecast(t_rating, t_delta, delta_band,
+                                                t_hype, t_color),
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -477,6 +520,11 @@ def _radar_js_data(radar_data: list) -> str:
             why_parts.append(f"only {r['analyst_count']} analysts covering")
         why = " · ".join(why_parts[:2]) if why_parts else ""
  
+        # Rating for radar company
+        r_delta  = accel.get("latest_growth") or 0
+        r_color  = "Orange" if r.get("score", 0) >= 40 else "Green"
+        r_rating = company_rating(r.get("score", 0), r_delta, r_color, False)
+ 
         out.append({
             "ticker":      r.get("ticker", "?"),
             "name":        r.get("name", "?"),
@@ -492,6 +540,7 @@ def _radar_js_data(radar_data: list) -> str:
             "trajectory":  traj,
             "sparkline":   [round(float(p),2) for p in r.get("sparkline",[])[-30:]],
             "why":         why,
+            "rating":      r_rating,
         })
     return json.dumps({"top5": out, "wildcard": wildcard})
  
@@ -1322,6 +1371,9 @@ function buildChain() {{
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
       <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
+      <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
+        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.rating==='A'?'Accelerating leader':t.rating==='B'?'Stable':t.rating==='C'?'Caution — hype or decelerating':'Deteriorating'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
+      </div>
       ${{l.divergence ? `
       <div class="div-flag" tabindex="0">
         ⚡ Narrative ahead of fundamentals
@@ -1396,6 +1448,13 @@ function buildExpand() {{
         </div>
         <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:8px">
           ${{getCompanyContext(t.sym, l.id)}}
+        </div>
+        <div style="background:#F8F8F7;border-radius:6px;padding:8px 10px;margin-bottom:8px;
+                    border-left:3px solid ${{t.forecast.color}}">
+          <div style="font-size:10px;font-weight:500;color:${{t.forecast.color}};margin-bottom:2px">
+            ${{t.forecast.direction}} Rating forecast: ${{t.rating}} → ${{t.forecast.target}} · ${{t.forecast.label}}
+          </div>
+          <div style="font-size:10px;color:#888780">${{t.forecast.reason}}</div>
         </div>
         <button onclick="sendPrompt('${{deepDivePrompt}}')"
                 style="width:100%;padding:7px;border:1px solid #378ADD;border-radius:6px;
@@ -1685,7 +1744,10 @@ function buildRadar() {{
     const why = r.why || "";
     return `<div class="radar-card">
       <div class="radar-rank">#${{i+1}} ${{LAYER_SHORT[r.layer] || ""}} ${{r.layer}}</div>
-      <div class="radar-sym">${{r.ticker}}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:1px">
+        <div class="radar-sym" style="margin-bottom:0">${{r.ticker}}</div>
+        <span class="rating-badge rating-${{r.rating||'B'}}" style="font-size:11px;padding:1px 7px">${{r.rating||'B'}}</span>
+      </div>
       <div class="radar-name">${{r.name}}</div>
       ${{why ? `<div style="font-size:10px;color:#534AB7;margin:2px 0;font-style:italic">${{why}}</div>` : ""}}
       <div class="radar-traj">${{traj}}</div>
