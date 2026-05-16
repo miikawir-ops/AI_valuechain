@@ -100,6 +100,16 @@ def save_scores_history(scored_data: dict, action_ticker: str = "", action_price
             layer_id: {
                 "score": result["best"].get("score", 0),
                 "color": result["best"].get("color", "Green"),
+                "ratings": {
+                    t.get("ticker"): company_rating(
+                        t.get("score", 0),
+                        (t.get("fund_delta") or 0) * 100,
+                        t.get("color", "Green"),
+                        t.get("is_hype", False)
+                    )
+                    for t in result.get("all_tickers", [])
+                    if t.get("ticker")
+                }
             }
             for layer_id, result in scored_data.items()
             if "best" in result
@@ -140,6 +150,11 @@ def build_ticker_lookup(market_data: dict) -> dict:
 def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str:
     """Build the LAYERS JS array with real data from market_data."""
     ticker_lookup = build_ticker_lookup(market_data)
+    # Build yesterday rating lookup: {ticker: rating}
+    yesterday_ratings = {}
+    for layer_scores in yesterday.values():
+        for ticker, rating in layer_scores.get("ratings", {}).items():
+            yesterday_ratings[ticker] = rating
     layers = []
  
     for layer_id, layer_result in scored_data.items():
@@ -183,7 +198,11 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             t_color  = t_scored.get("color", "Green")
             t_hype   = t_scored.get("is_hype", False)
             t_delta  = (t_scored.get("fund_delta") or 0) * 100
-            t_rating = company_rating(t_scored.get("score", 0), t_delta, t_color, t_hype)
+            t_rating      = company_rating(t_scored.get("score", 0), t_delta, t_color, t_hype)
+            t_prev_rating = yesterday_ratings.get(sym, "")
+            rating_changed = t_prev_rating and t_prev_rating != t_rating
+            rating_up      = rating_changed and ord(t_rating) < ord(t_prev_rating)
+            rating_down    = rating_changed and ord(t_rating) > ord(t_prev_rating)
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
@@ -193,7 +212,10 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
                 "hype":       t_scored.get("is_hype", False),
                 "color":      t_scored.get("color", "Green"),
                 "sparkline":  sparkline,
-                "rating":     t_rating,
+                "rating":      t_rating,
+                "prev_rating":  t_prev_rating,
+                "rating_up":    rating_up,
+                "rating_down":  rating_down,
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -884,10 +906,25 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="card-label" style="margin-bottom:0">🚀 <strong>RayDar</strong> — Next Nvidia Top 5 today</div>
     <span style="font-size:10px;color:#888780" id="radar-count">Multi-quarter acceleration</span>
   </div>
-  <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">
+  <div style="font-size:11px;color:#5F5E5A;margin-bottom:8px">
     Ranked by sustained revenue acceleration across multiple quarters — not just latest growth.
     Low analyst coverage = earlier in discovery cycle.
     <span style="color:#B4B2A9"> · Confidence improves as quarterly data accumulates over time.</span>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <span style="font-size:10px;color:#888780;margin-right:2px">Company rating:</span>
+    <span class="rating-badge rating-A" style="font-size:10px;padding:1px 7px;cursor:help"
+          title="A — Accelerating leader: revenue growth accelerating, Red/Orange layer, no hype risk. Highest conviction signal.">A</span>
+    <span style="font-size:10px;color:#888780">Accelerating</span>
+    <span class="rating-badge rating-B" style="font-size:10px;padding:1px 7px;cursor:help;margin-left:6px"
+          title="B — Strong and stable: positive growth delta, healthy fundamentals, no hype flag.">B</span>
+    <span style="font-size:10px;color:#888780">Stable</span>
+    <span class="rating-badge rating-C" style="font-size:10px;padding:1px 7px;cursor:help;margin-left:6px"
+          title="C — Caution: hype flag active, or growth decelerating. Price may have run ahead of fundamentals.">C</span>
+    <span style="font-size:10px;color:#888780">Caution</span>
+    <span class="rating-badge rating-D" style="font-size:10px;padding:1px 7px;cursor:help;margin-left:6px"
+          title="D — Deteriorating: significant negative delta and hype flag. Fundamentals declining.">D</span>
+    <span style="font-size:10px;color:#888780">Deteriorating</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
   <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;
@@ -1328,7 +1365,11 @@ function buildExpand() {{
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:6px">
           <div class="ex-sym">${{t.sym}}</div>
-          <span class="rating-badge rating-${{t.rating}}">${{t.rating}}</span>
+          <span class="rating-badge rating-${{t.rating}}" 
+                title="${{t.rating_up ? 'Upgraded from '+t.prev_rating+' — buy signal' : t.rating_down ? 'Downgraded from '+t.prev_rating+' — warning' : 'Rating: '+t.rating}}"
+          >${{t.rating}}</span>
+          ${{t.rating_up ? `<span style="font-size:10px;color:#27500A;font-weight:600" title="Upgraded from ${{t.prev_rating}} — potential buy signal">↑ was ${{t.prev_rating}}</span>` : ""}}
+          ${{t.rating_down ? `<span style="font-size:10px;color:#A32D2D;font-weight:600" title="Downgraded from ${{t.prev_rating}} — warning signal">↓ was ${{t.prev_rating}}</span>` : ""}}
           ${{hyp}}
         </div>
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
@@ -1537,16 +1578,16 @@ function buildRadar() {{
       <div style="background:white;border:1px solid #EF9F27;border-radius:10px;overflow:hidden">
         <div style="padding:12px 14px;border-bottom:0.5px solid #E0DFDC;display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div style="font-size:20px;font-weight:500;color:#1A1A1A">${{wildcard.ticker}}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:20px;font-weight:500;color:#1A1A1A">${{wildcard.ticker}}</div>
+              <span class="rating-badge rating-${{wildcard.rating || 'B'}}" style="font-size:12px;padding:2px 8px">${{wildcard.rating || 'B'}}</span>
+            </div>
             <div style="font-size:11px;color:#888780;margin-top:2px">${{wildcard.name}} · ${{wildcard.layer}}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
+            <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
                 Only ${{wac}} analysts — early discovery signal
               </span>
-              <span class="rating-badge rating-${{wildcard.rating || 'B'}}">${{wildcard.rating || 'B'}}</span>
-            </div>
             <button onclick="sendPrompt('${{wPrompt}}')"
                     style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
               🔍 Deep dive ↗
