@@ -1,7 +1,7 @@
 [
   {
     "date": "2026-05-18",
-    "time": "07:07",
+    "time": "10:12",
     "action_ticker": "",
     "action_price": null,
     "scores": {
@@ -17,7 +17,7 @@
         }
       },
       "compute": {
-        "score": 51.09,
+        "score": 49.59,
         "color": "Orange",
         "ratings": {
           "NVDA": "B",
