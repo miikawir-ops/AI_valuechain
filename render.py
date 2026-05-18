@@ -1496,13 +1496,6 @@ function buildExpand() {{
         <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:8px">
           ${{getCompanyContext(t.sym, l.id)}}
         </div>
-        <div style="background:#F8F8F7;border-radius:6px;padding:8px 10px;margin-bottom:8px;
-                    border-left:3px solid ${{t.forecast.color}}">
-          <div style="font-size:10px;font-weight:500;color:${{t.forecast.color}};margin-bottom:2px">
-            ${{t.forecast.direction}} Rating forecast: ${{t.rating}} → ${{t.forecast.target}} · ${{t.forecast.label}}
-          </div>
-          <div style="font-size:10px;color:#888780">${{t.forecast.reason}}</div>
-        </div>
         <button onclick="sendPrompt('${{deepDivePrompt}}')"
                 style="width:100%;padding:7px;border:1px solid #378ADD;border-radius:6px;
                        background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;
