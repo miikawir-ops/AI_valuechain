@@ -949,6 +949,20 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
     <p style="margin-top:4px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+              margin-bottom:8px;padding:6px 10px;background:#F8F8F7;
+              border-radius:6px;border:0.5px solid #E0DFDC;font-size:10px">
+    <span style="color:#888780;font-weight:500">Company rating:</span>
+    <span class="rating-badge rating-A" style="padding:1px 6px">A</span><span style="color:#27500A">Accelerating — buy signal</span>
+    <span style="color:#D3D1C7;margin:0 2px">·</span>
+    <span class="rating-badge rating-B" style="padding:1px 6px">B</span><span style="color:#0C447C">Stable — hold</span>
+    <span style="color:#D3D1C7;margin:0 2px">·</span>
+    <span class="rating-badge rating-C" style="padding:1px 6px">C</span><span style="color:#633806">Caution</span>
+    <span style="color:#D3D1C7;margin:0 2px">·</span>
+    <span class="rating-badge rating-D" style="padding:1px 6px">D</span><span style="color:#791F1F">Avoid</span>
+    <span style="color:#D3D1C7;margin:0 4px">|</span>
+    <span style="color:#888780">Forecast: <strong style="color:#27500A">↑ B→A</strong> buy · <strong style="color:#378ADD">→</strong> stable · <strong style="color:#E24B4A">↓ A→C</strong> warning</span>
+  </div>
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
   <div style="margin-top:14px">
