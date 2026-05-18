@@ -925,7 +925,29 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <p style="margin-bottom:10px"><strong>🟠 Orange card</strong> — Stock price has moved significantly more than revenue growth justifies. Market may have already priced in the good news.</p>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
     <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — Reuters, CNBC, MarketWatch · AI analysis — Google Gemini 2.5</p>
-    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px;margin-top:8px">Company rating system (A/B/C/D)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC;border-left:3px solid #639922">
+        <div style="font-size:11px;font-weight:500;color:#27500A;margin-bottom:3px"><span class="rating-badge rating-A">A</span> Accelerating leader</div>
+        <div style="font-size:11px">Revenue growth accelerating QoQ, in Red/Orange layer, no hype risk. Highest conviction signal — consider initiating or adding.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC;border-left:3px solid #378ADD">
+        <div style="font-size:11px;font-weight:500;color:#0C447C;margin-bottom:3px"><span class="rating-badge rating-B">B</span> Stable</div>
+        <div style="font-size:11px">Positive growth delta, healthy fundamentals, no hype flag. Hold existing positions. Watch for upgrade to A.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC;border-left:3px solid #EF9F27">
+        <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:3px"><span class="rating-badge rating-C">C</span> Caution</div>
+        <div style="font-size:11px">Hype flag active or growth decelerating. Price may have run ahead of fundamentals. Reduce exposure or avoid new positions.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC;border-left:3px solid #E24B4A">
+        <div style="font-size:11px;font-weight:500;color:#791F1F;margin-bottom:3px"><span class="rating-badge rating-D">D</span> Deteriorating</div>
+        <div style="font-size:11px">Significant negative delta and hype flag. Fundamentals declining with no recovery signals. Avoid.</div>
+      </div>
+    </div>
+    <div style="background:#F8F8F7;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC;font-size:11px;color:#5F5E5A;margin-bottom:8px">
+      <strong>Rating forecast</strong> — shown on each company card as an arrow (↑↓→) indicating where the rating is heading based on current momentum, hype signals and layer color. A B→A upgrade is a buy signal. An A→C downgrade is a warning.
+    </div>
+    <p style="margin-top:4px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
   </div>
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
@@ -960,20 +982,38 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     Low analyst coverage = earlier in discovery cycle.
     <span style="color:#B4B2A9"> · Confidence improves as quarterly data accumulates over time.</span>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
-    <span style="font-size:10px;color:#888780;margin-right:2px">Company rating:</span>
-    <span class="rating-badge rating-A" style="font-size:10px;padding:1px 7px;cursor:help"
-          title="A — Accelerating leader: revenue growth accelerating, Red/Orange layer, no hype risk. Highest conviction signal.">A</span>
-    <span style="font-size:10px;color:#888780">Accelerating</span>
-    <span class="rating-badge rating-B" style="font-size:10px;padding:1px 7px;cursor:help;margin-left:6px"
-          title="B — Strong and stable: positive growth delta, healthy fundamentals, no hype flag.">B</span>
-    <span style="font-size:10px;color:#888780">Stable</span>
-    <span class="rating-badge rating-C" style="font-size:10px;padding:1px 7px;cursor:help;margin-left:6px"
-          title="C — Caution: hype flag active, or growth decelerating. Price may have run ahead of fundamentals.">C</span>
-    <span style="font-size:10px;color:#888780">Caution</span>
-    <span class="rating-badge rating-D" style="font-size:10px;padding:1px 7px;cursor:help;margin-left:6px"
-          title="D — Deteriorating: significant negative delta and hype flag. Fundamentals declining.">D</span>
-    <span style="font-size:10px;color:#888780">Deteriorating</span>
+  <div style="background:#F8F8F7;border-radius:8px;padding:10px 12px;margin-bottom:10px;
+              border:0.5px solid #E0DFDC">
+    <div style="font-size:10px;font-weight:500;color:#888780;margin-bottom:6px;letter-spacing:.04em">
+      COMPANY RATING GUIDE
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:5px">
+        <span class="rating-badge rating-A" style="font-size:10px;padding:1px 7px">A</span>
+        <span style="font-size:10px;color:#27500A;font-weight:500">Accelerating</span>
+        <span style="font-size:10px;color:#888780">— buy signal</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-left:8px">
+        <span class="rating-badge rating-B" style="font-size:10px;padding:1px 7px">B</span>
+        <span style="font-size:10px;color:#0C447C;font-weight:500">Stable</span>
+        <span style="font-size:10px;color:#888780">— hold</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-left:8px">
+        <span class="rating-badge rating-C" style="font-size:10px;padding:1px 7px">C</span>
+        <span style="font-size:10px;color:#633806;font-weight:500">Caution</span>
+        <span style="font-size:10px;color:#888780">— hype or deceleration</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-left:8px">
+        <span class="rating-badge rating-D" style="font-size:10px;padding:1px 7px">D</span>
+        <span style="font-size:10px;color:#791F1F;font-weight:500">Deteriorating</span>
+        <span style="font-size:10px;color:#888780">— avoid</span>
+      </div>
+    </div>
+    <div style="margin-top:6px;font-size:10px;color:#888780;border-top:0.5px solid #E0DFDC;padding-top:6px">
+      Each card shows a forecast arrow: <strong style="color:#27500A">↑ B→A</strong> upgrade signal · 
+      <strong style="color:#378ADD">→ stable</strong> · 
+      <strong style="color:#E24B4A">↓ A→C</strong> warning
+    </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
   <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;
@@ -1431,6 +1471,13 @@ function buildExpand() {{
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{fmt(t.ret30)}}%</span></div>
       <div class="ex-row"><span class="ex-lbl">Trend</span>
         <span style="color:${{trendCol}}">${{trendIcon}} ${{t.delta_band}}</span>
+      </div>
+      <div style="margin-top:6px;padding:5px 8px;border-radius:5px;
+                  background:#F8F8F7;border-left:2px solid ${{t.forecast.color}}">
+        <span style="font-size:10px;font-weight:500;color:${{t.forecast.color}}">
+          ${{t.forecast.direction}} ${{t.rating}} → ${{t.forecast.target}}
+        </span>
+        <span style="font-size:10px;color:#888780;margin-left:6px">${{t.forecast.label}}</span>
       </div>
       <div id="${{cardId}}" style="display:none;margin-top:10px;padding-top:10px;
            border-top:0.5px solid #E0DFDC" onclick="event.stopPropagation()">
