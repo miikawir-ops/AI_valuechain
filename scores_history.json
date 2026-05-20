@@ -171,12 +171,12 @@
   },
   {
     "date": "2026-05-20",
-    "time": "05:25",
+    "time": "09:01",
     "action_ticker": "",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 68.41,
+        "score": 65.41,
         "color": "Red",
         "ratings": {
           "CEG": "A",
@@ -210,7 +210,7 @@
         }
       },
       "infra": {
-        "score": 30.0,
+        "score": 31.5,
         "color": "Blue",
         "ratings": {
           "VRT": "C",
@@ -222,7 +222,7 @@
         }
       },
       "cloud": {
-        "score": 32.21,
+        "score": 33.71,
         "color": "Blue",
         "ratings": {
           "MSFT": "B",
