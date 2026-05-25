@@ -136,8 +136,12 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
                  or info.get("regularMarketPrice")
                  or info.get("previousClose", 0))
         prev  = info.get("previousClose") or price
+        week52_high = info.get("fiftyTwoWeekHigh", 0) or 0
+        week52_low  = info.get("fiftyTwoWeekLow", 0) or 0
+        market_cap  = info.get("marketCap", 0) or 0
         price_act = round((price - prev) / prev, 4) if prev else 0.0
  
+        revenue_quarterly = 0
         hist    = t.history(period="6mo")
         closes  = hist["Close"].tolist() if not hist.empty else []
         # Sparkline: sample ~30 points from 6mo history
@@ -200,6 +204,16 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
             log.debug(f"  {ticker} quarterly error: {e}")
  
         if growth_curr is None:
+            revenue_quarterly = 0
+            try:
+                if not financials.empty and "Total Revenue" in financials.index:
+                    rev_row = financials.loc["Total Revenue"]
+                    rev_vals = [v for v in rev_row.values
+                                if v is not None and str(v) != 'nan' and v == v]
+                    if rev_vals:
+                        revenue_quarterly = float(rev_vals[0])
+            except Exception:
+                revenue_quarterly = 0
             growth_curr = info.get("revenueGrowth")
         if growth_prev is None:
             growth_prev = info.get("earningsGrowth")
@@ -266,6 +280,10 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
             "short_int_change":    short_int_change,
             "price_30d_return":    price_30d,
             "price_history":        price_history,
+            "week52_high":          week52_high,
+            "week52_low":           week52_low,
+            "market_cap":           market_cap,
+            "revenue_quarterly":    revenue_quarterly,
             "price_momentum":      price_momentum,
             "peer_outperformance": 0.0,
             "market_cap":          info.get("marketCap"),

@@ -58,14 +58,17 @@ def company_rating(score: float, delta: float, color: str, is_hype: bool) -> str
 def rating_forecast(current_rating: str, delta: float, delta_band: str,
                     is_hype: bool, color: str) -> dict:
     """Forecast where rating is heading based on momentum signals."""
-    # Determine trajectory
-    accelerating = delta_band == "accelerating"
-    decelerating = delta_band == "decelerating"
-    hype_risk    = is_hype
-    hot_layer    = color in ("Red", "Orange")
+    accelerating  = delta_band == "accelerating"
+    decelerating  = delta_band == "decelerating"
+    hot_layer     = color in ("Red", "Orange")
+    # Real hype risk only when delta is negative — positive delta with hype flag = real momentum
+    real_hype_risk = is_hype and delta < 0
  
     if current_rating == "A":
-        if decelerating or hype_risk:
+        if decelerating and real_hype_risk:
+            return {"direction": "↓", "target": "C", "label": "Warning — hype peaking",
+                    "color": "#E24B4A", "reason": "Growth decelerating with hype risk"}
+        elif decelerating:
             return {"direction": "↓", "target": "B", "label": "Watch for pullback",
                     "color": "#EF9F27", "reason": "Growth decelerating from peak"}
         else:
@@ -73,43 +76,37 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
                     "color": "#27500A", "reason": "Sustained acceleration"}
  
     elif current_rating == "B":
-        if accelerating and hot_layer and not hype_risk:
+        if accelerating and hot_layer:
             return {"direction": "↑", "target": "A", "label": "Upgrade likely",
                     "color": "#27500A", "reason": "Accelerating into bottleneck layer"}
-        elif decelerating or hype_risk:
+        elif real_hype_risk or (decelerating and delta < -10):
             return {"direction": "↓", "target": "C", "label": "Downgrade risk",
-                    "color": "#E24B4A", "reason": "Growth slowing or hype risk rising"}
+                    "color": "#E24B4A", "reason": "Growth slowing with hype or sharp delta drop"}
+        elif decelerating:
+            return {"direction": "↓", "target": "C", "label": "Watch closely",
+                    "color": "#EF9F27", "reason": "Growth decelerating — monitor next quarter"}
         else:
             return {"direction": "→", "target": "B", "label": "Stable",
                     "color": "#378ADD", "reason": "Fundamentals holding steady"}
  
     elif current_rating == "C":
-        if accelerating and not hype_risk:
+        if accelerating and not real_hype_risk:
             return {"direction": "↑", "target": "B", "label": "Recovery signal",
-                    "color": "#EF9F27", "reason": "Momentum improving from trough"}
+                    "color": "#EF9F27", "reason": "Momentum improving — watch for confirmation"}
+        elif real_hype_risk and decelerating:
+            return {"direction": "↓", "target": "D", "label": "Avoid",
+                    "color": "#E24B4A", "reason": "Hype unwinding with deteriorating fundamentals"}
         else:
-            return {"direction": "↓", "target": "D", "label": "Further risk",
-                    "color": "#E24B4A", "reason": "Deterioration continuing"}
+            return {"direction": "→", "target": "C", "label": "Still cautious",
+                    "color": "#EF9F27", "reason": "No clear recovery signal yet"}
  
     else:  # D
-        return {"direction": "↓", "target": "D", "label": "Avoid",
+        if accelerating:
+            return {"direction": "↑", "target": "C", "label": "Early recovery",
+                    "color": "#EF9F27", "reason": "Momentum turning — confirm next quarter"}
+        return {"direction": "→", "target": "D", "label": "Avoid",
                 "color": "#E24B4A", "reason": "No recovery signals yet"}
  
- 
-LAYER_NAMES = {
-    "energy":   ("Energy",     "power infra"),
-    "compute":  ("Semicon",    "& chip design"),
-    "memory":   ("HBM memory", "storage"),
-    "infra":    ("Data center", "& bandwidth"),
-    "cloud":    ("Cloud",      "hyperscalers"),
-    "software": ("AI software", "& observability"),
-    "security": ("AI security", "& governance"),
-}
- 
-DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
- 
- 
-# ── History helpers ───────────────────────────────────────────────────────────
  
 def load_scores_history() -> list:
     p = Path(SCORES_HISTORY_FILE)
@@ -188,6 +185,16 @@ def build_ticker_lookup(market_data: dict) -> dict:
  
 # ── HTML sections ─────────────────────────────────────────────────────────────
  
+LAYER_NAMES = {
+    "energy":   ("Energy",     "power infra"),
+    "compute":  ("Semicon",    "& chip design"),
+    "memory":   ("HBM memory", "storage"),
+    "infra":    ("Data center","& bandwidth"),
+    "cloud":    ("Cloud",      "hyperscalers"),
+    "software": ("AI software","& observability"),
+    "security": ("AI security","& governance"),
+}
+
 def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str:
     """Build the LAYERS JS array with real data from market_data."""
     ticker_lookup = build_ticker_lookup(market_data)
@@ -259,6 +266,10 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
                 "rating_down":  rating_down,
                 "forecast":     rating_forecast(t_rating, t_delta, delta_band,
                                                 t_hype, t_color),
+            "run_rate":     round(raw.get("revenue_quarterly", 0) * 4 / 1e9, 1) if (raw.get("revenue_quarterly") or 0) > 0 else None,
+            "pct_of_high":  round((raw.get("price", 0) / raw.get("week52_high", 1)) * 100) if raw.get("week52_high") else None,
+            "week52_high":  raw.get("week52_high"),
+            "week52_low":   raw.get("week52_low"),
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -1481,6 +1492,10 @@ function buildExpand() {{
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
       <div class="ex-name">${{t.name}}</div>
+      ${{t.run_rate ? `<div style="font-size:10px;font-weight:600;color:#27500A;margin:3px 0;
+          padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
+        Run rate $${{t.run_rate}}B/yr
+      </div>` : ""}}
       <div class="ex-row"><span class="ex-lbl">Price</span><span>$${{t.price.toLocaleString()}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{fmt(t.ret30)}}%</span></div>
       <div class="ex-row"><span class="ex-lbl">Trend</span>
@@ -1495,6 +1510,21 @@ function buildExpand() {{
       </div>
       <div id="${{cardId}}" style="display:none;margin-top:10px;padding-top:10px;
            border-top:0.5px solid #E0DFDC" onclick="event.stopPropagation()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+          ${{t.run_rate ? `<div style="background:#EAF3DE;border-radius:6px;padding:8px 10px;border:0.5px solid #639922">
+            <div style="font-size:9px;color:#27500A;font-weight:500;margin-bottom:2px">REVENUE RUN RATE</div>
+            <div style="font-size:16px;font-weight:500;color:#27500A">$${{t.run_rate}}B</div>
+            <div style="font-size:9px;color:#3B6D11">annualized · latest quarter ×4</div>
+          </div>` : ""}}
+          ${{t.pct_of_high ? `<div style="background:#F8F8F7;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+            <div style="font-size:9px;color:#888780;font-weight:500;margin-bottom:2px">52W POSITION</div>
+            <div style="font-size:16px;font-weight:500;color:#1A1A1A">${{t.pct_of_high}}%</div>
+            <div style="font-size:9px;color:#888780">of 52-week high (${{t.week52_high?.toFixed(0)}})</div>
+            <div style="margin-top:4px;height:4px;background:#E0DFDC;border-radius:2px">
+              <div style="height:4px;border-radius:2px;background:${{t.pct_of_high>80?'#E24B4A':t.pct_of_high>50?'#EF9F27':'#639922'}};width:${{t.pct_of_high}}%"></div>
+            </div>
+          </div>` : ""}}
+        </div>
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">
           6-month price trend
         </div>
