@@ -23,6 +23,12 @@ Expected sector_data keys (from fetch_market.py per ticker):
     price_30d_return  : float  — 30-day price return (e.g. 0.18 = +18%)
     price_momentum    : float  — ratio of current momentum vs own 90d avg (e.g. 2.1)
     peer_outperformance: float — outperformance vs layer peers (e.g. 0.22 = +22%)
+ 
+v2 fixes:
+    - Smart money: removed panic sell filter that was zeroing scores on any down day
+    - Smart money: added price momentum and 30d return as additional signals
+    - Smart money: rebalanced weights (vol 35%, upgrades 25%, short 15%, momentum 15%, ret 10%)
+    - Smart money: analyst upgrades worth 15pts each (up from 10), capped at 2 upgrades
 """
  
 import json
@@ -130,33 +136,70 @@ class ScoreEngine:
  
     def calculate_smart_money(self, data: dict, missing: list) -> float:
         """
-        Volume-price divergence + analyst + short interest signals.
+        Volume-price confirmation + analyst upgrades + short interest + momentum.
  
-        vol_spike:        ratio vs 20d avg — 2.0 means double average volume
-        price_act:        today's price return
-        analyst_upgrades: count of upgrades in last 30 days
-        short_int_change: negative value = shorts covering = bullish
+        v2 fixes vs original:
+          - Removed panic sell filter that was zeroing the entire score on any
+            down day (price < -3% + high volume). This was wiping out analyst
+            upgrade and short covering signals that remain valid regardless of
+            single-day price action. Replaced with a partial dampener (30%).
+          - Added price_momentum as a signal (accelerating vs own history).
+          - Added price_30d_return as a confirmation signal (sustained strength).
+          - Analyst upgrades now worth 15pts each (up from 10), capped at 2.
+          - Rebalanced weights: vol 35%, upgrades 25%, short 15%, momentum 15%, ret 10%.
  
-        Scoring breakdown (max 100):
-          Volume confirmation : 0–50 pts  (vol_spike 2.0 → 50 pts)
-          Analyst upgrades    : 0–30 pts  (3 upgrades → 30 pts, capped)
+        Scoring breakdown (max ~100):
+          Volume confirmation : 0–50 pts  (vol 2.0x avg → 50 pts)
+          Analyst upgrades    : 0–30 pts  (2 upgrades → 30 pts, capped)
           Short covering      : 0–20 pts  (short_int_change -0.10 → 20 pts)
+          Price momentum      : 0–20 pts  (momentum 2.0x own avg → 20 pts)
+          30d return          : 0–20 pts  (ret +20% → 20 pts, positive only)
         """
-        vol      = self._get(data, "vol_spike",        default=1.0, missing_log=missing)
-        price    = self._get(data, "price_act",        default=0.0, missing_log=missing)
-        upgrades = self._get(data, "analyst_upgrades", default=0,   missing_log=missing)
-        short_ch = self._get(data, "short_int_change", default=0.0, missing_log=missing)
+        vol       = self._get(data, "vol_spike",         default=1.0, missing_log=missing)
+        price     = self._get(data, "price_act",         default=0.0, missing_log=missing)
+        upgrades  = self._get(data, "analyst_upgrades",  default=0,   missing_log=missing)
+        short_ch  = self._get(data, "short_int_change",  default=0.0, missing_log=missing)
+        momentum  = self._get(data, "price_momentum",    default=1.0, missing_log=missing)
+        ret_30d   = self._get(data, "price_30d_return",  default=0.0, missing_log=missing)
  
-        # Panic sell filter: high volume + falling price = institutional dumping
-        # This is NOT a buy signal — filter it out completely
+        # Volume confirmation — any excess volume above average is a signal
+        # 1.5x average volume → 25pts, 2.0x → 50pts (max)
+        vol_score = self._clamp((vol - 1.0) * 50)
+ 
+        # Directional filter — high volume on a down day is less bullish
+        # but don't zero it (analyst upgrades + short data still valid)
+        # Partial dampener: 30% of vol score remains on institutional sell signal
         if price < -0.03 and vol > 1.5:
-            return 0.0
+            vol_score *= 0.3
  
-        vol_score     = self._clamp((vol - 1.0) * 50)       # excess volume only
-        upgrade_score = self._clamp(upgrades * 10)           # 3 upgrades → 30 pts
-        short_score   = self._clamp(-short_ch * 200)         # covering → positive
+        # Analyst upgrades — each upgrade worth 15pts, capped at 2 upgrades = 30pts
+        # Cap prevents outlier distortion from a single heavily-covered stock
+        upgrade_score = self._clamp(upgrades * 15, 0, 30)
  
-        return self._clamp(vol_score + upgrade_score + short_score)
+        # Short covering — negative short_int_change = shorts covering = bullish
+        # short_int_change -0.10 → 20 pts
+        short_score = self._clamp(-short_ch * 200)
+ 
+        # Price momentum vs own 90d average — new signal in v2
+        # momentum > 1.5 means price accelerating beyond own historical baseline
+        # Only reward positive momentum (above 1.0 baseline)
+        momentum_score = self._clamp((momentum - 1.0) * 20) if momentum > 1.0 else 0.0
+ 
+        # 30-day return confirmation — sustained price strength
+        # +20% in 30d = 20pts. Only positive returns rewarded.
+        # Negative returns don't penalise — that's handled by fundamentals
+        ret_score = self._clamp(ret_30d * 100) if ret_30d > 0 else 0.0
+ 
+        # Weighted composite
+        raw = (
+            vol_score      * 0.35 +
+            upgrade_score  * 0.25 +
+            short_score    * 0.15 +
+            momentum_score * 0.15 +
+            ret_score      * 0.10
+        )
+ 
+        return self._clamp(raw)
  
     # ── Stage 4: Hype detection ───────────────────────────────────────────────
  
@@ -219,10 +262,9 @@ class ScoreEngine:
           Neutral:   1 signal firing    → multiplier 0.80
           Risk-On:   0 signals firing   → multiplier 1.00
         """
-        # Correct key names matching fetch_market.py output
         vix          = self.macro_data.get("vix",               20.0)
-        yield_change = self.macro_data.get("yield_10y_change",   0.0)   # in bps
-        nasdaq_rel   = self.macro_data.get("nasdaq_vs_spx_20d",  0.0)   # decimal
+        yield_change = self.macro_data.get("yield_10y_change",   0.0)
+        nasdaq_rel   = self.macro_data.get("nasdaq_vs_spx_20d",  0.0)
  
         risk_signals = 0
         neut_signals = 0
@@ -233,7 +275,7 @@ class ScoreEngine:
         elif vix > 20:
             neut_signals += 1
  
-        # Yield thresholds (in bps — e.g. 100 = +100bps = +1%)
+        # Yield thresholds (in bps)
         if yield_change > 100:
             risk_signals += 1
         elif yield_change > 50:
@@ -261,8 +303,8 @@ class ScoreEngine:
  
         Priority order:
           1. Negative growth delta  -> Blue    (fundamental override)
-          2. Score > 70             -> Red     (true bottleneck)
-          3. Score >= 45            -> Orange  (emerging / building momentum)
+          2. Score > 55             -> Red     (true bottleneck)
+          3. Score >= 40            -> Orange  (emerging / building momentum)
           4. Score < 20             -> Blue    (cooling)
           5. Otherwise              -> Green   (neutral/stable)
         """
@@ -339,7 +381,7 @@ class ScoreEngine:
             log.error(f"ScoreEngine error [{sector_name}]: {e}")
             result = {
                 "score":      0.0,
-                "color":      "Green",   # safe neutral default — not Gray
+                "color":      "Green",
                 "status":     f"Scoring error — defaulting to neutral ({e})",
                 "regime":     "Unknown",
                 "multiplier": 1.0,
@@ -354,13 +396,13 @@ class ScoreEngine:
  
         # Save to in-memory audit log
         self.audit_log[sector_name] = {
-            "score":         result["score"],
-            "color":         result["color"],
-            "regime":        result["regime"],
-            "sub_scores":    result.get("sub_scores", {}),
+            "score":          result["score"],
+            "color":          result["color"],
+            "regime":         result["regime"],
+            "sub_scores":     result.get("sub_scores", {}),
             "missing_fields": missing_fields,
-            "data_status":   result["data_status"],
-            "timestamp":     result["timestamp"],
+            "data_status":    result["data_status"],
+            "timestamp":      result["timestamp"],
         }
  
         # Append to JSON audit file
@@ -381,21 +423,21 @@ class ScoreEngine:
                 log_entries = []
  
         log_entries.append({
-            "date":          datetime.datetime.now().strftime("%Y-%m-%d"),
-            "time":          datetime.datetime.now().strftime("%H:%M:%S"),
-            "sector":        sector_name,
-            "score":         result["score"],
-            "color":         result["color"],
-            "regime":        result["regime"],
-            "multiplier":    result.get("multiplier", 1.0),
-            "sub_scores":    result.get("sub_scores", {}),
-            "fund_delta":    result.get("fund_delta"),
-            "is_hype":       result.get("is_hype", False),
+            "date":           datetime.datetime.now().strftime("%Y-%m-%d"),
+            "time":           datetime.datetime.now().strftime("%H:%M:%S"),
+            "sector":         sector_name,
+            "score":          result["score"],
+            "color":          result["color"],
+            "regime":         result["regime"],
+            "multiplier":     result.get("multiplier", 1.0),
+            "sub_scores":     result.get("sub_scores", {}),
+            "fund_delta":     result.get("fund_delta"),
+            "is_hype":        result.get("is_hype", False),
             "missing_fields": missing_fields,
-            "data_status":   result["data_status"],
+            "data_status":    result["data_status"],
         })
  
-        # Keep last 500 entries (~3 months of daily 6-layer runs)
+        # Keep last 500 entries (~3 months of daily runs)
         log_entries = log_entries[-500:]
         path.write_text(json.dumps(log_entries, indent=2, ensure_ascii=False))
  
@@ -405,25 +447,25 @@ class ScoreEngine:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
  
-    print("\nTest 1 — Power/Energy layer (should be Red, Risk-On)")
+    print("\nTest 1 — Energy layer (should be Red, Risk-On)")
     engine = ScoreEngine({
         "vix":               17.4,
-        "yield_10y_change":  15.0,    # mild, +15bps
-        "nasdaq_vs_spx_20d": 0.02,    # NASDAQ outperforming — risk-on
+        "yield_10y_change":  15.0,
+        "nasdaq_vs_spx_20d": 0.02,
     })
     result = engine.process_sector("power_energy", {
-        "growth_curr":        0.38,
-        "growth_prev":        0.22,   # delta = +0.16 — strong acceleration
-        "gm_delta":           0.04,
-        "news_velocity":      6.0,
-        "capex_div":          0.7,
-        "vol_spike":          1.8,
-        "price_act":          0.04,
-        "analyst_upgrades":   3,
-        "short_int_change":  -0.05,
-        "price_30d_return":   0.12,
-        "price_momentum":     1.3,
-        "peer_outperformance":0.08,
+        "growth_curr":         0.38,
+        "growth_prev":         0.22,   # delta = +0.16 — strong acceleration
+        "gm_delta":            0.04,
+        "news_velocity":       6.0,
+        "capex_div":           0.7,
+        "vol_spike":           1.8,
+        "price_act":           0.04,
+        "analyst_upgrades":    3,
+        "short_int_change":   -0.05,
+        "price_30d_return":    0.12,
+        "price_momentum":      1.3,
+        "peer_outperformance": 0.08,
     })
     print(f"  Score: {result['score']} | Color: {result['color']} | Status: {result['status']}")
     print(f"  Regime: {result['regime']} × {result['multiplier']}")
@@ -432,64 +474,86 @@ if __name__ == "__main__":
  
     print("\nTest 2 — Software layer with negative delta (should be Blue)")
     result2 = engine.process_sector("software", {
-        "growth_curr":  0.08,
-        "growth_prev":  0.15,   # delta = -0.07 — decelerating
-        "gm_delta":     0.01,
-        "news_velocity":1.0,
-        "capex_div":    0.1,
-        "vol_spike":    1.1,
-        "price_act":    0.01,
+        "growth_curr":      0.08,
+        "growth_prev":      0.15,   # delta = -0.07 — decelerating
+        "gm_delta":         0.01,
+        "news_velocity":    1.0,
+        "capex_div":        0.1,
+        "vol_spike":        1.1,
+        "price_act":        0.01,
         "analyst_upgrades": 0,
         "short_int_change": 0.02,
+        "price_30d_return":  0.05,
+        "price_momentum":    1.1,
     })
     print(f"  Score: {result2['score']} | Color: {result2['color']} | Status: {result2['status']}")
  
-    print("\nTest 3 — Hype scenario (should be Orange)")
+    print("\nTest 3 — Hype scenario (should be Orange with hype flag)")
     result3 = engine.process_sector("compute_hype", {
-        "growth_curr":        0.08,   # weak fundamentals
-        "growth_prev":        0.06,
-        "gm_delta":          -0.01,
-        "news_velocity":      1.0,
-        "capex_div":          0.1,
-        "vol_spike":          1.2,
-        "price_act":          0.02,
-        "analyst_upgrades":   1,
-        "short_int_change":   0.01,
-        "price_30d_return":   0.22,   # +22% in 30 days — hype rule 1
-        "price_momentum":     2.4,    # 2.4× own avg — hype rule 2
-        "peer_outperformance":0.25,   # +25% vs peers — hype rule 3
+        "growth_curr":         0.08,
+        "growth_prev":         0.06,
+        "gm_delta":           -0.01,
+        "news_velocity":       1.0,
+        "capex_div":           0.1,
+        "vol_spike":           1.2,
+        "price_act":           0.02,
+        "analyst_upgrades":    1,
+        "short_int_change":    0.01,
+        "price_30d_return":    0.22,   # +22% in 30d — hype rule 1
+        "price_momentum":      2.4,
+        "peer_outperformance": 0.25,   # +25% vs peers — hype rule 3
     })
     print(f"  Score: {result3['score']} | Color: {result3['color']} | Status: {result3['status']}")
     print(f"  Hype reasons: {result3['hype_reasons']}")
  
-    print("\nTest 4 — Risk-Off macro scenario (should dampen scores)")
+    print("\nTest 4 — Risk-Off macro (should dampen scores)")
     engine_riskoff = ScoreEngine({
-        "vix":               35.0,    # fear elevated
-        "yield_10y_change":  120.0,   # +120bps surge
-        "nasdaq_vs_spx_20d":-0.07,    # tech selling off
+        "vix":               35.0,
+        "yield_10y_change":  120.0,
+        "nasdaq_vs_spx_20d": -0.07,
     })
     result4 = engine_riskoff.process_sector("power_riskoff", {
-        "growth_curr":  0.38,
-        "growth_prev":  0.22,
-        "gm_delta":     0.04,
-        "news_velocity":6.0,
-        "capex_div":    0.7,
-        "vol_spike":    1.8,
-        "price_act":    0.04,
+        "growth_curr":      0.38,
+        "growth_prev":      0.22,
+        "gm_delta":         0.04,
+        "news_velocity":    6.0,
+        "capex_div":        0.7,
+        "vol_spike":        1.8,
+        "price_act":        0.04,
         "analyst_upgrades": 3,
         "short_int_change": -0.05,
+        "price_30d_return":  0.12,
+        "price_momentum":    1.3,
     })
     print(f"  Score: {result4['score']} | Color: {result4['color']}")
-    print(f"  Regime: {result4['regime']} × {result4['multiplier']} (score dampened from high raw)")
+    print(f"  Regime: {result4['regime']} × {result4['multiplier']} (score dampened)")
  
-    print("\nTest 5 — Missing data (should handle gracefully)")
-    result5 = engine.process_sector("memory_incomplete", {
-        "growth_curr": 0.25,
-        # growth_prev missing — delta unavailable
-        # most fields missing
+    print("\nTest 5 — MU-like signal (Red, strong acceleration, high return)")
+    result5 = engine.process_sector("memory_mu", {
+        "growth_curr":         1.11,   # +111% YoY
+        "growth_prev":         0.47,   # delta = +0.64
+        "gm_delta":            0.06,
+        "news_velocity":       5.0,    # after news fix
+        "capex_div":           0.5,
+        "vol_spike":           1.4,
+        "price_act":           0.02,
+        "analyst_upgrades":    2,
+        "short_int_change":   -0.03,
+        "price_30d_return":    0.51,   # +51% in 30d
+        "price_momentum":      1.8,
+        "peer_outperformance": 0.35,
     })
     print(f"  Score: {result5['score']} | Color: {result5['color']}")
-    print(f"  Data: {result5['data_status']}")
+    print(f"  Sub-scores: {result5['sub_scores']}")
+    print(f"  Smart money breakdown — should be meaningfully above 0")
+ 
+    print("\nTest 6 — Missing data (should handle gracefully)")
+    result6 = engine.process_sector("memory_incomplete", {
+        "growth_curr": 0.25,
+        # growth_prev missing — delta unavailable
+    })
+    print(f"  Score: {result6['score']} | Color: {result6['color']}")
+    print(f"  Data: {result6['data_status']}")
  
     print(f"\n✅ All tests complete. Audit log saved to {AUDIT_LOG_FILE}")
     print(f"   In-memory audit_log keys: {list(engine.audit_log.keys())}")
