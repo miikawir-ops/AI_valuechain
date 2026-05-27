@@ -596,7 +596,7 @@
   },
   {
     "date": "2026-05-27",
-    "time": "18:06",
+    "time": "22:16",
     "action_ticker": "",
     "action_price": null,
     "scores": {
@@ -612,7 +612,7 @@
         }
       },
       "compute": {
-        "score": 61.53,
+        "score": 55.35,
         "color": "Orange",
         "ratings": {
           "NVDA": "C",
@@ -620,12 +620,12 @@
           "AVGO": "B",
           "ASML": "C",
           "TSM": "B",
-          "ARM": "A",
+          "ARM": "B",
           "CDNS": "C"
         }
       },
       "memory": {
-        "score": 85.16,
+        "score": 86.09,
         "color": "Red",
         "ratings": {
           "MU": "A",
@@ -668,7 +668,7 @@
         }
       },
       "security": {
-        "score": 41.84,
+        "score": 42.52,
         "color": "Blue",
         "ratings": {
           "CRWD": "C",
