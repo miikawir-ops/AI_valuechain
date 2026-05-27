@@ -1,34 +1,47 @@
 """
 score_engine.py — Composite scoring engine for AI value chain layers.
  
-Scoring model: 50% Fundamentals / 25% Constraints / 25% Smart Money
-Macro multiplier applied after composite: Risk-On 1.0 / Neutral 0.8 / Risk-Off 0.65
-Full audit trail recorded for every score — both in-memory and JSON file.
+BOTTLENECK-FOCUSED MODEL v3.1 (final)
+=======================================
+Core thesis: Revenue acceleration is the primary bottleneck signal.
+When AI demand exceeds supply in a layer, revenue explodes first —
+margins and analyst coverage follow 1-2 quarters later.
  
-Expected macro_data keys (from fetch_market.py):
-    vix               : float  — current VIX level (e.g. 17.4)
-    yield_10y_change  : float  — change in bps over 30 days (e.g. 45.0 = +45bps)
-    nasdaq_vs_spx_20d : float  — NASDAQ 20d return minus S&P 500 20d return (e.g. -0.06)
+Scoring weights (final, agreed across both Claude instances):
+  65% Revenue Acceleration   ← primary bottleneck detector
+  20% Constraint Signal      ← layer supply pressure (news + capex)
+  15% Smart Money            ← earliest leading indicator (positions before earnings)
  
-Expected sector_data keys (from fetch_market.py per ticker):
-    growth_curr       : float  — revenue growth this quarter YoY (e.g. 0.38 = 38%)
-    growth_prev       : float  — revenue growth previous quarter YoY (e.g. 0.22 = 22%)
-    gm_delta          : float  — gross margin change (e.g. 0.04 = +4pp)
-    news_velocity     : float  — keyword hit count 0-10 scale
-    capex_div         : float  — capex divergence score 0-1 scale
-    vol_spike         : float  — volume ratio vs 20d average (e.g. 1.8 = 80% above avg)
-    price_act         : float  — price return today (e.g. -0.04 = -4%)
-    analyst_upgrades  : int    — analyst upgrades in last 30 days
-    short_int_change  : float  — change in short interest (negative = bullish)
-    price_30d_return  : float  — 30-day price return (e.g. 0.18 = +18%)
-    price_momentum    : float  — ratio of current momentum vs own 90d avg (e.g. 2.1)
-    peer_outperformance: float — outperformance vs layer peers (e.g. 0.22 = +22%)
+Revenue Acceleration sub-components:
+  50% Growth delta     — QoQ change in YoY growth (the inflection signal)
+  30% Growth level     — absolute YoY growth (rewards sustained >50% growers)
+  20% Margin delta     — gross margin expansion (pricing power forming)
+  + High-margin bonus  — +8% multiplier if gross_margin > 55% (DDOG, MU boost)
+                         No penalty for capital-intensive layers (CEG unaffected)
  
-v2 fixes:
-    - Smart money: removed panic sell filter that was zeroing scores on any down day
-    - Smart money: added price momentum and 30d return as additional signals
-    - Smart money: rebalanced weights (vol 35%, upgrades 25%, short 15%, momentum 15%, ret 10%)
-    - Smart money: analyst upgrades worth 15pts each (up from 10), capped at 2 upgrades
+Constraint Signal (20%):
+  60% News velocity    — ticker-specific RSS headlines
+  40% Capex divergence — spending to meet demand
+  Both-signal bonus: +15% when news AND capex both confirm
+  Single-signal cap:  max 60pts if only news (no capex confirmation)
+ 
+Smart Money (15%):
+  Earliest pre-earnings signal — volume, upgrades, short covering, momentum
+  Weighted lower than constraint to prevent noise-driven Red signals
+ 
+Color thresholds (recalibrated for discrimination):
+  Red    > 65  — confirmed structural bottleneck
+  Orange  45-65 — emerging constraint / acceleration building
+  Green   25-45 — healthy growth, no constraint pressure
+  Blue    < 25  — cooling or decelerating
+ 
+Macro multiplier: Risk-On 1.0 / Neutral 0.85 / Risk-Off 0.65
+Full audit trail recorded to audit_log.json after every run.
+ 
+v3.1 changes vs v3:
+  - Weights: acceleration 60→65%, constraints 25→20%, smart 15% unchanged
+  - High-margin multiplier added inside acceleration (+8% if GM > 55%)
+  - Rationale: smart money moves before earnings; constraint signal is noisier
 """
  
 import json
@@ -40,29 +53,37 @@ log = logging.getLogger(__name__)
  
 AUDIT_LOG_FILE = "audit_log.json"
  
+# Layer-type metadata — used for context-aware scoring
+# Energy/Infra are physical constraint layers: lower baseline margins, higher capex weight
+# Semicon/Memory/Software are margin-expansion layers: pricing power is the signal
+LAYER_TYPES = {
+    "energy":   "physical",
+    "infra":    "physical",
+    "compute":  "margin",
+    "memory":   "margin",
+    "cloud":    "scale",
+    "software": "margin",
+    "security": "margin",
+}
+ 
  
 class ScoreEngine:
     def __init__(self, macro_data: dict):
         self.macro_data = macro_data
         self.weights = {
-            "fundamentals": 0.50,
-            "constraints":  0.25,
-            "smart_money":  0.25,
+            "acceleration": 0.65,   # revenue acceleration — primary bottleneck signal
+            "constraints":  0.20,   # layer supply pressure
+            "smart_money":  0.15,   # confirmation
         }
-        # In-memory audit log — also written to audit_log.json after each sector
         self.audit_log = {}
  
     # ── Helpers ───────────────────────────────────────────────────────────────
  
     @staticmethod
     def _clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
-        return max(lo, min(hi, value))
+        return max(lo, min(hi, float(value)))
  
     def _get(self, data: dict, key: str, default=None, missing_log: list = None):
-        """
-        Safe field getter. Logs missing fields to the audit trail
-        instead of crashing. Returns default if field is absent.
-        """
         val = data.get(key)
         if val is None:
             if missing_log is not None:
@@ -70,46 +91,89 @@ class ScoreEngine:
             return default
         return val
  
-    # ── Stage 1: Fundamentals (50%) ───────────────────────────────────────────
+    # ── Stage 1: Revenue Acceleration (60%) ───────────────────────────────────
  
-    def calculate_fundamentals(self, data: dict, missing: list) -> tuple[float, float | None]:
+    def calculate_acceleration(self, data: dict, missing: list) -> tuple[float, float | None]:
         """
-        Primary signal: growth acceleration (delta between quarters).
-        Secondary: gross margin expansion (pricing power).
+        Primary bottleneck signal: is revenue growth ACCELERATING?
  
-        Scaling rationale — calibrated to realistic revenue data ranges:
-          delta typically ranges -0.15 to +0.25 (e.g. deceleration to strong acceleration)
-            Centred at 50: score = delta * 200 + 50
-            delta = +0.10 → score = 70  (good acceleration)
-            delta = -0.05 → score = 40  (mild deceleration)
-            delta =  0.00 → score = 50  (neutral, no change)
+        Three sub-components:
+          50% Growth delta  — QoQ change in YoY growth rate
+                              This is THE bottleneck formation signal
+                              delta = +0.20 → score 90 (strong acceleration)
+                              delta =  0.00 → score 50 (stable)
+                              delta = -0.10 → score 30 (decelerating)
  
-          gm_delta typically ranges -0.05 to +0.10
-            Centred at 50: score = gm_delta * 400 + 50
-            gm_delta = +0.04 → score = 66  (expanding margins)
-            gm_delta = -0.02 → score = 42  (compressing margins)
+          30% Growth level  — absolute YoY revenue growth
+                              Rewards sustained high growth (>50% is exceptional)
+                              100% YoY → 100pts, 50% → 75pts, 20% → 50pts, 0% → 0pts
+                              This catches MU (+111% YoY) even without multi-quarter data
+ 
+          20% Margin bonus  — gross margin delta (pricing power forming)
+                              Small bonus — not the primary signal but confirms bottleneck
+                              +5pp expansion → +20pts bonus, flat → 0, contraction → 0
+ 
+        Fundamental override: negative delta HARD CAPS score at 40.
+        This prevents any decelerating company from scoring Red.
         """
         g_curr = self._get(data, "growth_curr", default=None, missing_log=missing)
         g_prev = self._get(data, "growth_prev", default=None, missing_log=missing)
         gm     = self._get(data, "gm_delta",    default=0.0,  missing_log=missing)
  
-        # Growth delta — the primary signal
+        # ── Sub-component 1: Growth delta (50% weight) ────────────────────────
         if g_curr is not None and g_prev is not None:
-            delta       = g_curr - g_prev
+            delta = g_curr - g_prev
+            # Scaled so:  delta +0.25 → 100, delta 0 → 50, delta -0.25 → 0
             delta_score = self._clamp(delta * 200 + 50)
         else:
-            delta       = None
-            delta_score = 50.0   # neutral when data unavailable
+            delta = None
+            delta_score = 50.0
             log.debug("growth_delta: insufficient data — using neutral 50")
  
-        # Gross margin expansion score
-        gm_score = self._clamp(gm * 400 + 50)
+        # ── Sub-component 2: Growth level (30% weight) ────────────────────────
+        if g_curr is not None:
+            # 0% growth → 0pts, 50% growth → 75pts, 100%+ → 100pts
+            # Logarithmic-ish: rewards high growth but diminishing returns
+            if g_curr >= 1.0:        # 100%+ YoY — exceptional (MU, NVDA peak)
+                level_score = 100.0
+            elif g_curr >= 0.50:     # 50-100% YoY — very strong
+                level_score = self._clamp(75 + (g_curr - 0.50) * 50)
+            elif g_curr >= 0.20:     # 20-50% YoY — solid growth
+                level_score = self._clamp(50 + (g_curr - 0.20) * 83)
+            elif g_curr >= 0.10:     # 10-20% YoY — moderate
+                level_score = self._clamp(25 + (g_curr - 0.10) * 250)
+            elif g_curr > 0:         # 0-10% — slow
+                level_score = self._clamp(g_curr * 250)
+            else:                    # negative growth
+                level_score = 0.0
+        else:
+            level_score = 40.0      # slightly below neutral if missing
  
-        # Combine: delta is primary (65%), margin is secondary (35%)
-        raw = (delta_score * 0.65) + (gm_score * 0.35)
+        # ── Sub-component 3: Margin bonus (20% weight) ────────────────────────
+        # Only reward margin expansion — contraction doesn't penalise separately
+        # (already captured by fundamentals narrative)
+        if gm and gm > 0:
+            margin_bonus = self._clamp(gm * 500)   # +5pp = 25pts, +10pp = 50pts
+        else:
+            margin_bonus = 0.0
  
-        # Fundamental override: negative delta caps score at 40
-        # This prevents a Red classification driven by margin alone
+        # ── Combine ───────────────────────────────────────────────────────────
+        raw = (
+            delta_score  * 0.50 +
+            level_score  * 0.30 +
+            margin_bonus * 0.20
+        )
+ 
+        # ── High-margin multiplier (suggested by Claude instance 2) ───────────
+        # +8% boost for high-margin accelerators (GM > 55%)
+        # Rewards DDOG (80% GM), MU (58% GM) without penalising CEG (20% GM)
+        # CEG's acceleration score stands on its own — no penalty applied
+        gross_margin = self._get(data, "gross_margin", default=None, missing_log=missing)
+        if gross_margin and gross_margin > 0.55 and (delta is None or delta >= 0):
+            raw = min(raw * 1.08, 100.0)
+ 
+        # ── Fundamental override ──────────────────────────────────────────────
+        # Negative delta = decelerating revenue = CANNOT be a bottleneck
         if delta is not None and delta < 0:
             raw = min(raw, 40.0)
  
@@ -119,41 +183,47 @@ class ScoreEngine:
  
     def calculate_constraints(self, data: dict, missing: list) -> float:
         """
-        Bottleneck identification via news narrative and capex divergence.
+        Supply pressure signal: is the layer unable to keep up with demand?
  
-        news_velocity: 0–10 keyword hits → mapped to 0–100
-        capex_div:     0–1 divergence score → mapped to 0–100
+        news_velocity: 0–10 keyword hits (ticker-specific RSS feeds)
+        capex_div:     0–1 capex divergence (high capex = expanding to meet demand)
+ 
+        v3: Requires BOTH signals for high score — avoids pure news-driven inflation.
+        If only one signal is present, max score is capped at 60.
         """
         news  = self._get(data, "news_velocity", default=0.0, missing_log=missing)
         capex = self._get(data, "capex_div",     default=0.0, missing_log=missing)
  
-        news_score  = self._clamp(news * 10)      # 10 hits = 100 points
-        capex_score = self._clamp(capex * 100)    # 1.0 divergence = 100 points
+        news_score  = self._clamp(news * 10)     # 10 hits = 100pts
+        capex_score = self._clamp(capex * 100)   # 1.0 = 100pts
  
-        return self._clamp(news_score * 0.60 + capex_score * 0.40)
+        raw = news_score * 0.60 + capex_score * 0.40
  
-    # ── Stage 3: Smart Money (25%) ────────────────────────────────────────────
+        # Both-signal bonus: reward when news AND capex both confirm constraint
+        if news >= 3 and capex >= 0.3:
+            raw = min(raw * 1.15, 100)   # 15% boost when both signals confirm
+ 
+        # Single-signal cap: pure news without capex confirmation → max 60
+        if capex < 0.1 and news > 0:
+            raw = min(raw, 60.0)
+ 
+        return self._clamp(raw)
+ 
+    # ── Stage 3: Smart Money (15%) ────────────────────────────────────────────
  
     def calculate_smart_money(self, data: dict, missing: list) -> float:
         """
-        Volume-price confirmation + analyst upgrades + short interest + momentum.
+        Confirmation signal only — weighted at 15% in v3 (down from 25%).
  
-        v2 fixes vs original:
-          - Removed panic sell filter that was zeroing the entire score on any
-            down day (price < -3% + high volume). This was wiping out analyst
-            upgrade and short covering signals that remain valid regardless of
-            single-day price action. Replaced with a partial dampener (30%).
-          - Added price_momentum as a signal (accelerating vs own history).
-          - Added price_30d_return as a confirmation signal (sustained strength).
-          - Analyst upgrades now worth 15pts each (up from 10), capped at 2.
-          - Rebalanced weights: vol 35%, upgrades 25%, short 15%, momentum 15%, ret 10%.
+        Smart money confirms what fundamentals already show.
+        It should never be the PRIMARY reason a layer scores Red.
  
-        Scoring breakdown (max ~100):
-          Volume confirmation : 0–50 pts  (vol 2.0x avg → 50 pts)
-          Analyst upgrades    : 0–30 pts  (2 upgrades → 30 pts, capped)
-          Short covering      : 0–20 pts  (short_int_change -0.10 → 20 pts)
-          Price momentum      : 0–20 pts  (momentum 2.0x own avg → 20 pts)
-          30d return          : 0–20 pts  (ret +20% → 20 pts, positive only)
+        Signals:
+          Vol spike + positive price  → institutional accumulation
+          Analyst upgrades            → sell-side catching up
+          Short covering              → bears capitulating
+          Price momentum              → trend confirmation
+          30d return                  → sustained strength
         """
         vol       = self._get(data, "vol_spike",         default=1.0, missing_log=missing)
         price     = self._get(data, "price_act",         default=0.0, missing_log=missing)
@@ -162,35 +232,24 @@ class ScoreEngine:
         momentum  = self._get(data, "price_momentum",    default=1.0, missing_log=missing)
         ret_30d   = self._get(data, "price_30d_return",  default=0.0, missing_log=missing)
  
-        # Volume confirmation — any excess volume above average is a signal
-        # 1.5x average volume → 25pts, 2.0x → 50pts (max)
+        # Volume confirmation
         vol_score = self._clamp((vol - 1.0) * 50)
- 
-        # Directional filter — high volume on a down day is less bullish
-        # but don't zero it (analyst upgrades + short data still valid)
-        # Partial dampener: 30% of vol score remains on institutional sell signal
+        # Partial dampener on institutional sell signals (don't zero — upgrades still valid)
         if price < -0.03 and vol > 1.5:
             vol_score *= 0.3
  
-        # Analyst upgrades — each upgrade worth 15pts, capped at 2 upgrades = 30pts
-        # Cap prevents outlier distortion from a single heavily-covered stock
+        # Analyst upgrades — 15pts each, capped at 2 upgrades
         upgrade_score = self._clamp(upgrades * 15, 0, 30)
  
-        # Short covering — negative short_int_change = shorts covering = bullish
-        # short_int_change -0.10 → 20 pts
+        # Short covering
         short_score = self._clamp(-short_ch * 200)
  
-        # Price momentum vs own 90d average — new signal in v2
-        # momentum > 1.5 means price accelerating beyond own historical baseline
-        # Only reward positive momentum (above 1.0 baseline)
+        # Price momentum vs own history
         momentum_score = self._clamp((momentum - 1.0) * 20) if momentum > 1.0 else 0.0
  
-        # 30-day return confirmation — sustained price strength
-        # +20% in 30d = 20pts. Only positive returns rewarded.
-        # Negative returns don't penalise — that's handled by fundamentals
+        # 30d return (positive only — negative captured by fundamentals)
         ret_score = self._clamp(ret_30d * 100) if ret_30d > 0 else 0.0
  
-        # Weighted composite
         raw = (
             vol_score      * 0.35 +
             upgrade_score  * 0.25 +
@@ -205,40 +264,26 @@ class ScoreEngine:
  
     def calculate_hype(self, data: dict, delta: float | None, missing: list) -> tuple[bool, list[str]]:
         """
-        Flags Orange / Hype Warning if ANY ONE of three rules fires:
+        Hype warning: price running ahead of revenue fundamentals.
  
-          Rule 1: Price +15% in 30d AND revenue growth <10%
-                  → price surge without fundamental backing
-          Rule 2: Price momentum >2× its own 90-day average
-                  → acceleration far beyond historical norm
-          Rule 3: Outperforming layer peers by >20% with weak fundamentals
-                  → relative surge not justified by growth delta
+        Rule 1: Price +15% in 30d AND revenue growth <10%
+        Rule 3: Outperforming peers by >20% with negative growth delta
  
-        Returns (triggered: bool, reasons: list[str])
+        Note: Rule 2 (momentum) remains disabled — fires too broadly in bull markets.
+        Hype is a WARNING FLAG on the card, NOT a color override.
         """
-        price_30d   = self._get(data, "price_30d_return",     default=0.0, missing_log=missing)
-        rev_growth  = self._get(data, "growth_curr",          default=0.1, missing_log=missing)
-        momentum    = self._get(data, "price_momentum",       default=1.0, missing_log=missing)
-        peer_outpf  = self._get(data, "peer_outperformance",  default=0.0, missing_log=missing)
+        price_30d  = self._get(data, "price_30d_return",    default=0.0, missing_log=missing)
+        rev_growth = self._get(data, "growth_curr",         default=0.1, missing_log=missing)
+        peer_outpf = self._get(data, "peer_outperformance", default=0.0, missing_log=missing)
  
         reasons = []
  
-        # Rule 1 — price surge without revenue justification
         if price_30d > 0.15 and (rev_growth or 0) < 0.10:
             reasons.append(
                 f"Price +{price_30d*100:.0f}% in 30d "
                 f"but revenue growth only {(rev_growth or 0)*100:.0f}%"
             )
  
-        # Rule 2 — DISABLED: price_momentum is capped at 5.0 in fetch_market.py
-        # making this rule fire on almost every ticker in a bull market.
-        # Rules 1 and 3 provide sufficient hype detection without this noise.
-        # Re-enable when price_momentum calculation is improved.
-        # if momentum > 3.5:
-        #     reasons.append(f"Price momentum {momentum:.1f}× its own 90d average")
- 
-        # Rule 3 — peer outperformance with clearly negative fundamentals
-        # delta < -0.02 means actual deceleration, not just modest growth
         if peer_outpf > 0.20 and (delta is None or delta < -0.02):
             reasons.append(
                 f"Outperforming peers by {peer_outpf*100:.0f}% "
@@ -251,16 +296,13 @@ class ScoreEngine:
  
     def get_macro_multiplier(self) -> tuple[float, str]:
         """
-        Uses all 3 macro signals. Requires 2+ risk-off signals for full dampening.
+        Macro regime dampener.
  
-        yield_10y_change  : in basis points (e.g. 75.0 = +75bps in 30 days)
-        vix               : index level (e.g. 28.0)
-        nasdaq_vs_spx_20d : decimal return differential (e.g. -0.06 = -6%)
+        v3: Neutral multiplier raised from 0.80 → 0.85
+        Rationale: 20% dampening was too aggressive for a single neutral signal —
+        it was preventing valid bottleneck layers from reaching Red.
  
-        Thresholds:
-          Risk-Off:  ≥2 signals firing  → multiplier 0.65
-          Neutral:   1 signal firing    → multiplier 0.80
-          Risk-On:   0 signals firing   → multiplier 1.00
+        Risk-Off still uses 0.65 — genuine fear environments warrant strong dampening.
         """
         vix          = self.macro_data.get("vix",               20.0)
         yield_change = self.macro_data.get("yield_10y_change",   0.0)
@@ -269,28 +311,19 @@ class ScoreEngine:
         risk_signals = 0
         neut_signals = 0
  
-        # VIX thresholds
-        if vix > 30:
-            risk_signals += 1
-        elif vix > 20:
-            neut_signals += 1
+        if vix > 30:          risk_signals += 1
+        elif vix > 20:        neut_signals += 1
  
-        # Yield thresholds (in bps)
-        if yield_change > 100:
-            risk_signals += 1
-        elif yield_change > 50:
-            neut_signals += 1
+        if yield_change > 100:   risk_signals += 1
+        elif yield_change > 50:  neut_signals += 1
  
-        # NASDAQ relative underperformance vs S&P 500
-        if nasdaq_rel < -0.05:
-            risk_signals += 1
-        elif nasdaq_rel < -0.02:
-            neut_signals += 1
+        if nasdaq_rel < -0.05:   risk_signals += 1
+        elif nasdaq_rel < -0.02: neut_signals += 1
  
         if risk_signals >= 2:
             return 0.65, "Risk-Off"
         elif risk_signals == 1 or neut_signals >= 2:
-            return 0.80, "Neutral"
+            return 0.85, "Neutral"    # v3: raised from 0.80
         return 1.00, "Risk-On"
  
     # ── Stage 6: Color assignment ─────────────────────────────────────────────
@@ -298,56 +331,63 @@ class ScoreEngine:
     def determine_color(self, score: float, delta: float | None,
                         hype: bool, hype_reasons: list) -> tuple[str, str]:
         """
-        Color driven purely by score + fundamental delta.
-        Hype is a separate warning flag shown in the dashboard, NOT a color override.
+        Bottleneck-calibrated color thresholds (v3).
  
-        Priority order:
-          1. Negative growth delta  -> Blue    (fundamental override)
-          2. Score > 55             -> Red     (true bottleneck)
-          3. Score >= 40            -> Orange  (emerging / building momentum)
-          4. Score < 20             -> Blue    (cooling)
-          5. Otherwise              -> Green   (neutral/stable)
+        Recalibrated for discrimination — not everything should be Red/Orange:
+          Red    > 65  — confirmed structural bottleneck
+          Orange  45-65 — emerging constraint / acceleration building
+          Green   25-45 — healthy growth, no constraint pressure
+          Blue    < 25  — cooling or decelerating
+ 
+        Additional Red requirement: fund_delta must be positive
+        (can't be a bottleneck if revenue growth is slowing)
+ 
+        Hype remains a WARNING FLAG only — never changes the color.
         """
+        # Fundamental override always takes priority
         if delta is not None and delta < 0:
             return "Blue", f"Cooling — negative growth delta ({delta*100:.1f}%)"
  
-        if score > 55:
-            return "Red", "Bottleneck / Hot — all signals agree"
-        elif score >= 40:
-            return "Orange", "Emerging — building momentum"
-        elif score < 20:
-            return "Blue", "Cooling"
+        # Bottleneck confirmation: Red requires positive acceleration
+        if score > 65:
+            if delta is not None and delta < 0.05:
+                # Score is high but acceleration is weak — downgrade to Orange
+                return "Orange", f"Emerging — high score but acceleration slowing ({delta*100:.1f}%)"
+            return "Red", "Confirmed bottleneck — revenue accelerating into supply constraint"
+        elif score >= 45:
+            return "Orange", "Emerging — acceleration building"
+        elif score < 25:
+            return "Blue", "Cooling — constraint easing"
         else:
-            return "Green", "Neutral"
+            return "Green", "Neutral — healthy growth, no constraint pressure"
  
     # ── Main entry point ──────────────────────────────────────────────────────
  
     def process_sector(self, sector_name: str, data: dict) -> dict:
         """
-        Full scoring pipeline for one sector / layer.
-        Never crashes — returns a safe default on any error.
-        Always writes to audit_log (in-memory + JSON file).
+        Full scoring pipeline for one ticker / sector.
+        Never crashes. Always writes to audit_log.
         """
         missing_fields = []
  
         try:
-            # Stage 1 — Fundamentals
-            f_score, delta = self.calculate_fundamentals(data, missing_fields)
+            # Stage 1 — Revenue acceleration (primary bottleneck signal)
+            accel_score, delta = self.calculate_acceleration(data, missing_fields)
  
-            # Stage 2 — Constraints
+            # Stage 2 — Constraint signal
             c_score = self.calculate_constraints(data, missing_fields)
  
-            # Stage 3 — Smart money
+            # Stage 3 — Smart money confirmation
             s_score = self.calculate_smart_money(data, missing_fields)
  
             # Stage 4 — Hype detection
             is_hype, hype_reasons = self.calculate_hype(data, delta, missing_fields)
  
-            # Stage 5 — Composite score
+            # Stage 5 — Composite
             raw = (
-                f_score * self.weights["fundamentals"] +
-                c_score * self.weights["constraints"] +
-                s_score * self.weights["smart_money"]
+                accel_score * self.weights["acceleration"] +
+                c_score     * self.weights["constraints"] +
+                s_score     * self.weights["smart_money"]
             )
  
             # Stage 6 — Macro multiplier
@@ -357,18 +397,17 @@ class ScoreEngine:
             # Stage 7 — Color
             color, status = self.determine_color(final_score, delta, is_hype, hype_reasons)
  
-            # Build result
             result = {
-                "score":       round(final_score, 2),
-                "color":       color,
-                "status":      status,
-                "regime":      regime,
-                "multiplier":  multiplier,
+                "score":      round(final_score, 2),
+                "color":      color,
+                "status":     status,
+                "regime":     regime,
+                "multiplier": multiplier,
                 "sub_scores": {
-                    "fundamentals":  round(f_score, 2),
-                    "constraints":   round(c_score, 2),
-                    "smart_money":   round(s_score, 2),
-                    "raw_composite": round(raw, 2),
+                    "acceleration": round(accel_score, 2),
+                    "constraints":  round(c_score, 2),
+                    "smart_money":  round(s_score, 2),
+                    "raw_composite":round(raw, 2),
                 },
                 "fund_delta":   round(delta, 4) if delta is not None else None,
                 "is_hype":      is_hype,
@@ -380,21 +419,20 @@ class ScoreEngine:
         except Exception as e:
             log.error(f"ScoreEngine error [{sector_name}]: {e}")
             result = {
-                "score":      0.0,
-                "color":      "Green",
-                "status":     f"Scoring error — defaulting to neutral ({e})",
-                "regime":     "Unknown",
-                "multiplier": 1.0,
-                "sub_scores": {},
-                "fund_delta": None,
-                "is_hype":    False,
+                "score":        0.0,
+                "color":        "Green",
+                "status":       f"Scoring error — defaulting to neutral ({e})",
+                "regime":       "Unknown",
+                "multiplier":   1.0,
+                "sub_scores":   {},
+                "fund_delta":   None,
+                "is_hype":      False,
                 "hype_reasons": [],
-                "data_status": f"Error: {e}",
-                "timestamp":  datetime.datetime.now().isoformat(),
+                "data_status":  f"Error: {e}",
+                "timestamp":    datetime.datetime.now().isoformat(),
             }
             missing_fields = ["pipeline_error"]
  
-        # Save to in-memory audit log
         self.audit_log[sector_name] = {
             "score":          result["score"],
             "color":          result["color"],
@@ -405,15 +443,12 @@ class ScoreEngine:
             "timestamp":      result["timestamp"],
         }
  
-        # Append to JSON audit file
         self._append_audit(sector_name, result, missing_fields)
- 
         return result
  
     # ── Audit file ────────────────────────────────────────────────────────────
  
     def _append_audit(self, sector_name: str, result: dict, missing_fields: list):
-        """Append this sector's result to the rolling audit_log.json file."""
         path = Path(AUDIT_LOG_FILE)
         log_entries = []
         if path.exists():
@@ -437,7 +472,6 @@ class ScoreEngine:
             "data_status":    result["data_status"],
         })
  
-        # Keep last 500 entries (~3 months of daily runs)
         log_entries = log_entries[-500:]
         path.write_text(json.dumps(log_entries, indent=2, ensure_ascii=False))
  
@@ -445,115 +479,130 @@ class ScoreEngine:
 # ── Self-test ─────────────────────────────────────────────────────────────────
  
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
  
-    print("\nTest 1 — Energy layer (should be Red, Risk-On)")
     engine = ScoreEngine({
-        "vix":               17.4,
-        "yield_10y_change":  15.0,
-        "nasdaq_vs_spx_20d": 0.02,
+        "vix":               16.6,
+        "yield_10y_change":  24.8,
+        "nasdaq_vs_spx_20d": 0.017,
     })
-    result = engine.process_sector("power_energy", {
-        "growth_curr":         0.38,
-        "growth_prev":         0.22,   # delta = +0.16 — strong acceleration
-        "gm_delta":            0.04,
-        "news_velocity":       6.0,
-        "capex_div":           0.7,
-        "vol_spike":           1.8,
-        "price_act":           0.04,
-        "analyst_upgrades":    3,
-        "short_int_change":   -0.05,
-        "price_30d_return":    0.12,
-        "price_momentum":      1.3,
-        "peer_outperformance": 0.08,
-    })
-    print(f"  Score: {result['score']} | Color: {result['color']} | Status: {result['status']}")
-    print(f"  Regime: {result['regime']} × {result['multiplier']}")
-    print(f"  Sub-scores: {result['sub_scores']}")
-    print(f"  Data: {result['data_status']}")
  
-    print("\nTest 2 — Software layer with negative delta (should be Blue)")
-    result2 = engine.process_sector("software", {
-        "growth_curr":      0.08,
-        "growth_prev":      0.15,   # delta = -0.07 — decelerating
-        "gm_delta":         0.01,
-        "news_velocity":    1.0,
-        "capex_div":        0.1,
-        "vol_spike":        1.1,
-        "price_act":        0.01,
-        "analyst_upgrades": 0,
-        "short_int_change": 0.02,
-        "price_30d_return":  0.05,
-        "price_momentum":    1.1,
-    })
-    print(f"  Score: {result2['score']} | Color: {result2['color']} | Status: {result2['status']}")
+    print("\n" + "="*60)
+    print("  ScoreEngine v3 — Bottleneck-focused self-test")
+    print("="*60)
  
-    print("\nTest 3 — Hype scenario (should be Orange with hype flag)")
-    result3 = engine.process_sector("compute_hype", {
-        "growth_curr":         0.08,
-        "growth_prev":         0.06,
-        "gm_delta":           -0.01,
-        "news_velocity":       1.0,
-        "capex_div":           0.1,
-        "vol_spike":           1.2,
-        "price_act":           0.02,
-        "analyst_upgrades":    1,
-        "short_int_change":    0.01,
-        "price_30d_return":    0.22,   # +22% in 30d — hype rule 1
-        "price_momentum":      2.4,
-        "peer_outperformance": 0.25,   # +25% vs peers — hype rule 3
-    })
-    print(f"  Score: {result3['score']} | Color: {result3['color']} | Status: {result3['status']}")
-    print(f"  Hype reasons: {result3['hype_reasons']}")
- 
-    print("\nTest 4 — Risk-Off macro (should dampen scores)")
-    engine_riskoff = ScoreEngine({
-        "vix":               35.0,
-        "yield_10y_change":  120.0,
-        "nasdaq_vs_spx_20d": -0.07,
-    })
-    result4 = engine_riskoff.process_sector("power_riskoff", {
-        "growth_curr":      0.38,
-        "growth_prev":      0.22,
-        "gm_delta":         0.04,
-        "news_velocity":    6.0,
-        "capex_div":        0.7,
-        "vol_spike":        1.8,
-        "price_act":        0.04,
-        "analyst_upgrades": 3,
-        "short_int_change": -0.05,
-        "price_30d_return":  0.12,
-        "price_momentum":    1.3,
-    })
-    print(f"  Score: {result4['score']} | Color: {result4['color']}")
-    print(f"  Regime: {result4['regime']} × {result4['multiplier']} (score dampened)")
- 
-    print("\nTest 5 — MU-like signal (Red, strong acceleration, high return)")
-    result5 = engine.process_sector("memory_mu", {
-        "growth_curr":         1.11,   # +111% YoY
-        "growth_prev":         0.47,   # delta = +0.64
+    # Test 1: MU (memory bottleneck — should be Red, ~75-85)
+    print("\nTest 1 — MU / Memory (confirmed bottleneck)")
+    r = engine.process_sector("memory_MU", {
+        "growth_curr":         1.11,    # +111% YoY
+        "growth_prev":         0.47,    # delta = +0.64 — massive acceleration
         "gm_delta":            0.06,
-        "news_velocity":       5.0,    # after news fix
+        "news_velocity":       8.0,
         "capex_div":           0.5,
         "vol_spike":           1.4,
         "price_act":           0.02,
         "analyst_upgrades":    2,
         "short_int_change":   -0.03,
-        "price_30d_return":    0.51,   # +51% in 30d
+        "price_30d_return":    0.79,
         "price_momentum":      1.8,
         "peer_outperformance": 0.35,
     })
-    print(f"  Score: {result5['score']} | Color: {result5['color']}")
-    print(f"  Sub-scores: {result5['sub_scores']}")
-    print(f"  Smart money breakdown — should be meaningfully above 0")
+    print(f"  Score: {r['score']} | Color: {r['color']}")
+    print(f"  Sub-scores: accel={r['sub_scores']['acceleration']:.1f} "
+          f"constr={r['sub_scores']['constraints']:.1f} "
+          f"smart={r['sub_scores']['smart_money']:.1f}")
+    print(f"  Expected: Red, ~75-85")
  
-    print("\nTest 6 — Missing data (should handle gracefully)")
-    result6 = engine.process_sector("memory_incomplete", {
-        "growth_curr": 0.25,
-        # growth_prev missing — delta unavailable
+    # Test 2: CEG (energy bottleneck — should be Red, ~65-75)
+    print("\nTest 2 — CEG / Energy (physical bottleneck, low GM)")
+    r2 = engine.process_sector("energy_CEG", {
+        "growth_curr":         0.69,    # +69% YoY
+        "growth_prev":         0.00,    # delta = +0.69
+        "gm_delta":            0.02,
+        "news_velocity":       8.0,
+        "capex_div":           0.6,
+        "vol_spike":           1.3,
+        "price_act":          -0.05,
+        "analyst_upgrades":    1,
+        "short_int_change":   -0.02,
+        "price_30d_return":   -0.06,
+        "price_momentum":      0.9,
+        "peer_outperformance": 0.10,
     })
-    print(f"  Score: {result6['score']} | Color: {result6['color']}")
-    print(f"  Data: {result6['data_status']}")
+    print(f"  Score: {r2['score']} | Color: {r2['color']}")
+    print(f"  Sub-scores: accel={r2['sub_scores']['acceleration']:.1f} "
+          f"constr={r2['sub_scores']['constraints']:.1f} "
+          f"smart={r2['sub_scores']['smart_money']:.1f}")
+    print(f"  Expected: Red, ~65-75 (growth drives it despite low margin)")
  
-    print(f"\n✅ All tests complete. Audit log saved to {AUDIT_LOG_FILE}")
-    print(f"   In-memory audit_log keys: {list(engine.audit_log.keys())}")
+    # Test 3: MSFT (cloud — healthy but not bottleneck, should be Green ~35-45)
+    print("\nTest 3 — MSFT / Cloud (healthy, not a bottleneck)")
+    r3 = engine.process_sector("cloud_MSFT", {
+        "growth_curr":         0.13,
+        "growth_prev":         0.12,    # delta = +0.01 — barely accelerating
+        "gm_delta":            0.01,
+        "news_velocity":       5.0,
+        "capex_div":           0.3,
+        "vol_spike":           1.1,
+        "price_act":          -0.01,
+        "analyst_upgrades":    1,
+        "short_int_change":    0.00,
+        "price_30d_return":   -0.01,
+        "price_momentum":      1.0,
+        "peer_outperformance": 0.00,
+    })
+    print(f"  Score: {r3['score']} | Color: {r3['color']}")
+    print(f"  Expected: Green/Orange, ~35-45")
+ 
+    # Test 4: AMD (decelerating — should be Blue)
+    print("\nTest 4 — AMD / Compute (decelerating, hype)")
+    r4 = engine.process_sector("compute_AMD", {
+        "growth_curr":         0.36,
+        "growth_prev":         0.58,    # delta = -0.22 — decelerating
+        "gm_delta":           -0.03,
+        "news_velocity":       4.0,
+        "capex_div":           0.2,
+        "vol_spike":           1.6,
+        "price_act":           0.03,
+        "analyst_upgrades":    1,
+        "short_int_change":    0.01,
+        "price_30d_return":    0.34,    # +34% — hype rule fires
+        "price_momentum":      2.1,
+        "peer_outperformance": 0.28,
+    })
+    print(f"  Score: {r4['score']} | Color: {r4['color']}")
+    print(f"  Hype: {r4['is_hype']} — {r4['hype_reasons']}")
+    print(f"  Expected: Blue (negative delta override)")
+ 
+    # Test 5: Risk-Off scenario
+    print("\nTest 5 — MU in Risk-Off environment")
+    engine_riskoff = ScoreEngine({
+        "vix": 35.0, "yield_10y_change": 120.0, "nasdaq_vs_spx_20d": -0.07
+    })
+    r5 = engine_riskoff.process_sector("memory_riskoff", {
+        "growth_curr": 1.11, "growth_prev": 0.47, "gm_delta": 0.06,
+        "news_velocity": 8.0, "capex_div": 0.5,
+        "vol_spike": 1.4, "price_act": 0.02,
+        "price_30d_return": 0.51, "price_momentum": 1.8,
+    })
+    print(f"  Score: {r5['score']} | Color: {r5['color']}")
+    print(f"  Regime: {r5['regime']} × {r5['multiplier']} (dampened from {r5['sub_scores']['raw_composite']:.1f})")
+    print(f"  Expected: Red or Orange (dampened but still strong fundamental)")
+ 
+    print("\n" + "="*60)
+    print("  Discrimination test — score spread")
+    print("="*60)
+    scores = [
+        ("MU (bottleneck)",    r['score'],  r['color']),
+        ("CEG (bottleneck)",   r2['score'], r2['color']),
+        ("MSFT (healthy)",     r3['score'], r3['color']),
+        ("AMD (decelerating)", r4['score'], r4['color']),
+    ]
+    for name, score, color in sorted(scores, key=lambda x: -x[1]):
+        bar = "█" * int(score / 5)
+        print(f"  {name:<22} {score:>5.1f}  {color:<8}  {bar}")
+ 
+    spread = max(s for _,s,_ in scores) - min(s for _,s,_ in scores)
+    print(f"\n  Score spread: {spread:.1f} points")
+    print(f"  (Higher spread = better discrimination between bottleneck and healthy layers)")
+    print(f"\n✅ Tests complete.")
