@@ -5,12 +5,13 @@ Fetches all data needed by score_engine.py from free sources:
   - yfinance  : prices, revenue growth, gross margins, volume, short interest
   - feedparser: news headlines for keyword scoring
  
-Fix v2:
-  - Per-ticker Yahoo Finance RSS feeds guarantee relevant headlines
-  - Generic feeds kept as fallback but capped lower
-  - Memory keywords expanded (MU, trillion, AI memory, bandwidth)
-  - max_per_feed increased from 8 → 20 for generic feeds
-  - news_velocity now counts unique headline hits (not cross-product)
+Fix v3:
+  - news_velocity cap raised from 10 → 20, scaled to 0-10 output
+    (previously every layer hit cap=10, losing all discrimination)
+  - Ticker-specific hits weighted 2× generic hits for better signal quality
+  - gross_margin (absolute level) added to return dict
+    (needed for score_engine v3.1 high-margin multiplier)
+  - gross_margin passed as ratio (e.g. 0.58 for 58%) matching yfinance format
  
 Returns two objects:
   run_pipeline() -> dict of {layer_id: [list of ticker dicts]}
@@ -32,19 +33,15 @@ AI_CHAIN_LAYERS = {
         "name": "Energy & Power Infrastructure",
         "tickers": ["CEG", "VST", "PWR", "GEV", "ETN"],
         "keywords": [
-            # Company names & tickers
             "CEG", "VST", "PWR", "GEV", "ETN",
             "constellation energy", "vistra", "quanta", "GE vernova", "eaton",
-            # Core energy terms
             "nuclear", "power", "grid", "electricity", "energy", "ppa",
             "megawatt", "gigawatt", "utility", "transformer", "switchgear",
             "power equipment", "power delivery", "uranium", "reactor",
-            # AI-specific energy demand
             "data center power", "AI power", "power demand", "power infrastructure",
             "hyperscaler power", "power contract", "power purchase agreement",
             "electricity demand", "grid expansion", "energy crisis",
             "data center energy", "power capacity", "load growth",
-            # Supply/tech terms
             "nuclear power", "clean energy", "carbon free", "energy storage",
             "SMR", "small modular reactor", "nuclear renaissance",
             "nuclear plant", "power grid", "renewable", "blackout",
@@ -55,21 +52,16 @@ AI_CHAIN_LAYERS = {
         "name": "Semiconductors & Chip Design",
         "tickers": ["NVDA", "AMD", "AVGO", "ASML", "TSM", "ARM", "CDNS"],
         "keywords": [
-            # Company names & tickers
             "NVDA", "AMD", "AVGO", "ASML", "TSM", "ARM", "CDNS",
             "nvidia", "broadcom", "TSMC", "cadence", "arm holdings",
-            # GPU / chip architecture
             "gpu", "chip", "semiconductor", "H100", "H200", "B200", "B100",
             "blackwell", "hopper", "GB200", "NVL72", "MI300", "MI300X",
             "AI chip", "AI accelerator", "accelerator", "custom silicon", "ASIC",
-            # Manufacturing
             "wafer", "foundry", "fab", "CoWoS", "advanced packaging",
             "chip shortage", "chip supply", "leading edge", "3nm", "2nm",
             "EUV", "lithography", "TSMC capacity",
-            # Design & IP
             "chip design", "EDA", "IP licensing", "CUDA", "silicon design",
             "ARM architecture", "chip IP", "neural processing",
-            # General
             "compute", "inference", "training", "processor", "graphics card",
         ]
     },
@@ -77,21 +69,16 @@ AI_CHAIN_LAYERS = {
         "name": "HBM Memory & Storage",
         "tickers": ["MU", "WDC", "AMAT", "LRCX"],
         "keywords": [
-            # Company names & tickers
             "MU", "WDC", "AMAT", "LRCX",
             "micron", "western digital", "applied materials", "lam research",
             "SK hynix", "hynix", "samsung memory",
-            # HBM specific
             "HBM", "HBM3", "HBM3e", "HBM4", "high bandwidth memory",
             "memory bandwidth", "memory stack", "memory bottleneck",
-            # DRAM / NAND
             "DRAM", "NAND", "flash memory", "memory chip",
             "DRAM price", "memory market", "memory supply", "memory demand",
-            # AI memory context
             "AI memory", "memory capacity", "memory shortage", "HBM supply",
             "memory revenue", "memory growth", "data storage",
-            "memory bandwidth", "trillion", "market cap memory",
-            # Equipment
+            "trillion", "market cap memory",
             "etch equipment", "deposition", "memory fab", "memory production",
         ]
     },
@@ -99,17 +86,13 @@ AI_CHAIN_LAYERS = {
         "name": "Data Center & Networking",
         "tickers": ["VRT", "ANET", "EQIX", "SMCI", "CSCO", "CIEN"],
         "keywords": [
-            # Company names & tickers
             "VRT", "ANET", "EQIX", "SMCI", "CSCO", "CIEN",
             "vertiv", "arista", "equinix", "supermicro", "cisco", "ciena",
-            # Cooling
             "liquid cooling", "direct liquid cooling", "DLC", "cooling",
             "thermal management", "power density", "heat dissipation",
-            # Data center
             "data center", "data centre", "colocation", "hyperscale",
             "AI infrastructure", "AI factory", "GPU cluster", "AI server",
             "server rack", "rack density", "compute infrastructure",
-            # Networking
             "networking", "ethernet", "InfiniBand", "interconnect",
             "400G", "800G", "optical networking", "optical transceiver",
             "fiber", "wavelength", "switching", "network bandwidth",
@@ -120,21 +103,16 @@ AI_CHAIN_LAYERS = {
         "name": "Cloud & Hyperscalers",
         "tickers": ["MSFT", "GOOGL", "AMZN", "META"],
         "keywords": [
-            # Company names & tickers
             "MSFT", "GOOGL", "AMZN", "META",
             "microsoft", "google", "amazon", "meta",
-            # Cloud platforms
             "azure", "AWS", "google cloud", "amazon web services",
             "cloud revenue", "cloud growth", "cloud spending",
-            # AI products
             "copilot", "gemini", "bedrock", "llama", "openai",
             "foundation model", "large language model", "LLM",
             "AI assistant", "AI product", "generative AI",
-            # Capex / investment
             "capex", "hyperscaler", "AI investment", "data center spending",
             "AI spending", "cloud capex", "infrastructure investment",
             "AI infrastructure", "cloud infrastructure",
-            # Revenue signals
             "cloud margin", "AI revenue", "AI monetization",
             "subscription growth", "enterprise AI", "AI adoption",
         ]
@@ -143,18 +121,14 @@ AI_CHAIN_LAYERS = {
         "name": "AI Software & Observability",
         "tickers": ["PLTR", "NOW", "SNOW", "CRM", "DDOG"],
         "keywords": [
-            # Company names & tickers
             "PLTR", "NOW", "SNOW", "CRM", "DDOG",
             "palantir", "servicenow", "snowflake", "salesforce", "datadog",
-            # AI software terms
             "AI software", "AI platform", "AI agent", "agentic",
             "enterprise AI", "AI workflow", "AI deployment", "AI operations",
             "generative AI", "AI application", "AI tool", "AI adoption",
-            # SaaS / observability
             "SaaS", "observability", "monitoring", "AI monitoring",
             "model ops", "ML ops", "LLMops", "AI observability",
             "automation", "workflow automation", "AI automation",
-            # Revenue signals
             "remaining performance obligation", "RPO", "net revenue retention",
             "NRR", "annual recurring revenue", "ARR", "SaaS revenue",
         ]
@@ -163,17 +137,13 @@ AI_CHAIN_LAYERS = {
         "name": "AI Security & Governance",
         "tickers": ["CRWD", "PANW", "S", "OKTA"],
         "keywords": [
-            # Company names & tickers
             "CRWD", "PANW", "OKTA",
             "crowdstrike", "palo alto", "sentinelone", "okta",
-            # Threat / incident terms — these drive stock moves
             "breach", "cyberattack", "ransomware", "zero day", "CVE",
             "nation state", "CISA", "vulnerability", "incident response",
             "data breach", "hack", "malware", "threat actor",
-            # AI security
             "AI security", "cybersecurity", "model security", "AI governance",
             "AI threat", "AI compliance", "AI risk", "model protection",
-            # Platform / product
             "zero trust", "threat detection", "endpoint security",
             "SIEM", "SOC", "security platform", "security AI",
             "data protection", "data privacy", "identity security",
@@ -182,7 +152,6 @@ AI_CHAIN_LAYERS = {
     },
 }
  
-# Generic fallback feeds — broader business/tech news
 GENERIC_FEEDS = [
     "https://feeds.reuters.com/reuters/businessNews",
     "https://finance.yahoo.com/news/rssindex",
@@ -190,7 +159,6 @@ GENERIC_FEEDS = [
     "https://www.cnbc.com/id/20910258/device/rss/rss.html",
 ]
  
-# All tickers across all layers — used to build per-ticker feeds
 ALL_TICKERS = [
     t for layer in AI_CHAIN_LAYERS.values()
     for t in layer["tickers"]
@@ -200,8 +168,7 @@ ALL_TICKERS = [
 def fetch_ticker_headlines(tickers: list, max_per_ticker: int = 10) -> list:
     """
     Fetch Yahoo Finance RSS for each specific ticker.
-    This guarantees company-specific headlines are captured,
-    fixing the 'News 0 hits' bug for layers like memory.
+    Returns headlines tagged with source type for weighted scoring.
     """
     headlines = []
     for ticker in tickers:
@@ -212,14 +179,18 @@ def fetch_ticker_headlines(tickers: list, max_per_ticker: int = 10) -> list:
                 title   = entry.get("title", "")
                 summary = entry.get("summary", "")[:200]
                 if title:
-                    headlines.append(f"{ticker} {title} {summary}".lower())
+                    # Tag as ticker-specific — weighted 2x in scoring
+                    headlines.append({
+                        "text":   f"{ticker} {title} {summary}".lower(),
+                        "source": "ticker",
+                    })
         except Exception as e:
             log.debug(f"  Ticker feed failed ({ticker}): {e}")
     return headlines
  
  
 def fetch_generic_headlines(max_per_feed: int = 20) -> list:
-    """Fetch generic business news as a supplementary signal."""
+    """Fetch generic business news as supplementary signal."""
     headlines = []
     for url in GENERIC_FEEDS:
         try:
@@ -228,17 +199,17 @@ def fetch_generic_headlines(max_per_feed: int = 20) -> list:
                 title   = entry.get("title", "")
                 summary = entry.get("summary", "")[:200]
                 if title:
-                    headlines.append(f"{title} {summary}".lower())
+                    headlines.append({
+                        "text":   f"{title} {summary}".lower(),
+                        "source": "generic",
+                    })
         except Exception as e:
             log.warning(f"Generic feed failed ({url}): {e}")
     return headlines
  
  
 def fetch_all_headlines() -> list:
-    """
-    Fetch both ticker-specific and generic headlines.
-    Ticker-specific feeds are the primary signal source.
-    """
+    """Fetch ticker-specific (primary) + generic (supplementary) headlines."""
     log.info("  Fetching ticker-specific headlines...")
     ticker_headlines = fetch_ticker_headlines(ALL_TICKERS, max_per_ticker=10)
     log.info(f"  Got {len(ticker_headlines)} ticker-specific headlines")
@@ -247,22 +218,36 @@ def fetch_all_headlines() -> list:
     generic_headlines = fetch_generic_headlines(max_per_feed=20)
     log.info(f"  Got {len(generic_headlines)} generic headlines")
  
-    all_headlines = ticker_headlines + generic_headlines
-    log.info(f"  Total headlines: {len(all_headlines)}")
-    return all_headlines
+    return ticker_headlines + generic_headlines
  
  
 def score_news_velocity(headlines: list, keywords: list) -> float:
     """
-    Count how many unique headlines match any keyword for this layer.
-    Uses per-headline counting (not cross-product) to avoid overcounting.
-    Max score capped at 10.
+    Score news velocity with discrimination.
+ 
+    v3 fix: cap raised from 10 → 20 weighted hits, scaled to 0-10 output.
+    Ticker-specific headlines count as 2 hits each (higher quality signal).
+    Generic headlines count as 1 hit each.
+ 
+    Previously every layer hit the cap of 10, making news useless for
+    discrimination. Now:
+      - A quiet layer with 3 generic hits → score 1.5
+      - An active layer with 5 ticker + 5 generic hits → score 7.5
+      - A true bottleneck with 10 ticker hits → score 10
     """
-    hits = sum(
-        1 for h in headlines
-        if any(kw.lower() in h for kw in keywords)
-    )
-    return min(hits, 10) * 1.0
+    kw_lower = [kw.lower() for kw in keywords]
+ 
+    weighted_hits = 0.0
+    for h in headlines:
+        text   = h["text"] if isinstance(h, dict) else h
+        source = h.get("source", "generic") if isinstance(h, dict) else "generic"
+        weight = 2.0 if source == "ticker" else 1.0
+ 
+        if any(kw in text for kw in kw_lower):
+            weighted_hits += weight
+ 
+    # Cap at 20 weighted hits, scale to 0-10 output
+    return round(min(weighted_hits, 20.0) / 2.0, 1)
  
  
 def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
@@ -275,11 +260,14 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
                  or info.get("previousClose", 0))
         prev        = info.get("previousClose") or price
         week52_high = info.get("fiftyTwoWeekHigh", 0) or 0
-        week52_low  = info.get("fiftyTwoWeekLow", 0) or 0
+        week52_low  = info.get("fiftyTwoWeekLow",  0) or 0
         market_cap  = info.get("marketCap", 0) or 0
         price_act   = round((price - prev) / prev, 4) if prev else 0.0
  
-        revenue_quarterly = 0
+        # Gross margin absolute level — new in v3
+        # Used by score_engine v3.1 high-margin multiplier
+        gross_margin = info.get("grossMargins")   # e.g. 0.58 for 58%
+ 
         hist    = t.history(period="6mo")
         closes  = hist["Close"].tolist() if not hist.empty else []
         if closes:
@@ -299,10 +287,11 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
         price_momentum  = round(ret_5d / avg_5d_from_90d, 2) if avg_5d_from_90d != 0 else 1.0
         price_momentum  = max(-5.0, min(5.0, price_momentum))
  
-        growth_curr = None
-        growth_prev = None
-        gm_delta    = 0.0
-        financials  = None
+        growth_curr    = None
+        growth_prev    = None
+        gm_delta       = 0.0
+        revenue_quarterly = 0
+        financials     = None
  
         try:
             financials = t.quarterly_financials
@@ -342,14 +331,13 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
             log.debug(f"  {ticker} quarterly error: {e}")
  
         if growth_curr is None:
-            revenue_quarterly = 0
             try:
                 if financials is not None and not financials.empty:
                     for label in ["Total Revenue", "Revenue"]:
                         if label in financials.index:
                             rev_row = financials.loc[label]
                             rev_vals = [v for v in rev_row.values
-                                        if v is not None and str(v) != 'nan' and v == v]
+                                        if v is not None and str(v) != "nan" and v == v]
                             if rev_vals:
                                 revenue_quarterly = float(rev_vals[0])
                             break
@@ -402,37 +390,37 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list):
         except Exception as e:
             log.debug(f"  {ticker} capex error: {e}")
  
-        # News velocity — ticker-specific headlines already in pool
-        # Also add ticker name as an implicit keyword boost
+        # News velocity — ticker symbol always included as implicit keyword
         extended_keywords = layer_keywords + [ticker.lower()]
         news_velocity = score_news_velocity(headlines, extended_keywords)
  
         return {
-            "ticker":           ticker,
-            "name":             info.get("longName") or info.get("shortName", ticker),
-            "price":            round(float(price), 2),
-            "currency":         info.get("currency", "USD"),
-            "growth_curr":      growth_curr,
-            "growth_prev":      growth_prev,
-            "gm_delta":         gm_delta,
-            "news_velocity":    news_velocity,
-            "capex_div":        capex_div,
-            "vol_spike":        vol_spike,
-            "price_act":        price_act,
-            "analyst_upgrades": analyst_upgrades,
-            "short_int_change": short_int_change,
-            "price_30d_return": price_30d,
-            "price_history":    price_history,
-            "week52_high":      week52_high,
-            "week52_low":       week52_low,
-            "market_cap":       info.get("marketCap"),
-            "revenue_quarterly":revenue_quarterly,
-            "price_momentum":   price_momentum,
+            "ticker":            ticker,
+            "name":              info.get("longName") or info.get("shortName", ticker),
+            "price":             round(float(price), 2),
+            "currency":          info.get("currency", "USD"),
+            "growth_curr":       growth_curr,
+            "growth_prev":       growth_prev,
+            "gm_delta":          gm_delta,
+            "gross_margin":      gross_margin,       # ← NEW: absolute GM level (0.58 = 58%)
+            "news_velocity":     news_velocity,
+            "capex_div":         capex_div,
+            "vol_spike":         vol_spike,
+            "price_act":         price_act,
+            "analyst_upgrades":  analyst_upgrades,
+            "short_int_change":  short_int_change,
+            "price_30d_return":  price_30d,
+            "price_history":     price_history,
+            "week52_high":       week52_high,
+            "week52_low":        week52_low,
+            "market_cap":        info.get("marketCap"),
+            "revenue_quarterly": revenue_quarterly,
+            "price_momentum":    price_momentum,
             "peer_outperformance": 0.0,
-            "analyst_count":    info.get("numberOfAnalystOpinions", 0),
-            "sector":           info.get("sector", "N/A"),
-            "data_date":        datetime.datetime.now().strftime("%Y-%m-%d"),
-            "data_age_note":    "Quarterly financials may be up to 90 days old",
+            "analyst_count":     info.get("numberOfAnalystOpinions", 0),
+            "sector":            info.get("sector", "N/A"),
+            "data_date":         datetime.datetime.now().strftime("%Y-%m-%d"),
+            "data_age_note":     "Quarterly financials may be up to 90 days old",
         }
  
     except Exception as e:
@@ -506,7 +494,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--macro",  action="store_true", help="Macro data only")
     parser.add_argument("--layer",  type=str, default=None, help="One layer only")
-    parser.add_argument("--news",   action="store_true", help="Test news fetch only")
+    parser.add_argument("--news",   action="store_true", help="Test news fetch + scoring")
     args = parser.parse_args()
  
     if args.macro:
@@ -514,15 +502,27 @@ if __name__ == "__main__":
         print(json.dumps(fetch_macro(), indent=2))
  
     elif args.news:
-        print("\nTesting news fetch...")
+        print("\nTesting news fetch and velocity scoring...")
         headlines = fetch_all_headlines()
+        ticker_count  = sum(1 for h in headlines if isinstance(h, dict) and h.get("source") == "ticker")
+        generic_count = sum(1 for h in headlines if isinstance(h, dict) and h.get("source") == "generic")
         print(f"\nTotal headlines: {len(headlines)}")
-        print("\nMemory layer hits:")
-        mem_kw = AI_CHAIN_LAYERS["memory"]["keywords"]
-        hits = [h for h in headlines if any(kw.lower() in h for kw in mem_kw)]
+        print(f"  Ticker-specific: {ticker_count} (weight ×2)")
+        print(f"  Generic:         {generic_count} (weight ×1)")
+ 
+        print("\nNews velocity by layer:")
+        for layer_id, layer in AI_CHAIN_LAYERS.items():
+            score = score_news_velocity(headlines, layer["keywords"])
+            bar   = "█" * int(score)
+            print(f"  {layer_id:<12} {score:>4.1f}  {bar}")
+ 
+        print("\nTop 10 memory headlines:")
+        mem_kw = [kw.lower() for kw in AI_CHAIN_LAYERS["memory"]["keywords"]]
+        hits = [h["text"] if isinstance(h, dict) else h
+                for h in headlines
+                if any(kw in (h["text"] if isinstance(h, dict) else h) for kw in mem_kw)]
         for h in hits[:10]:
             print(f"  • {h[:120]}")
-        print(f"\nTotal memory hits: {len(hits)}")
  
     elif args.layer:
         if args.layer not in AI_CHAIN_LAYERS:
@@ -541,8 +541,7 @@ if __name__ == "__main__":
             print(json.dumps(tickers, indent=2, default=str))
  
     else:
-        print("\nRunning full pipeline — fetching all layers...")
-        print("This takes 2–3 minutes.\n")
+        print("\nRunning full pipeline...")
         data = run_pipeline()
         for layer_id, tickers in data.items():
             print(f"\n{layer_id.upper()} — {len(tickers)} tickers")
@@ -550,9 +549,8 @@ if __name__ == "__main__":
                 g_curr = t.get("growth_curr")
                 g_prev = t.get("growth_prev")
                 delta  = round(g_curr - g_prev, 3) if g_curr and g_prev else "N/A"
+                gm     = f"{t.get('gross_margin', 0)*100:.0f}%" if t.get("gross_margin") else "N/A"
                 print(f"  {t['ticker']:<6} price=${t['price']:<8} "
-                      f"growth_curr={str(g_curr):<8} delta={str(delta):<8} "
-                      f"news={t.get('news_velocity')} vol_spike={t.get('vol_spike')}")
-        print("\n✅ Pipeline complete")
-        print(f"   Layers: {list(data.keys())}")
-        print(f"   Total tickers: {sum(len(v) for v in data.values())}")
+                      f"growth={str(g_curr):<8} delta={str(delta):<8} "
+                      f"GM={gm:<6} news={t.get('news_velocity')}")
+        print(f"\n✅ Pipeline complete — {sum(len(v) for v in data.values())} tickers")

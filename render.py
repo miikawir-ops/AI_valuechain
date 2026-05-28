@@ -109,14 +109,25 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
  
  
 def load_scores_history() -> list:
+    """Load scores history, handling both list and legacy dict formats."""
     p = Path(SCORES_HISTORY_FILE)
     if not p.exists():
         return []
     try:
-        return json.loads(p.read_text())
-    except Exception:
+        data = json.loads(p.read_text())
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            log.warning("scores_history.json in legacy dict format — converting")
+            converted = [
+                {"date": date_key, "scores": scores}
+                for date_key, scores in data.items()
+            ]
+            return sorted(converted, key=lambda x: x.get("date", ""))
         return []
- 
+    except Exception as e:
+        log.warning(f"scores_history.json unreadable ({e}) — starting fresh")
+        return []
  
 def save_scores_history(scored_data: dict, action_ticker: str = "", action_price: float = None):
     history = load_scores_history()
