@@ -12,13 +12,13 @@ Usage:
   python main.py --now      → run immediately (testing)
   python main.py --score    → run fetch + score only (no AI, no delivery)
  
-v2 scoring fix:
-  - Layer score is now market-cap weighted composite of all tickers
-    (previously: best single ticker score — caused ARM to make Semicon Red
-     while NVDA and AMD were both C-rated and decelerating)
-  - Red reality check: layer cannot be Red if top-2 companies by market cap
-    are both rated C or D — downgrades to Orange automatically
-  - Layer color derived from weighted score, not best ticker color
+v3 scoring:
+  - Layer score: market-cap weighted composite of all tickers
+  - Bottleneck leader boost: floor at Orange if any ticker has fund_delta > 0.40
+  - Red reality check: dominant C/D companies downgrade Red → Orange
+  - 3-day color confirmation: color requires confirmation across multiple days
+    to prevent single-day noise from flipping the dashboard signal
+  - Extreme signal override: score > 80 allows instant Red without confirmation
 """
  
 import json
@@ -28,6 +28,8 @@ import datetime
 import schedule
 import time
 from pathlib import Path
+ 
+SCORES_HISTORY_FILE = "scores_history.json"
  
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -45,6 +47,132 @@ MACRO_DEFAULTS = {
  
 # Rating quality map — used for Red reality check
 RATING_QUALITY = {"A": 4, "B": 3, "C": 2, "D": 1}
+ 
+# ── Score history helpers ─────────────────────────────────────────────────────
+ 
+def _load_recent_layer_scores(layer_id: str, days: int = 3) -> list[float]:
+    """
+    Load the last N days of weighted scores for a specific layer
+    from scores_history.json. Used for color confirmation.
+    Returns list of scores, most recent last. Empty list if no history.
+    """
+    p = Path(SCORES_HISTORY_FILE)
+    if not p.exists():
+        return []
+    try:
+        history = json.loads(p.read_text())
+        if not isinstance(history, list):
+            return []
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        # Exclude today (not yet saved) — look at previous days only
+        prev_days = [e for e in history if e.get("date") != today]
+        recent = prev_days[-days:]
+        return [
+            e.get("scores", {}).get(layer_id, {}).get("score", 0)
+            for e in recent
+        ]
+    except Exception:
+        return []
+ 
+ 
+def _confirmed_color(
+    today_score: float,
+    today_color: str,
+    layer_id: str,
+    top_fund_delta: float | None,
+) -> tuple[str, str]:
+    """
+    3-day color confirmation system.
+ 
+    A color change requires confirmation across multiple daily runs to prevent
+    single-day data noise from flipping the dashboard signal.
+ 
+    Rules:
+      INSTANT RED   — today_score > 80 (extreme signal, no confirmation needed)
+                      OR top_fund_delta > 0.60 (very strong fundamental acceleration)
+      CONFIRMED RED — today > 65 AND 2+ of last 3 days also > 55
+      CONFIRMED ORANGE — today >= 45 AND 2+ of last 3 days also >= 40
+      CONFIRMED BLUE — today < 25 AND 2+ of last 3 days also < 30
+      DEFAULT GREEN — if today's signal can't be confirmed by history
+ 
+    When history is unavailable (first runs), falls back to today_color directly
+    so the dashboard still works from day 1.
+ 
+    Returns (confirmed_color, confirmation_note)
+    """
+    recent = _load_recent_layer_scores(layer_id, days=3)
+ 
+    # No history yet — trust today's score directly (first days of running)
+    if len(recent) < 2:
+        note = "unconfirmed (insufficient history — building baseline)"
+        log.debug(f"  {layer_id}: {today_color} unconfirmed — only {len(recent)} history days")
+        return today_color, note
+ 
+    # ── Instant Red override — extreme signals don't need confirmation ────────
+    if today_score > 80:
+        log.info(f"  {layer_id}: instant Red — extreme score {today_score:.1f} > 80")
+        return "Red", f"Instant Red — extreme score {today_score:.1f}"
+ 
+    if top_fund_delta and top_fund_delta > 0.60:
+        log.info(f"  {layer_id}: instant Red — fund_delta {top_fund_delta:.2f} > 0.60")
+        return "Red", f"Instant Red — strong fundamental acceleration delta={top_fund_delta:.2f}"
+ 
+    # ── 3-day confirmation checks ─────────────────────────────────────────────
+    days_above_55  = sum(1 for s in recent if s > 55)
+    days_above_40  = sum(1 for s in recent if s >= 40)
+    days_below_30  = sum(1 for s in recent if s < 30)
+ 
+    if today_score > 65 and days_above_55 >= 2:
+        return "Red", f"Confirmed Red — {days_above_55}/3 recent days above 55"
+ 
+    if today_score >= 45 and days_above_40 >= 2:
+        return "Orange", f"Confirmed Orange — {days_above_40}/3 recent days above 40"
+ 
+    if today_score < 25 and days_below_30 >= 2:
+        return "Blue", f"Confirmed Blue — {days_below_30}/3 recent days below 30"
+ 
+    # ── No confirmation — hold previous confirmed color if available ───────────
+    # This prevents oscillation: if yesterday was Red but today dipped to 60,
+    # we don't immediately drop to Orange — we hold Red until confirmed otherwise
+    prev_colors = []
+    try:
+        p = Path(SCORES_HISTORY_FILE)
+        if p.exists():
+            history = json.loads(p.read_text())
+            today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+            prev = [e for e in history if e.get("date") != today_str]
+            prev_colors = [
+                e.get("scores", {}).get(layer_id, {}).get("color", "")
+                for e in prev[-3:]
+                if e.get("scores", {}).get(layer_id, {}).get("color")
+            ]
+    except Exception:
+        prev_colors = []
+ 
+    if prev_colors:
+        # Most common color in last 3 days — hold it if borderline today
+        from collections import Counter
+        dominant = Counter(prev_colors).most_common(1)[0][0]
+        # Only hold if today's score is within 10 points of the threshold
+        threshold_gap = {
+            "Red":    today_score - 65,    # negative = below Red threshold
+            "Orange": today_score - 45,
+            "Green":  0,
+            "Blue":   25 - today_score,    # negative = above Blue threshold
+        }.get(dominant, 0)
+ 
+        if -10 <= threshold_gap <= 5:
+            log.info(f"  {layer_id}: holding {dominant} (borderline score {today_score:.1f}, "
+                     f"prev dominant={dominant})")
+            return dominant, f"Holding {dominant} — borderline score, prev 3d dominant"
+ 
+    # Fall through to today's raw color
+    note = f"Unconfirmed — score {today_score:.1f} not sustained in history"
+    log.info(f"  {layer_id}: {today_color} → Green (unconfirmed, fallback)")
+    # Default to Green when signal can't be confirmed either way
+    if 25 <= today_score < 45:
+        return "Green", note
+    return today_color, note
  
  
 def _layer_color_from_score(score: float, top_delta: float | None) -> tuple[str, str]:
@@ -209,6 +337,16 @@ def stage_score(market_data: dict, macro_data: dict) -> dict:
         )
         if reality_status:
             layer_status = reality_status
+ 
+        # ── 3-day color confirmation ──────────────────────────────────────────
+        # Prevents single-day noise from flipping the dashboard color.
+        # Colors must be sustained across multiple runs to be confirmed.
+        # Extreme signals (score > 80 or fund_delta > 0.60) bypass confirmation.
+        layer_color, confirm_note = _confirmed_color(
+            weighted_score, layer_color, layer_id, top_fund_delta
+        )
+        if confirm_note:
+            layer_status = confirm_note
  
         # ── Build best ticker (highest individual score, for detail panels) ───
         # Best ticker is still the highest individual scorer — used for
