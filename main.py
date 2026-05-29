@@ -180,10 +180,27 @@ def stage_score(market_data: dict, macro_data: dict) -> dict:
  
         weighted_score = round(min(100, max(0, weighted_score)), 2)
  
+        # ── Bottleneck leader boost ───────────────────────────────────────────
+        # One company can be the genuine bottleneck even if layer peers aren't.
+        # If the highest-delta ticker has fund_delta > 0.40 (strong acceleration)
+        # but the weighted score is dragged below 45 by diversified peers,
+        # floor the layer at Orange (45) so the signal isn't lost.
+        # Example: CEG (+69% delta) in Energy layer alongside GEV/ETN (negative delta).
+        best_by_delta = max(layer_scores, key=lambda x: (x.get("fund_delta") or 0))
+        top_fund_delta = best_by_delta.get("fund_delta") or 0
+        if top_fund_delta > 0.40 and weighted_score < 45:
+            old_score = weighted_score
+            weighted_score = max(weighted_score, 45.0)
+            log.info(f"  ↑ Bottleneck leader boost: {best_by_delta.get('ticker','?')} "
+                     f"delta={top_fund_delta:.2f} → floor 45 (was {old_score:.1f})")
+ 
+        weighted_score = round(min(100, max(0, weighted_score)), 2)
+ 
         # ── Determine layer color from weighted score ──────────────────────────
-        # Use the fund_delta of the highest-scoring ticker as a tiebreaker
+        # Use fund_delta of the highest-delta ticker (not highest score)
+        # so the bottleneck leader drives color when peers dilute the average
         best_ticker  = max(layer_scores, key=lambda x: x["score"])
-        top_delta    = best_ticker.get("fund_delta")
+        top_delta    = best_by_delta.get("fund_delta")   # use best_by_delta, not best_ticker
         layer_color, layer_status = _layer_color_from_score(weighted_score, top_delta)
  
         # ── Red reality check ─────────────────────────────────────────────────
@@ -327,4 +344,3 @@ if __name__ == "__main__":
         while True:
             schedule.run_pending()
             time.sleep(30)
- 

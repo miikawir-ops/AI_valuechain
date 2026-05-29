@@ -76,33 +76,15 @@ RADAR_UNIVERSE = [
     # Edge computing watch list
     {"ticker": "QCOM",  "layer": "edge",     "name": "Qualcomm"},
     {"ticker": "INTC",  "layer": "edge",     "name": "Intel"},
-    # Expanded screener — energy & power equipment
-    {"ticker": "PWR",   "layer": "energy",   "name": "Quanta Services"},
-    {"ticker": "HUBB",  "layer": "energy",   "name": "Hubbell"},
-    {"ticker": "ACLS",  "layer": "memory",   "name": "Axcelis Technologies"},
-    {"ticker": "ENTG",  "layer": "memory",   "name": "Entegris"},
-    # AI infrastructure — servers & networking
-    {"ticker": "DELL",  "layer": "infra",    "name": "Dell Technologies"},
-    {"ticker": "HPE",   "layer": "infra",    "name": "HP Enterprise"},
-    {"ticker": "NTAP",  "layer": "infra",    "name": "NetApp"},
-    {"ticker": "PSTG",  "layer": "infra",    "name": "Pure Storage"},
-    {"ticker": "ZS",    "layer": "security", "name": "Zscaler"},
-    # AI software & platforms
-    {"ticker": "ADSK",  "layer": "software", "name": "Autodesk"},
-    {"ticker": "HUBS",  "layer": "software", "name": "HubSpot"},
-    {"ticker": "WDAY",  "layer": "software", "name": "Workday"},
-    {"ticker": "VEEV",  "layer": "software", "name": "Veeva Systems"},
-    {"ticker": "AI",    "layer": "software", "name": "C3.ai"},
-    {"ticker": "SOUN",  "layer": "software", "name": "SoundHound AI"},
-    # Robotics & physical AI
-    {"ticker": "ISRG",  "layer": "software", "name": "Intuitive Surgical"},
- 
-    # Chip design & IP
-    {"ticker": "MPWR",  "layer": "compute",  "name": "Monolithic Power Systems"},
-    {"ticker": "MCHP",  "layer": "compute",  "name": "Microchip Technology"},
-    {"ticker": "ON",    "layer": "compute",  "name": "ON Semiconductor"},
-    {"ticker": "SWKS",  "layer": "compute",  "name": "Skyworks Solutions"},
-    {"ticker": "FORM",  "layer": "memory",   "name": "FormFactor"},
+    # Optical networking — from FactSet bottleneck analysis (Kauppalehti May 2026)
+    # These showed 500-1000%+ returns as AI bandwidth demand exploded
+    {"ticker": "LITE",  "layer": "infra",    "name": "Lumentum Holdings"},
+    {"ticker": "CORZ",  "layer": "infra",    "name": "Core & Main"},
+    {"ticker": "GLW",   "layer": "infra",    "name": "Corning Inc"},
+    {"ticker": "ALAB",  "layer": "infra",    "name": "Astera Labs"},
+    # Energy bottleneck additions — nuclear & power equipment
+    {"ticker": "BWXT",  "layer": "energy",   "name": "BWX Technologies"},
+    {"ticker": "NRG",   "layer": "energy",   "name": "NRG Energy"},
 ]
  
 RADAR_CACHE_FILE = "next_nvidia_cache.json"
@@ -140,12 +122,8 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
         fwd_pe        = info.get("forwardPE")
  
         # Multi-quarter revenue growth
-        # Strategy: try quarterly_income_stmt first (8 quarters),
-        # fall back to quarterly_financials (4 quarters),
-        # then use QoQ sequential comparison if YoY unavailable
         growth_quarters = []
         try:
-            # Try income_stmt first — more history
             rev_cols = None
             for attr in ["quarterly_income_stmt", "quarterly_financials"]:
                 try:
@@ -164,13 +142,10 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
                 import pandas as pd
                 n = len(rev_cols)
  
-                # Date-based YoY matching — find quarter from ~1 year ago
-                # More reliable than iloc[i+4] which assumes no gaps
                 matched = 0
                 for i in range(min(3, n)):
                     curr_date = rev_cols.index[i]
                     curr_val  = rev_cols.iloc[i]
-                    # Look for a quarter ~335-395 days ago
                     target_days_min = 335
                     target_days_max = 395
                     best_match = None
@@ -190,7 +165,6 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
                             growth_quarters.append(growth)
                             matched += 1
  
-                # If no YoY matches found, use QoQ annualised
                 if not growth_quarters and n >= 2:
                     for i in range(min(3, n - 1)):
                         q_curr = rev_cols.iloc[i]
@@ -218,7 +192,7 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
             "fwd_pe":         round(fwd_pe, 1) if fwd_pe else None,
             "ret_1mo":        ret_1mo,
             "ret_3mo":        ret_3mo,
-            "growth_quarters": growth_quarters,  # [Q1_most_recent, Q2, Q3, Q4]
+            "growth_quarters": growth_quarters,
             "ok":             True,
         }
     except Exception as e:
@@ -229,14 +203,7 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
 def compute_acceleration_score(growth_quarters: list) -> dict:
     """
     Multi-quarter acceleration scoring.
- 
     growth_quarters: [Q1_recent, Q2, Q3, Q4] — YoY growth % each quarter
- 
-    Signals:
-      - consecutive_accel: how many consecutive quarters of acceleration (Q1>Q2>Q3)
-      - trend_delta: average quarter-over-quarter change in growth rate
-      - latest_growth: most recent quarter growth
-      - confidence: HIGH / MEDIUM / LOW based on consistency
     """
     if not growth_quarters:
         return {
@@ -249,7 +216,6 @@ def compute_acceleration_score(growth_quarters: list) -> dict:
  
     latest = growth_quarters[0]
  
-    # Count consecutive quarters of acceleration (most recent first)
     consecutive = 0
     for i in range(len(growth_quarters) - 1):
         if growth_quarters[i] > growth_quarters[i+1]:
@@ -257,17 +223,12 @@ def compute_acceleration_score(growth_quarters: list) -> dict:
         else:
             break
  
-    # Average quarter-over-quarter delta in growth rate
     deltas = []
     for i in range(len(growth_quarters) - 1):
         deltas.append(growth_quarters[i] - growth_quarters[i+1])
     trend_delta = round(sum(deltas) / len(deltas), 1) if deltas else 0
  
-    # Confidence level based on data quantity and consistency
-    quarters_available = len([q for q in growth_quarters if q is not None])
-    if quarters_available < 2:
-        confidence = "1Q data"   # Honest label — only one quarter available
-    elif consecutive >= 3:
+    if consecutive >= 3:
         confidence = "HIGH"
     elif consecutive >= 2:
         confidence = "MEDIUM"
@@ -276,11 +237,6 @@ def compute_acceleration_score(growth_quarters: list) -> dict:
     else:
         confidence = "LOW"
  
-    # Acceleration score (0-100)
-    # Components:
-    # - Latest growth level (0-40 pts): 100% growth = 40 pts
-    # - Consecutive acceleration (0-30 pts): 3+ quarters = 30 pts
-    # - Trend delta (0-30 pts): avg +20pp per quarter = 30 pts
     growth_pts = min(40, (latest / 100) * 40) if latest and latest > 0 else 0
     consec_pts = min(30, consecutive * 10)
     delta_pts  = min(30, max(0, trend_delta * 1.5))
@@ -299,38 +255,25 @@ def compute_acceleration_score(growth_quarters: list) -> dict:
 def compute_nvidia_score(data: dict, accel: dict) -> float:
     """
     Final composite Nvidia-likeness score (0-100).
- 
-    Signals:
-      - Acceleration score (50%): revenue growth + multi-quarter confirmation
-      - Margin signal (20%): gross margin expansion = pricing power forming
-      - Discovery signal (15%): low analyst coverage = earlier in cycle
-      - Momentum (15%): price momentum confirming fundamentals
     """
     accel_score = accel.get("accel_score", 0)
     latest_growth = accel.get("latest_growth") or 0
     consecutive = accel.get("consecutive_accel", 0)
  
-    # Boost for multi-quarter confirmation
-    # Each consecutive quarter of acceleration adds 5 bonus points
     confirmation_bonus = min(15, consecutive * 5)
     accel_score = min(100, accel_score + confirmation_bonus)
  
-    # Penalty for single-quarter data (less reliable)
     quarters_available = len(accel.get("all_quarters", []))
     if quarters_available == 1:
-        accel_score *= 0.8  # 20% penalty for single quarter only
+        accel_score *= 0.8
  
-    # Margin signal — higher gross margin = stronger pricing power
     gm = data.get("gross_margin")
     margin_score = min(100, (gm / 80) * 100) if gm and gm > 0 else 0
  
-    # Discovery signal — fewer analysts = earlier opportunity
     ac = data.get("analyst_count", 20)
     discovery_score = max(0, min(100, (20 - ac) * 5))
  
-    # Momentum signal — price confirms fundamentals
     ret = data.get("ret_1mo", 0)
-    # Only reward momentum if fundamentals are strong (growth > 20%)
     momentum_score = 0
     if latest_growth > 20 and ret > 0:
         momentum_score = min(100, ret * 2)
@@ -372,26 +315,23 @@ def run_radar(verbose: bool = True) -> list:
             sparkline = []
  
         results.append({
-            "ticker":      ticker,
-            "name":        entry["name"],
-            "layer":       entry["layer"],
-            "score":       score,
-            "price":       data["price"],
-            "market_cap":  data["market_cap"],
-            "ret_1mo":     data["ret_1mo"],
-            "ret_3mo":     data["ret_3mo"],
-            "gross_margin":data["gross_margin"],
-            "analyst_count":data["analyst_count"],
-            "fwd_pe":      data["fwd_pe"],
-            "accel":       accel,
+            "ticker":        ticker,
+            "name":          entry["name"],
+            "layer":         entry["layer"],
+            "score":         score,
+            "price":         data["price"],
+            "market_cap":    data["market_cap"],
+            "ret_1mo":       data["ret_1mo"],
+            "ret_3mo":       data["ret_3mo"],
+            "gross_margin":  data["gross_margin"],
+            "analyst_count": data["analyst_count"],
+            "fwd_pe":        data["fwd_pe"],
+            "accel":         accel,
             "growth_quarters": data["growth_quarters"],
-            "sparkline":   sparkline,
+            "sparkline":     sparkline,   # ← always preserved for every ticker
         })
  
-    # Filter out weak candidates:
-    # - Negative revenue growth
-    # - Less than 10% revenue growth (too slow to be "next Nvidia")
-    # - No gross margin data AND no growth (data quality issue)
+    # Filter weak candidates
     results = [r for r in results
                if (r["accel"].get("latest_growth") or 0) >= 10
                and (r.get("gross_margin") or 0) > 0]
@@ -399,36 +339,46 @@ def run_radar(verbose: bool = True) -> list:
     # Rank by score
     ranked = sorted(results, key=lambda x: x["score"], reverse=True)
  
-    # Save cache
+    # Save cache — store FULL ranked list, not just top5,
+    # so render.py can find wildcard candidates (e.g. APP) with sparklines intact
     Path(RADAR_CACHE_FILE).write_text(json.dumps({
-        "date":    datetime.datetime.now().strftime("%Y-%m-%d"),
-        "time":    datetime.datetime.now().strftime("%H:%M"),
-        "top5":    ranked[:5],
-        "all":     ranked,
+        "date":  datetime.datetime.now().strftime("%Y-%m-%d"),
+        "time":  datetime.datetime.now().strftime("%H:%M"),
+        "top5":  ranked[:5],
+        "all":   ranked,          # ← full list with sparklines for every ticker
     }, indent=2, default=str))
  
     if verbose:
         print(f"\n🏆 Top 5 Next Nvidia candidates:")
         for i, r in enumerate(ranked[:5]):
-            conf = r["accel"].get("confidence", "?")
+            conf   = r["accel"].get("confidence", "?")
             consec = r["accel"].get("consecutive_accel", 0)
             latest = r["accel"].get("latest_growth")
-            print(f"  #{i+1} {r['ticker']:<6} [{r['layer']:<8}] "
-                  f"score={r['score']:.0f} "
-                  f"revenue={latest:.0f}% " if latest else f"  #{i+1} {r['ticker']:<6} score={r['score']:.0f} "
-                  f"accel={consec}Q {conf} confidence")
+            if latest:
+                print(f"  #{i+1} {r['ticker']:<6} [{r['layer']:<8}] "
+                      f"score={r['score']:.0f} revenue={latest:.0f}% "
+                      f"accel={consec}Q {conf} confidence")
+            else:
+                print(f"  #{i+1} {r['ticker']:<6} score={r['score']:.0f} "
+                      f"accel={consec}Q {conf} confidence")
  
-    return ranked  # Return all for wildcard detection; caller slices top5
+    return ranked[:5]
  
  
 def load_cached_radar() -> list:
-    """Load today's cached radar results if available."""
+    """Load today's cached radar results if available.
+ 
+    Returns the FULL ranked list (not just top5) so that wildcard candidates
+    sitting outside the top 5 (e.g. APP) still carry their sparkline data
+    through to render.py.
+    """
     p = Path(RADAR_CACHE_FILE)
     if not p.exists():
         return []
     try:
         data = json.loads(p.read_text())
         if data.get("date") == datetime.datetime.now().strftime("%Y-%m-%d"):
+            # Prefer full list; fall back to top5 for older cache files
             return data.get("all", data.get("top5", []))
     except Exception:
         pass
