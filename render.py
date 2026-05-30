@@ -500,8 +500,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             background-size:32px 32px}}
 .hero-accent{{position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;
               background:radial-gradient(circle,rgba(60,52,137,0.15) 0%,transparent 70%)}}
-.hero-top{{display:flex;justify-content:space-between;align-items:flex-start;
-           margin-bottom:16px;position:relative;flex-wrap:wrap;gap:8px}}
+.hero-top{{display:flex;justify-content:space-between;align-items:center;
+           margin-bottom:14px;position:relative;flex-wrap:wrap;gap:8px}}
 .hero-title{{font-size:22px;color:#fff;line-height:1.2;letter-spacing:-0.3px}}
 .hero-sub{{font-size:11px;color:#3A4460;margin-top:3px}}
 .reg-pill{{font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;
@@ -517,10 +517,10 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .reg-tooltip b{{color:#97C459}}
 .hm-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative}}
 .hm-card{{background:rgba(255,255,255,.07);border:0.5px solid rgba(133,183,235,0.2);
-          border-radius:10px;padding:10px 13px}}
-.hm-lbl{{font-size:10px;color:#85B7EB;margin-bottom:4px;letter-spacing:.05em;font-weight:500}}
-.hm-val{{font-size:18px;font-weight:500;color:#fff}}
-.hm-note{{font-size:10px;margin-top:3px}}
+          border-radius:10px;padding:8px 12px}}
+.hm-lbl{{font-size:10px;color:#85B7EB;margin-bottom:3px;letter-spacing:.05em;font-weight:500}}
+.hm-val{{font-size:15px;font-weight:500;color:#fff}}
+.hm-note{{font-size:10px;margin-top:2px}}
 .body{{padding:0 16px;margin-top:0;position:relative;
        background:linear-gradient(180deg,#0E1628 0%,#101C32 40%,#13182A 75%,#0F1420 100%);
        min-height:100vh}}
@@ -712,11 +712,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="hero-top">
     <div>
       <div class="hero-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-weight:500;letter-spacing:-0.5px">Ray<span style="color:#85B7EB;font-weight:300">Dar</span></span>
-        <span style="width:4px;height:4px;border-radius:50%;background:#E24B4A;flex-shrink:0;display:inline-block;margin-top:2px"></span>
-        <span style="font-size:12px;font-weight:300;background:linear-gradient(90deg,#85B7EB,#AFA9EC,#85B7EB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.01em">AI value chain intelligence</span>
+        <span style="font-size:30px;font-weight:500;letter-spacing:-1px">Ray<span style="color:#85B7EB;font-weight:300">Dar</span></span>
+        <span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;flex-shrink:0;display:inline-block;margin-top:6px"></span>
+        <span style="font-size:14px;font-weight:400;background:linear-gradient(90deg,#85B7EB,#AFA9EC,#85B7EB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.08em;opacity:0.95">AI value chain intelligence</span>
       </div>
-      <div class="hero-sub">{datetime_str}</div>
+      <div class="hero-sub" style="color:#3A4460">{datetime_str}</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button class="pdf-btn" onclick="window.print()">↓ PDF</button>
@@ -732,7 +732,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </div>
     </div>
   </div>
-  <div class="hm-grid" style="margin-bottom:14px">
+  <div class="hm-grid" style="margin-bottom:12px">
     <div class="hm-card">
       <div class="hm-lbl">VIX</div>
       <div class="hm-val">{vix:.1f}</div>
@@ -754,6 +754,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div class="hm-note" style="color:#85B7EB">{sum(len(market_data.get(l,[])) for l in scored_data)} tickers</div>
     </div>
   </div>
+  <div id="hero-chain-status" style="position:relative;display:flex;gap:1px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;margin-top:12px"></div>
 </div>
  
 <div class="ticker-band">
@@ -1548,6 +1549,28 @@ function sendPrompt(text) {{
 }}
  
 buildChain(); buildExpand(); buildHeat(); buildAnalysis();
+ 
+function buildHeroStatus() {{
+  const el = document.getElementById("hero-chain-status");
+  if (!el || !LAYERS.length) return;
+  const HCOLOR = {{
+    Red:    {{label:"BOTTLENECK", val:"#E24B4A", bg:"rgba(226,75,74,0.12)",   border:"rgba(226,75,74,0.5)"}},
+    Orange: {{label:"EMERGING",   val:"#EF9F27", bg:"rgba(239,159,39,0.10)",  border:"rgba(239,159,39,0.4)"}},
+    Green:  {{label:"NEUTRAL",    val:"#639922", bg:"rgba(8,8,26,0.5)",        border:"rgba(255,255,255,0.04)"}},
+    Blue:   {{label:"EASING",     val:"#378ADD", bg:"rgba(55,138,221,0.10)",  border:"rgba(55,138,221,0.3)"}},
+  }};
+  const order = {{Red:0, Orange:1, Green:2, Blue:3}};
+  const sorted = [...LAYERS].sort((a,b) => (order[a.color]||2) - (order[b.color]||2));
+  el.innerHTML = sorted.map(l => {{
+    const c = HCOLOR[l.color] || HCOLOR.Green;
+    return `<div style="flex:1;padding:8px 12px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.04);">
+      <div style="font-size:9px;color:${{c.val}};font-weight:600;letter-spacing:.08em;margin-bottom:2px">${{c.label}}</div>
+      <div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:1px">${{l.n1}}</div>
+      <div style="font-size:18px;font-weight:500;color:${{c.val}};line-height:1">${{l.score.toFixed(0)}}</div>
+    </div>`;
+  }}).join("");
+}}
+buildHeroStatus();
 buildRadar(); buildTopTicker(LAYERS); buildSignalBars(); buildTrackRecord();
 </script>
 </body>
@@ -1615,3 +1638,4 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
+ 
