@@ -45,6 +45,69 @@ CC = {
     "Blue":   {"bg":"#E6F1FB","border":"#378ADD","pill":"#378ADD","pft":"#E6F1FB","lbl":"Cooling",   "tc":"#0C447C"},
 }
  
+def company_rating(score: float, delta: float, color: str, is_hype: bool) -> str:
+    """A/B/C/D rating for individual companies."""
+    if color in ("Red", "Orange") and delta > 20 and not is_hype:
+        return "A"
+    elif color in ("Red", "Orange", "Green") and delta > 0 and not is_hype:
+        return "B"
+    elif is_hype or delta < -5:
+        return "C"
+    elif delta < 0:
+        return "C"
+    else:
+        return "B"
+ 
+ 
+def rating_forecast(current_rating: str, delta: float, delta_band: str,
+                    is_hype: bool, color: str) -> dict:
+    """Forecast where rating is heading based on momentum signals."""
+    accelerating   = delta_band == "accelerating"
+    decelerating   = delta_band == "decelerating"
+    hot_layer      = color in ("Red", "Orange")
+    real_hype_risk = is_hype and delta < 0
+ 
+    if current_rating == "A":
+        if decelerating and real_hype_risk:
+            return {"direction": "↓", "target": "C", "label": "Warning — hype peaking",
+                    "color": "#E24B4A", "reason": "Growth decelerating with hype risk"}
+        elif decelerating:
+            return {"direction": "↓", "target": "B", "label": "Watch for pullback",
+                    "color": "#EF9F27", "reason": "Growth decelerating from peak"}
+        else:
+            return {"direction": "→", "target": "A", "label": "Holding strong",
+                    "color": "#27500A", "reason": "Sustained acceleration"}
+    elif current_rating == "B":
+        if accelerating and hot_layer:
+            return {"direction": "↑", "target": "A", "label": "Upgrade likely",
+                    "color": "#27500A", "reason": "Accelerating into bottleneck layer"}
+        elif real_hype_risk or (decelerating and delta < -10):
+            return {"direction": "↓", "target": "C", "label": "Downgrade risk",
+                    "color": "#E24B4A", "reason": "Growth slowing with hype or sharp delta drop"}
+        elif decelerating:
+            return {"direction": "↓", "target": "C", "label": "Watch closely",
+                    "color": "#EF9F27", "reason": "Growth decelerating — monitor next quarter"}
+        else:
+            return {"direction": "→", "target": "B", "label": "Stable",
+                    "color": "#378ADD", "reason": "Fundamentals holding steady"}
+    elif current_rating == "C":
+        if accelerating and not real_hype_risk:
+            return {"direction": "↑", "target": "B", "label": "Recovery signal",
+                    "color": "#EF9F27", "reason": "Momentum improving — watch for confirmation"}
+        elif real_hype_risk and decelerating:
+            return {"direction": "↓", "target": "D", "label": "Avoid",
+                    "color": "#E24B4A", "reason": "Hype unwinding with deteriorating fundamentals"}
+        else:
+            return {"direction": "→", "target": "C", "label": "Still cautious",
+                    "color": "#EF9F27", "reason": "No clear recovery signal yet"}
+    else:  # D
+        if accelerating:
+            return {"direction": "↑", "target": "C", "label": "Early recovery",
+                    "color": "#EF9F27", "reason": "Momentum turning — confirm next quarter"}
+        return {"direction": "→", "target": "D", "label": "Avoid",
+                "color": "#E24B4A", "reason": "No recovery signals yet"}
+ 
+ 
 LAYER_NAMES = {
     "energy":   ("Energy",      "power infra"),
     "compute":  ("Semicon",     "& chip design"),
@@ -115,6 +178,16 @@ def save_scores_history(scored_data: dict, action_ticker: str = "", action_price
             layer_id: {
                 "score": result["best"].get("score", 0),
                 "color": result["best"].get("color", "Green"),
+                "ratings": {
+                    t.get("ticker"): company_rating(
+                        t.get("score", 0),
+                        (t.get("fund_delta") or 0) * 100,
+                        t.get("color", "Green"),
+                        t.get("is_hype", False)
+                    )
+                    for t in result.get("all_tickers", [])
+                    if t.get("ticker")
+                }
             }
             for layer_id, result in scored_data.items()
             if "best" in result
@@ -151,6 +224,11 @@ def build_ticker_lookup(market_data: dict) -> dict:
 def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str:
     """Build the LAYERS JS array with real data from market_data."""
     ticker_lookup = build_ticker_lookup(market_data)
+    # Build yesterday rating lookup: {ticker: rating}
+    yesterday_ratings = {}
+    for layer_scores in yesterday.values():
+        for ticker, rating in layer_scores.get("ratings", {}).items():
+            yesterday_ratings[ticker] = rating
     layers = []
  
     for layer_id, layer_result in scored_data.items():
@@ -187,15 +265,30 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             delta_band = "accelerating" if raw_delta > 5 else "decelerating" if raw_delta < -5 else "stable"
             hist_raw  = raw.get("price_history", [])
             sparkline = [round(p, 2) for p in hist_raw[-30:]] if hist_raw else []
+            t_color      = t_scored.get("color", "Green")
+            t_hype       = t_scored.get("is_hype", False)
+            t_delta      = (t_scored.get("fund_delta") or 0) * 100
+            t_rating     = company_rating(t_scored.get("score", 0), t_delta, t_color, t_hype)
+            t_prev_rating = yesterday_ratings.get(sym, "")
+            rating_changed = t_prev_rating and t_prev_rating != t_rating
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
                 "price":      t_scored.get("price") or raw.get("price", 0),
                 "ret30":      round((t_scored.get("price_30d_return") or raw.get("price_30d_return") or 0) * 100, 1),
                 "delta_band": delta_band,
-                "hype":       t_scored.get("is_hype", False),
-                "color":      t_scored.get("color", "Green"),
+                "hype":       t_hype,
+                "color":      t_color,
                 "sparkline":  sparkline,
+                "rating":       t_rating,
+                "prev_rating":  t_prev_rating,
+                "rating_up":    rating_changed and ord(t_rating) < ord(t_prev_rating),
+                "rating_down":  rating_changed and ord(t_rating) > ord(t_prev_rating),
+                "forecast":     rating_forecast(t_rating, t_delta, delta_band, t_hype, t_color),
+                "run_rate":     round(raw.get("revenue_quarterly", 0) * 4 / 1e9, 1) if (raw.get("revenue_quarterly") or 0) > 0 else None,
+                "pct_of_high":  round((raw.get("price", 0) / raw.get("week52_high", 1)) * 100) if raw.get("week52_high") else None,
+                "week52_high":  raw.get("week52_high"),
+                "week52_low":   raw.get("week52_low"),
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -205,14 +298,14 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
         # Narrative vs fundamental divergence detection
         divergence     = False
         divergence_msg = ""
-        if news_vel >= 1 and fund_delta < 0:
+        if news_vel >= 4 and fund_delta < -0.05:
             divergence     = True
             divergence_msg = (
                 "News narrative is active but revenue growth is decelerating. "
                 "The market story is running ahead of reported financials. "
                 "This layer may be driven by sentiment rather than fundamental acceleration."
             )
-        elif news_vel >= 1 and fund_delta < 0.03 and color == "Green":
+        elif news_vel >= 5 and fund_delta < 0.03 and color == "Green":
             divergence     = True
             divergence_msg = (
                 "News activity detected but fundamental acceleration is weak. "
@@ -611,6 +704,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
               font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,.3)}}
 .div-tooltip::after{{content:"";position:absolute;top:100%;left:12px;
                      border:5px solid transparent;border-top-color:#1A1A1A}}
+.rating-A{{background:#EAF3DE;color:#27500A;border:0.5px solid #639922;font-weight:600}}
+.rating-B{{background:#E6F1FB;color:#0C447C;border:0.5px solid #378ADD;font-weight:600}}
+.rating-C{{background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27;font-weight:600}}
+.rating-D{{background:#FCEBEB;color:#791F1F;border:0.5px solid #E24B4A;font-weight:600}}
+.rating-badge{{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-block}}
 .radar-card{{background:white;border:0.5px solid #E0DFDC;border-radius:8px;
              padding:10px 12px;display:flex;flex-direction:column;gap:6px}}
 .radar-rank{{font-size:10px;font-weight:500;color:#888780}}
@@ -1163,6 +1261,9 @@ function buildChain() {{
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
       <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
+      <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
+        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.rating==='A'?'Accelerating':t.rating==='B'?'Stable':t.rating==='C'?'Caution':'Deteriorating'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
+      </div>
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}
       <div class="lyr-tickers">${{tkHtml}}</div>`;
@@ -1198,16 +1299,47 @@ function buildExpand() {{
     return `<div class="ex-tk" style="cursor:pointer" onclick="toggleTickerDetail('${{cardId}}')">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:6px">
-          <div class="ex-sym">${{t.sym}}</div>${{hyp}}
+          <div class="ex-sym">${{t.sym}}</div>
+          <span class="rating-badge rating-${{t.rating}}"
+                title="${{t.rating_up ? 'Upgraded from '+t.prev_rating+' — buy signal' : t.rating_down ? 'Downgraded from '+t.prev_rating+' — warning' : 'Rating: '+t.rating}}"
+          >${{t.rating}}</span>
+          ${{t.rating_up ? `<span style="font-size:10px;color:#27500A;font-weight:600">↑ was ${{t.prev_rating}}</span>` : ""}}
+          ${{t.rating_down ? `<span style="font-size:10px;color:#A32D2D;font-weight:600">↓ was ${{t.prev_rating}}</span>` : ""}}
+          ${{hyp}}
         </div>
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
       <div class="ex-name">${{t.name}}</div>
+      ${{t.run_rate ? `<div style="font-size:10px;font-weight:600;color:#27500A;margin:3px 0;
+          padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
+        Run rate $${{t.run_rate}}B/yr</div>` : ""}}
       <div class="ex-row"><span class="ex-lbl">Price</span><span>$${{t.price.toLocaleString()}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{fmt(t.ret30)}}%</span></div>
       <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>
+      <div style="margin-top:6px;padding:5px 8px;border-radius:5px;
+                  background:#F8F8F7;border-left:2px solid ${{t.forecast.color}}">
+        <span style="font-size:10px;font-weight:500;color:${{t.forecast.color}}">
+          ${{t.forecast.direction}} ${{t.rating}} → ${{t.forecast.target}}
+        </span>
+        <span style="font-size:10px;color:#888780;margin-left:6px">${{t.forecast.label}}</span>
+      </div>
       <div id="${{cardId}}" style="display:none;margin-top:10px;padding-top:10px;
            border-top:0.5px solid #E0DFDC" onclick="event.stopPropagation()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+          ${{t.run_rate ? `<div style="background:#EAF3DE;border-radius:6px;padding:8px 10px;border:0.5px solid #639922">
+            <div style="font-size:9px;color:#27500A;font-weight:500;margin-bottom:2px">REVENUE RUN RATE</div>
+            <div style="font-size:16px;font-weight:500;color:#27500A">$${{t.run_rate}}B</div>
+            <div style="font-size:9px;color:#3B6D11">annualized · latest quarter ×4</div>
+          </div>` : ""}}
+          ${{t.pct_of_high ? `<div style="background:#F8F8F7;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+            <div style="font-size:9px;color:#888780;font-weight:500;margin-bottom:2px">52W POSITION</div>
+            <div style="font-size:16px;font-weight:500;color:#1A1A1A">${{t.pct_of_high}}%</div>
+            <div style="font-size:9px;color:#888780">of 52-week high ($${{t.week52_high?.toFixed(0)}})</div>
+            <div style="margin-top:4px;height:4px;background:#E0DFDC;border-radius:2px">
+              <div style="height:4px;border-radius:2px;background:${{t.pct_of_high>80?'#E24B4A':t.pct_of_high>50?'#EF9F27':'#639922'}};width:${{t.pct_of_high}}%"></div>
+            </div>
+          </div>` : ""}}
+        </div>
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">6-month price trend</div>
         <div id="spark-wrap-${{t.sym}}" style="position:relative;width:100%;height:120px;margin-bottom:8px;background:#F8F8F7;border-radius:4px">
           <canvas id="spark-${{t.sym}}" style="width:100%;height:100%" role="img" aria-label="${{t.sym}} 6-month price chart"></canvas>
