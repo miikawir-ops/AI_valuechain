@@ -490,14 +490,12 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       background:#0E1628;color:#1A1A1A;min-height:100vh;padding:0 0 32px}}
 .hero{{background:linear-gradient(135deg,#08081A 0%,#0C1A3A 30%,#1A0830 60%,#0A0818 100%);
        padding:22px 24px 20px;position:relative;overflow:hidden}}
-.hero-laser{{position:absolute;top:0;left:0;right:0;height:2px;
-             background:linear-gradient(90deg,transparent 0%,transparent 15%,#3C3489 30%,#534AB7 42%,#85B7EB 50%,#534AB7 58%,#3C3489 70%,transparent 85%,transparent 100%)}}
-.hero-glow{{position:absolute;top:0;left:15%;right:15%;height:28px;
-            background:radial-gradient(ellipse at 50% 0%,rgba(83,74,183,0.28) 0%,transparent 75%)}}
-.hero-grid{{position:absolute;inset:0;opacity:.035;
-            background-image:linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px);
-            background-size:32px 32px}}
+.hero-laser{{position:absolute;top:0;left:0;right:0;height:3px;
+             background:linear-gradient(90deg,transparent 0%,transparent 10%,#534AB7 28%,#85B7EB 45%,#ffffff 50%,#85B7EB 55%,#534AB7 72%,transparent 90%,transparent 100%);
+             opacity:0.9}}
+.hero-glow{{position:absolute;top:0;left:10%;right:10%;height:40px;
+            background:radial-gradient(ellipse at 50% 0%,rgba(133,183,235,0.45) 0%,rgba(83,74,183,0.2) 40%,transparent 75%)}}
+.hero-grid{{display:none}}
 .hero-accent{{position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;
               background:radial-gradient(circle,rgba(60,52,137,0.15) 0%,transparent 70%)}}
 .hero-top{{display:flex;justify-content:space-between;align-items:center;
@@ -515,12 +513,12 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .reg-tooltip::before{{content:"";position:absolute;bottom:100%;right:16px;
                       border:5px solid transparent;border-bottom-color:#1A1A1A}}
 .reg-tooltip b{{color:#97C459}}
-.hm-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative}}
+.hm-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:relative}}
 .hm-card{{background:rgba(255,255,255,.07);border:0.5px solid rgba(133,183,235,0.2);
-          border-radius:8px;padding:7px 12px}}
-.hm-lbl{{font-size:10px;color:#85B7EB;margin-bottom:2px;letter-spacing:.05em;font-weight:500}}
-.hm-val{{font-size:15px;font-weight:500;color:#fff;line-height:1.1}}
-.hm-note{{font-size:10px;margin-top:2px}}
+          border-radius:8px;padding:6px 12px 7px}}
+.hm-lbl{{font-size:9px;color:#85B7EB;margin-bottom:1px;letter-spacing:.06em;font-weight:500}}
+.hm-val{{font-size:15px;font-weight:500;color:#fff;line-height:1.15}}
+.hm-note{{font-size:9px;margin-top:1px;line-height:1.2}}
 .body{{padding:0 16px;margin-top:0;position:relative;
        background:linear-gradient(180deg,#0E1628 0%,#101C32 40%,#13182A 75%,#0F1420 100%);
        min-height:100vh}}
@@ -764,7 +762,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div style="font-size:12px;font-weight:500;color:#E8EEF8;letter-spacing:0.02em;margin-bottom:0">AI value chain — signal scores</div>
+    <div style="font-size:12px;font-weight:500;color:#ffffff;letter-spacing:0.02em;margin-bottom:0;opacity:0.9">AI value chain — signal scores</div>
     <div style="display:flex;gap:12px;font-size:10px;color:#8A9AB8;align-items:center;flex-wrap:wrap">
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#E24B4A;margin-right:4px"></span>Hot / bottleneck</span>
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#EF9F27;margin-right:4px"></span>Emerging</span>
@@ -772,7 +770,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#378ADD;margin-right:4px"></span>Cooling</span>
     </div>
   </div>
-  <div class="fetch-note" style="margin-bottom:8px;color:#3A4A6A">{fetch_note}</div>
+  <div class="fetch-note" style="margin-bottom:8px;color:#4A5A7A">{fetch_note}</div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
     <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
          border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
@@ -1564,10 +1562,10 @@ function buildHeroStatus() {{
   el.innerHTML = sorted.map(l => {{
     const c = HCOLOR[l.color] || HCOLOR.Green;
     const isSignal = l.color === "Red" || l.color === "Orange";
-    return `<div style="flex:1;padding:7px 10px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.04);opacity:${{isSignal?'1':'0.6'}}">
-      <div style="font-size:8px;color:${{c.val}};font-weight:600;letter-spacing:.08em;margin-bottom:1px">${{c.label}}</div>
-      <div style="font-size:11px;font-weight:500;color:#fff;margin-bottom:1px">${{l.n1}}</div>
-      <div style="font-size:16px;font-weight:500;color:${{c.val}};line-height:1">${{l.score.toFixed(0)}}</div>
+    return `<div style="flex:1;padding:7px 10px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.04);">
+      <div style="font-size:8px;color:${{isSignal?c.val:'rgba(255,255,255,0.3)'}};font-weight:${{isSignal?'600':'500'}};letter-spacing:.08em;margin-bottom:1px">${{c.label}}</div>
+      <div style="font-size:11px;font-weight:${{isSignal?'500':'400'}};color:${{isSignal?'#fff':'rgba(255,255,255,0.45)'}};margin-bottom:1px">${{l.n1}}</div>
+      <div style="font-size:16px;font-weight:${{isSignal?'500':'400'}};color:${{isSignal?c.val:'rgba(255,255,255,0.25)'}};line-height:1">${{l.score.toFixed(0)}}</div>
     </div>`;
   }}).join("");
 }}
