@@ -292,14 +292,14 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
         # Fires when news activity exists BUT fundamentals are weak/negative
         divergence = False
         divergence_msg = ""
-        if news_vel >= 1 and fund_delta < 0:
+        if news_vel >= 4 and fund_delta < -0.05:
             divergence = True
             divergence_msg = (
                 "News narrative is active but revenue growth is decelerating. "
                 "The market story is running ahead of reported financials. "
                 "This layer may be driven by sentiment rather than fundamental acceleration."
             )
-        elif news_vel >= 1 and fund_delta < 0.03 and color == "Green":
+        elif news_vel >= 5 and fund_delta < 0.03 and color == "Green":
             divergence = True
             divergence_msg = (
                 "News activity detected but fundamental acceleration is weak. "
