@@ -517,9 +517,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .reg-tooltip b{{color:#97C459}}
 .hm-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative}}
 .hm-card{{background:rgba(255,255,255,.07);border:0.5px solid rgba(133,183,235,0.2);
-          border-radius:10px;padding:8px 12px}}
-.hm-lbl{{font-size:10px;color:#85B7EB;margin-bottom:3px;letter-spacing:.05em;font-weight:500}}
-.hm-val{{font-size:15px;font-weight:500;color:#fff}}
+          border-radius:8px;padding:7px 12px}}
+.hm-lbl{{font-size:10px;color:#85B7EB;margin-bottom:2px;letter-spacing:.05em;font-weight:500}}
+.hm-val{{font-size:15px;font-weight:500;color:#fff;line-height:1.1}}
 .hm-note{{font-size:10px;margin-top:2px}}
 .body{{padding:0 16px;margin-top:0;position:relative;
        background:linear-gradient(180deg,#0E1628 0%,#101C32 40%,#13182A 75%,#0F1420 100%);
@@ -764,7 +764,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div style="font-size:11px;font-weight:500;color:#C8D4E8;letter-spacing:0.02em;margin-bottom:0">AI value chain — signal scores</div>
+    <div style="font-size:12px;font-weight:500;color:#E8EEF8;letter-spacing:0.02em;margin-bottom:0">AI value chain — signal scores</div>
     <div style="display:flex;gap:12px;font-size:10px;color:#8A9AB8;align-items:center;flex-wrap:wrap">
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#E24B4A;margin-right:4px"></span>Hot / bottleneck</span>
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#EF9F27;margin-right:4px"></span>Emerging</span>
@@ -1559,14 +1559,15 @@ function buildHeroStatus() {{
     Green:  {{label:"NEUTRAL",    val:"#639922", bg:"rgba(8,8,26,0.5)",        border:"rgba(255,255,255,0.04)"}},
     Blue:   {{label:"EASING",     val:"#378ADD", bg:"rgba(55,138,221,0.10)",  border:"rgba(55,138,221,0.3)"}},
   }};
-  const order = {{Red:0, Orange:1, Green:2, Blue:3}};
-  const sorted = [...LAYERS].sort((a,b) => (order[a.color]||2) - (order[b.color]||2));
+  const order = {{Red:0, Orange:1, Blue:2, Green:3}};
+  const sorted = [...LAYERS].sort((a,b) => (order[a.color] ?? 3) - (order[b.color] ?? 3));
   el.innerHTML = sorted.map(l => {{
     const c = HCOLOR[l.color] || HCOLOR.Green;
-    return `<div style="flex:1;padding:8px 12px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.04);">
-      <div style="font-size:9px;color:${{c.val}};font-weight:600;letter-spacing:.08em;margin-bottom:2px">${{c.label}}</div>
-      <div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:1px">${{l.n1}}</div>
-      <div style="font-size:18px;font-weight:500;color:${{c.val}};line-height:1">${{l.score.toFixed(0)}}</div>
+    const isSignal = l.color === "Red" || l.color === "Orange";
+    return `<div style="flex:1;padding:7px 10px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.04);opacity:${{isSignal?'1':'0.6'}}">
+      <div style="font-size:8px;color:${{c.val}};font-weight:600;letter-spacing:.08em;margin-bottom:1px">${{c.label}}</div>
+      <div style="font-size:11px;font-weight:500;color:#fff;margin-bottom:1px">${{l.n1}}</div>
+      <div style="font-size:16px;font-weight:500;color:${{c.val}};line-height:1">${{l.score.toFixed(0)}}</div>
     </div>`;
   }}).join("");
 }}
@@ -1638,4 +1639,3 @@ def _send_telegram(analysis: str):
     except Exception as e:
         log.error(f"  Telegram failed: {e}")
         _print_console(analysis, "")
- 
