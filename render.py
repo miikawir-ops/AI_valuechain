@@ -515,11 +515,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .reg-tooltip b{{color:#97C459}}
 .hm-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:relative}}
 .hm-card{{background:rgba(255,255,255,.07);border:0.5px solid rgba(133,183,235,0.2);
-          border-radius:8px;padding:6px 12px 7px}}
+          border-radius:8px;padding:5px 12px 6px}}
 .hm-lbl{{font-size:9px;color:#85B7EB;margin-bottom:1px;letter-spacing:.06em;font-weight:500}}
-.hm-val{{font-size:15px;font-weight:500;color:#fff;line-height:1.15}}
-.hm-note{{font-size:9px;margin-top:1px;line-height:1.2}}
-.body{{padding:0 16px;margin-top:0;position:relative;
+.hm-val{{font-size:14px;font-weight:500;color:#fff;line-height:1.1}}
+.hm-note{{font-size:9px;margin-top:1px;line-height:1.1}}
+.body{{padding:12px 16px 0;margin-top:0;position:relative;
        background:linear-gradient(180deg,#0E1628 0%,#101C32 40%,#13182A 75%,#0F1420 100%);
        min-height:100vh}}
 .card{{background:white;border:0.5px solid #E0DFDC;border-radius:12px;
@@ -1561,11 +1561,10 @@ function buildHeroStatus() {{
   const sorted = [...LAYERS].sort((a,b) => (order[a.color] ?? 3) - (order[b.color] ?? 3));
   el.innerHTML = sorted.map(l => {{
     const c = HCOLOR[l.color] || HCOLOR.Green;
-    const isSignal = l.color === "Red" || l.color === "Orange";
-    return `<div style="flex:1;padding:7px 10px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.04);">
-      <div style="font-size:8px;color:${{isSignal?c.val:'rgba(255,255,255,0.3)'}};font-weight:${{isSignal?'600':'500'}};letter-spacing:.08em;margin-bottom:1px">${{c.label}}</div>
-      <div style="font-size:11px;font-weight:${{isSignal?'500':'400'}};color:${{isSignal?'#fff':'rgba(255,255,255,0.45)'}};margin-bottom:1px">${{l.n1}}</div>
-      <div style="font-size:16px;font-weight:${{isSignal?'500':'400'}};color:${{isSignal?c.val:'rgba(255,255,255,0.25)'}};line-height:1">${{l.score.toFixed(0)}}</div>
+    return `<div style="flex:1;padding:7px 10px;background:${{c.bg}};border-right:0.5px solid rgba(255,255,255,0.06);">
+      <div style="font-size:8px;color:${{c.val}};font-weight:600;letter-spacing:.08em;margin-bottom:1px">${{c.label}}</div>
+      <div style="font-size:11px;font-weight:500;color:#fff;margin-bottom:1px">${{l.n1}}</div>
+      <div style="font-size:16px;font-weight:500;color:${{c.val}};line-height:1">${{l.score.toFixed(0)}}</div>
     </div>`;
   }}).join("");
 }}
