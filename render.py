@@ -654,13 +654,15 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .layer{{min-width:100px}}
 }}
 @media(max-width:768px){{
-  .hero{{padding:14px 12px 20px}}
+  .hero{{padding:14px 12px 16px}}
   .hero-title{{font-size:15px}}
+  .hero-title span:first-child{{font-size:22px!important}}
+  .hero-title span:last-child{{font-size:11px!important}}
   .hero-sub{{font-size:10px}}
-  .hm-grid{{grid-template-columns:1fr 1fr;gap:6px}}
-  .hm-val{{font-size:14px}}
+  .hm-grid{{grid-template-columns:1fr 1fr;gap:5px}}
+  .hm-val{{font-size:13px}}
   .hm-lbl,.hm-note{{font-size:9px}}
-  .body{{padding:0 8px;margin-top:-10px}}
+  .body{{padding:8px 8px 0;margin-top:0}}
   .card{{padding:10px 8px;border-radius:8px;margin-bottom:8px}}
   .card-label{{font-size:9px;margin-bottom:6px}}
   .layer{{min-width:120px;max-width:150px;padding:8px 7px}}
@@ -689,14 +691,18 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .reg-pill{{font-size:9px;padding:3px 8px}}
   .ex-grid{{grid-template-columns:1fr 1fr}}
   .hero-top{{gap:6px}}
+  #hero-chain-status{{flex-wrap:wrap}}
+  #hero-chain-status > div{{min-width:calc(33.3% - 1px);flex:none}}
 }}
 @media(max-width:768px){{
   #radar-grid{{grid-template-columns:repeat(2,1fr)!important}}
 }}
 @media(max-width:380px){{
   .hm-grid{{grid-template-columns:1fr 1fr}}
-  .layer{{min-width:120px}}
-  .hero-title{{font-size:14px}}
+  .layer{{min-width:110px}}
+  .hero-title span:first-child{{font-size:20px!important}}
+  .hero-title span:last-child{{font-size:10px!important}}
+  #hero-chain-status > div{{min-width:calc(50% - 1px)}}
 }}
 </style>
 </head>
