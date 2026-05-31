@@ -612,7 +612,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .hm-lbl{{font-size:9px;color:#85B7EB;margin-bottom:1px;letter-spacing:.06em;font-weight:500}}
 .hm-val{{font-size:14px;font-weight:500;color:#fff;line-height:1.1}}
 .hm-note{{font-size:9px;margin-top:1px;line-height:1.1}}
-.body{{padding:12px 16px 0;margin-top:0;position:relative;
+.body{{padding:16px 16px 0;margin-top:0;position:relative;
        background:linear-gradient(180deg,#0E1628 0%,#101C32 40%,#13182A 75%,#0F1420 100%);
        min-height:100vh}}
 .card{{background:white;border:0.5px solid #E0DFDC;border-radius:12px;
@@ -818,7 +818,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;flex-shrink:0;display:inline-block;margin-top:6px"></span>
         <span style="font-size:14px;font-weight:400;background:linear-gradient(90deg,#85B7EB,#AFA9EC,#85B7EB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.08em;opacity:0.95">AI value chain intelligence</span>
       </div>
-      <div class="hero-sub" style="color:#3A4460">{datetime_str}</div>
+      <div class="hero-sub" style="color:#8A9AB8;font-size:11px;margin-top:3px">{datetime_str}</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button class="pdf-btn" onclick="window.print()">↓ PDF</button>
@@ -866,7 +866,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div style="font-size:12px;font-weight:500;color:#ffffff;letter-spacing:0.02em;margin-bottom:0;opacity:0.9">AI value chain — signal scores</div>
+    <div style="font-size:12px;font-weight:500;color:#C8D4E8;letter-spacing:0.02em;margin-bottom:0">AI value chain — signal scores</div>
     <div style="display:flex;gap:12px;font-size:10px;color:#8A9AB8;align-items:center;flex-wrap:wrap">
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#E24B4A;margin-right:4px"></span>Hot / bottleneck</span>
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#EF9F27;margin-right:4px"></span>Emerging</span>
@@ -874,7 +874,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#378ADD;margin-right:4px"></span>Cooling</span>
     </div>
   </div>
-  <div class="fetch-note" style="margin-bottom:8px;color:#4A5A7A">{fetch_note}</div>
+  <div class="fetch-note" style="margin-bottom:8px;color:#6A7A9A">{fetch_note}</div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
     <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
          border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
@@ -1209,22 +1209,29 @@ function toggleAbout() {{
 function buildBottleneckStrip() {{
   const strip = document.getElementById("bottleneck-strip");
   if (!strip) return;
-  const sorted   = [...LAYERS].sort((a,b) => b.score - a.score);
-  const hot      = sorted.find(l => l.color === "Red");
-  const emerging = sorted.find(l => l.color === "Orange");
-  const easing   = sorted.find(l => l.color === "Blue");
-  const current  = hot || emerging || sorted[0];
-  const next     = (emerging && emerging !== current) ? emerging : sorted.find(l => l !== current && l.color === "Orange") || sorted[1];
-  const ease     = easing || sorted[sorted.length-1];
-  strip.innerHTML = `
-    <span style="color:#888780">Current bottleneck:</span>
-    <strong style="color:${{(CC[current.color]||CC.Green).border}}">${{current.n1}}</strong>
-    <span style="color:#B4B2A9">→</span>
-    <span style="color:#888780">Emerging next:</span>
-    <strong style="color:${{(CC[next.color]||CC.Green).border}}">${{next.n1}}</strong>
-    <span style="color:#B4B2A9">→</span>
-    <span style="color:#888780">Easing:</span>
-    <strong style="color:${{(CC[ease.color]||CC.Green).border}}">${{ease.n1}}</strong>`;
+  const sorted    = [...LAYERS].sort((a,b) => b.score - a.score);
+  const hotLayers = sorted.filter(l => l.color === "Red");
+  const emerging  = sorted.find(l => l.color === "Orange");
+  const easing    = sorted.find(l => l.color === "Blue");
+  const ease      = easing || sorted[sorted.length-1];
+ 
+  let html = "";
+  if (hotLayers.length > 0) {{
+    html += `<span style="color:#888780">Bottleneck${{hotLayers.length > 1 ? "s" : ""}}:</span>`;
+    hotLayers.forEach((l, i) => {{
+      html += `<strong style="color:#E24B4A">${{l.n1}}</strong>`;
+      if (i < hotLayers.length - 1) html += `<span style="color:#E24B4A;margin:0 2px">+</span>`;
+    }});
+  }}
+  if (emerging) {{
+    html += `<span style="color:#B4B2A9;margin:0 4px">→</span>`;
+    html += `<span style="color:#888780">Emerging:</span>`;
+    html += `<strong style="color:#EF9F27">${{emerging.n1}}</strong>`;
+  }}
+  html += `<span style="color:#B4B2A9;margin:0 4px">→</span>`;
+  html += `<span style="color:#888780">Easing:</span>`;
+  html += `<strong style="color:${{(CC[ease.color]||CC.Green).border}}">${{ease.n1}}</strong>`;
+  strip.innerHTML = html;
 }}
  
 function buildChain() {{
