@@ -2466,12 +2466,12 @@
   },
   {
     "date": "2026-08-07",
-    "time": "00:57",
-    "action_ticker": "MU",
+    "time": "07:08",
+    "action_ticker": "",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 49.13,
+        "score": 49.17,
         "color": "Red",
         "ratings": {
           "CEG": "A",
@@ -2482,7 +2482,7 @@
         }
       },
       "compute": {
-        "score": 41.99,
+        "score": 40.48,
         "color": "Orange",
         "ratings": {
           "NVDA": "C",
@@ -2505,7 +2505,7 @@
         }
       },
       "infra": {
-        "score": 39.47,
+        "score": 39.65,
         "color": "Green",
         "ratings": {
           "VRT": "B",
