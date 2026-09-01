@@ -2466,12 +2466,12 @@
   },
   {
     "date": "2026-09-01",
-    "time": "10:59",
-    "action_ticker": "MU",
+    "time": "22:44",
+    "action_ticker": "AMAT",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 41.37,
+        "score": 38.82,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2482,7 +2482,7 @@
         }
       },
       "compute": {
-        "score": 40.55,
+        "score": 41.73,
         "color": "Orange",
         "ratings": {
           "NVDA": "C",
@@ -2495,7 +2495,7 @@
         }
       },
       "memory": {
-        "score": 67.99,
+        "score": 68.32,
         "color": "Red",
         "ratings": {
           "MU": "A",
@@ -2505,7 +2505,7 @@
         }
       },
       "infra": {
-        "score": 40.28,
+        "score": 40.48,
         "color": "Green",
         "ratings": {
           "VRT": "B",
@@ -2517,7 +2517,7 @@
         }
       },
       "cloud": {
-        "score": 37.44,
+        "score": 36.51,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2527,7 +2527,7 @@
         }
       },
       "software": {
-        "score": 39.68,
+        "score": 38.13,
         "color": "Green",
         "ratings": {
           "PLTR": "C",
@@ -2538,7 +2538,7 @@
         }
       },
       "security": {
-        "score": 49.56,
+        "score": 48.1,
         "color": "Orange",
         "ratings": {
           "CRWD": "B",
