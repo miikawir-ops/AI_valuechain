@@ -1,90 +1,5 @@
 [
   {
-    "date": "2026-07-24",
-    "time": "21:34",
-    "action_ticker": "MU",
-    "action_price": null,
-    "scores": {
-      "energy": {
-        "score": 45.0,
-        "color": "Red",
-        "ratings": {
-          "CEG": "A",
-          "VST": "B",
-          "PWR": "C",
-          "GEV": "B",
-          "ETN": "B"
-        }
-      },
-      "compute": {
-        "score": 39.94,
-        "color": "Orange",
-        "ratings": {
-          "NVDA": "C",
-          "AMD": "C",
-          "AVGO": "B",
-          "ASML": "C",
-          "TSM": "B",
-          "ARM": "B",
-          "CDNS": "C"
-        }
-      },
-      "memory": {
-        "score": 64.68,
-        "color": "Red",
-        "ratings": {
-          "MU": "A",
-          "WDC": "B",
-          "AMAT": "A",
-          "LRCX": "B"
-        }
-      },
-      "infra": {
-        "score": 36.12,
-        "color": "Green",
-        "ratings": {
-          "VRT": "C",
-          "ANET": "B",
-          "EQIX": "C",
-          "SMCI": "C",
-          "CSCO": "B",
-          "CIEN": "C"
-        }
-      },
-      "cloud": {
-        "score": 35.77,
-        "color": "Green",
-        "ratings": {
-          "MSFT": "B",
-          "GOOGL": "C",
-          "AMZN": "C",
-          "META": "C"
-        }
-      },
-      "software": {
-        "score": 37.99,
-        "color": "Green",
-        "ratings": {
-          "PLTR": "C",
-          "NOW": "B",
-          "SNOW": "B",
-          "CRM": "C",
-          "DDOG": "C"
-        }
-      },
-      "security": {
-        "score": 46.23,
-        "color": "Orange",
-        "ratings": {
-          "CRWD": "B",
-          "PANW": "B",
-          "S": "C",
-          "OKTA": "C"
-        }
-      }
-    }
-  },
-  {
     "date": "2026-07-27",
     "time": "21:36",
     "action_ticker": "MU",
@@ -2539,6 +2454,91 @@
       },
       "security": {
         "score": 46.37,
+        "color": "Orange",
+        "ratings": {
+          "CRWD": "B",
+          "PANW": "B",
+          "S": "C",
+          "OKTA": "C"
+        }
+      }
+    }
+  },
+  {
+    "date": "2026-09-03",
+    "time": "10:35",
+    "action_ticker": "AMAT",
+    "action_price": null,
+    "scores": {
+      "energy": {
+        "score": 41.08,
+        "color": "Green",
+        "ratings": {
+          "CEG": "C",
+          "VST": "C",
+          "PWR": "B",
+          "GEV": "B",
+          "ETN": "B"
+        }
+      },
+      "compute": {
+        "score": 41.69,
+        "color": "Orange",
+        "ratings": {
+          "NVDA": "C",
+          "AMD": "B",
+          "AVGO": "B",
+          "ASML": "C",
+          "TSM": "B",
+          "ARM": "C",
+          "CDNS": "C"
+        }
+      },
+      "memory": {
+        "score": 68.5,
+        "color": "Red",
+        "ratings": {
+          "MU": "A",
+          "WDC": "B",
+          "AMAT": "A",
+          "LRCX": "B"
+        }
+      },
+      "infra": {
+        "score": 40.67,
+        "color": "Green",
+        "ratings": {
+          "VRT": "B",
+          "ANET": "B",
+          "EQIX": "B",
+          "SMCI": "C",
+          "CSCO": "B",
+          "CIEN": "C"
+        }
+      },
+      "cloud": {
+        "score": 36.05,
+        "color": "Green",
+        "ratings": {
+          "MSFT": "B",
+          "GOOGL": "C",
+          "AMZN": "C",
+          "META": "C"
+        }
+      },
+      "software": {
+        "score": 37.75,
+        "color": "Green",
+        "ratings": {
+          "PLTR": "C",
+          "NOW": "B",
+          "SNOW": "B",
+          "CRM": "C",
+          "DDOG": "B"
+        }
+      },
+      "security": {
+        "score": 46.49,
         "color": "Orange",
         "ratings": {
           "CRWD": "B",
