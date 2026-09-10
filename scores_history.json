@@ -2466,12 +2466,12 @@
   },
   {
     "date": "2026-09-10",
-    "time": "10:28",
+    "time": "22:42",
     "action_ticker": "MU",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 38.59,
+        "score": 39.99,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2482,7 +2482,7 @@
         }
       },
       "compute": {
-        "score": 41.73,
+        "score": 41.38,
         "color": "Orange",
         "ratings": {
           "NVDA": "C",
@@ -2495,7 +2495,7 @@
         }
       },
       "memory": {
-        "score": 67.7,
+        "score": 66.7,
         "color": "Red",
         "ratings": {
           "MU": "A",
@@ -2505,7 +2505,7 @@
         }
       },
       "infra": {
-        "score": 42.54,
+        "score": 42.58,
         "color": "Green",
         "ratings": {
           "VRT": "B",
@@ -2517,7 +2517,7 @@
         }
       },
       "cloud": {
-        "score": 37.41,
+        "score": 36.75,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2527,7 +2527,7 @@
         }
       },
       "software": {
-        "score": 36.8,
+        "score": 36.57,
         "color": "Green",
         "ratings": {
           "PLTR": "C",
@@ -2538,13 +2538,13 @@
         }
       },
       "security": {
-        "score": 46.55,
+        "score": 46.59,
         "color": "Orange",
         "ratings": {
           "CRWD": "B",
           "PANW": "B",
           "S": "B",
-          "OKTA": "B"
+          "OKTA": "C"
         }
       }
     }
