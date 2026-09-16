@@ -516,7 +516,7 @@ def run_pipeline(portfolio_file: str = "portfolio.json") -> dict:
             data = fetch_ticker_data(
                 ticker, headlines,
                 layer_config["keywords"],
-                layer_tickers=layer_tickers,       # ← ownership filter
+                layer_tickers=[ticker],             # ← this ticker's own headlines only
             )
             if data:
                 tickers_data.append(data)
@@ -598,7 +598,7 @@ if __name__ == "__main__":
                 data = fetch_ticker_data(
                     ticker, headlines,
                     layer["keywords"],
-                    layer_tickers=layer["tickers"],
+                    layer_tickers=[ticker],
                 )
                 if data:
                     tickers.append(data)
