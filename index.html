@@ -3,37 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>AI Investment Agent — Tuesday, April 28 2026 · 13:53</title>
+<title>RayDar — AI value chain intelligence · Wednesday, September 16 2026 · 23:05</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-      background:#F8F8F7;color:#1A1A1A;min-height:100vh;padding:0 0 32px}
-.hero{background:linear-gradient(135deg,#0C447C 0%,#185FA5 40%,#534AB7 75%,#3C3489 100%);
-       padding:24px 24px 32px;position:relative;overflow:hidden}
-.hero-grid{position:absolute;inset:0;opacity:.07;
-            background-image:linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px);
-            background-size:32px 32px}
-.hero-top{display:flex;justify-content:space-between;align-items:flex-start;
-           margin-bottom:20px;position:relative;flex-wrap:wrap;gap:10px}
-.hero-title{font-size:20px;font-weight:500;color:#fff}
-.hero-sub{font-size:11px;color:#B5D4F4;margin-top:3px}
+      background:#0E1628;color:#1A1A1A;min-height:100vh;padding:0 0 32px}
+.hero{background:linear-gradient(135deg,#08081A 0%,#0C1A3A 30%,#1A0830 60%,#0A0818 100%);
+       padding:22px 24px 20px;position:relative;overflow:hidden}
+.hero-laser{position:absolute;top:0;left:0;right:0;height:3px;
+             background:linear-gradient(90deg,transparent 0%,transparent 10%,#534AB7 28%,#85B7EB 45%,#ffffff 50%,#85B7EB 55%,#534AB7 72%,transparent 90%,transparent 100%);
+             opacity:0.9}
+.hero-glow{position:absolute;top:0;left:10%;right:10%;height:40px;
+            background:radial-gradient(ellipse at 50% 0%,rgba(133,183,235,0.45) 0%,rgba(83,74,183,0.2) 40%,transparent 75%)}
+.hero-grid{display:none}
+.hero-accent{position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;
+              background:radial-gradient(circle,rgba(60,52,137,0.15) 0%,transparent 70%)}
+.hero-top{display:flex;justify-content:space-between;align-items:center;
+           margin-bottom:14px;position:relative;flex-wrap:wrap;gap:8px}
+.hero-title{font-size:22px;color:#fff;line-height:1.2;letter-spacing:-0.3px}
+.hero-sub{font-size:11px;color:#3A4460;margin-top:3px}
 .reg-pill{font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;
            border:1px solid rgba(255,255,255,.3);color:#fff;
-           background:rgba(255,255,255,.15)}
-.hm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative}
-.hm-card{background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.2);
-          border-radius:8px;padding:10px 12px}
-.hm-lbl{font-size:10px;color:#85B7EB;margin-bottom:3px}
-.hm-val{font-size:18px;font-weight:500;color:#fff}
-.hm-note{font-size:10px;margin-top:2px}
-.body{padding:0 16px;margin-top:-16px;position:relative}
+           background:rgba(255,255,255,.15);cursor:pointer;position:relative}
+.reg-pill:hover .reg-tooltip,.reg-pill:focus .reg-tooltip{display:block}
+.reg-tooltip{display:none;position:absolute;top:calc(100% + 8px);right:0;
+              background:#1A1A1A;color:#F8F8F7;font-size:10px;line-height:1.6;
+              padding:10px 12px;border-radius:6px;width:260px;z-index:200;
+              font-weight:400;box-shadow:0 4px 16px rgba(0,0,0,.4);text-align:left}
+.reg-tooltip::before{content:"";position:absolute;bottom:100%;right:16px;
+                      border:5px solid transparent;border-bottom-color:#1A1A1A}
+.reg-tooltip b{color:#97C459}
+.hm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:relative}
+.hm-card{background:rgba(255,255,255,.07);border:0.5px solid rgba(133,183,235,0.2);
+          border-radius:8px;padding:5px 12px 6px}
+.hm-lbl{font-size:9px;color:#85B7EB;margin-bottom:1px;letter-spacing:.06em;font-weight:500}
+.hm-val{font-size:14px;font-weight:500;color:#fff;line-height:1.1}
+.hm-note{font-size:9px;margin-top:1px;line-height:1.1}
+.body{padding:16px 16px 0;margin-top:0;position:relative;
+       background:linear-gradient(180deg,#0E1628 0%,#101C32 40%,#13182A 75%,#0F1420 100%);
+       min-height:100vh}
 .card{background:white;border:0.5px solid #E0DFDC;border-radius:12px;
        padding:16px;margin-bottom:12px}
 .card-label{font-size:10px;font-weight:500;color:#888780;
              letter-spacing:.05em;margin-bottom:12px}
 .fetch-note{font-size:10px;color:#B4B2A9;margin-top:4px}
-.chain-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .layer{flex-shrink:0;width:148px;border:1.5px solid;border-radius:10px;
         padding:11px 10px;cursor:pointer;transition:transform .1s,box-shadow .1s}
 .layer:hover{transform:translateY(-2px)}
@@ -64,6 +77,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .heat-grid{display:grid;grid-template-columns:56px repeat(7,1fr);
             gap:3px;align-items:center;margin-top:14px}
 .heat-lbl{font-size:10px;color:#888780;text-align:right;padding-right:8px}
+.hbtn{font-size:12px;font-weight:500;padding:5px 14px;border:none;border-radius:5px;
+       background:transparent;color:#378ADD;cursor:pointer;transition:all .15s}
+.hbtn:hover{background:white;color:#0C447C}
+.active-hbtn{background:white!important;color:#0C447C!important;font-weight:600!important;
+              box-shadow:0 1px 4px rgba(12,68,124,.2)}
 .heat-day{font-size:9px;color:#B4B2A9;text-align:center}
 .heat-cell{height:18px;border-radius:3px}
 .as-wrap{display:flex;flex-direction:column;gap:0}
@@ -83,8 +101,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .action-title{font-size:14px;font-weight:500;color:#26215C;margin-bottom:6px}
 .action-body{font-size:12px;color:#3C3489;line-height:1.6}
 .meth-trigger{display:flex;justify-content:space-between;align-items:center;
-               cursor:pointer;padding:10px 14px;background:white;
-               border:0.5px solid #E0DFDC;border-radius:10px;margin-bottom:4px}
+               cursor:pointer;padding:14px 16px;background:#E6F1FB;
+               border:2px solid #378ADD;border-radius:10px;margin-bottom:4px;
+               transition:background .15s;box-shadow:0 2px 6px rgba(55,138,221,.15)}
+.meth-trigger:hover{background:#D4E8F7}
 .meth-body{display:none;background:white;border:0.5px solid #E0DFDC;
             border-radius:10px;padding:14px;margin-bottom:12px}
 .meth-body.open{display:block}
@@ -100,81 +120,286 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .override{background:#F8F8F7;border-left:2px solid #B4B2A9;border-radius:0 6px 6px 0;
            padding:8px 10px;font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:12px}
 .ip-note{font-size:10px;color:#B4B2A9;text-align:center;line-height:1.6}
-.footer{font-size:10px;color:#B4B2A9;text-align:center;margin-top:8px;padding:0 16px}
+.div-flag{display:inline-flex;align-items:center;gap:4px;background:#FFF3CD;
+           border:0.5px solid #EF9F27;border-radius:4px;padding:2px 6px;
+           font-size:9px;font-weight:500;color:#633806;cursor:pointer;
+           margin-top:4px;position:relative}
+.div-flag:hover .div-tooltip,.div-flag:focus .div-tooltip{display:block}
+.div-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);left:0;
+              background:#1A1A1A;color:#F8F8F7;font-size:10px;line-height:1.5;
+              padding:8px 10px;border-radius:6px;width:220px;z-index:100;
+              font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.div-tooltip::after{content:"";position:absolute;top:100%;left:12px;
+                     border:5px solid transparent;border-top-color:#1A1A1A}
+.rating-A{background:#EAF3DE;color:#27500A;border:0.5px solid #639922;font-weight:600}
+.rating-B{background:#E6F1FB;color:#0C447C;border:0.5px solid #378ADD;font-weight:600}
+.rating-C{background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27;font-weight:600}
+.rating-D{background:#FCEBEB;color:#791F1F;border:0.5px solid #E24B4A;font-weight:600}
+.rating-badge{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-block}
+.radar-card{background:white;border:0.5px solid #E0DFDC;border-radius:8px;
+             padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.radar-rank{font-size:10px;font-weight:500;color:#888780}
+.radar-sym{font-size:14px;font-weight:500;color:#1A1A1A}
+.radar-name{font-size:10px;color:#888780;margin-bottom:2px}
+.radar-bar-wrap{height:4px;background:#F1EFE8;border-radius:2px;margin:4px 0}
+.radar-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,#534AB7,#E24B4A)}
+.radar-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:10px;color:#5F5E5A}
+.radar-conf-HIGH{color:#27500A;font-weight:500}
+.radar-conf-MEDIUM{color:#633806;font-weight:500}
+.radar-conf-LOW{color:#888780}
+.radar-traj{font-size:12px;letter-spacing:2px}
+.ticker-band{background:#05050F;border-top:0.5px solid rgba(83,74,183,0.35);border-bottom:none;
+              overflow:hidden;padding:5px 0;position:relative;z-index:10}
+.ticker-scroll{display:flex;white-space:nowrap;animation:ticker-move 28s linear infinite}
+.ticker-scroll:hover{animation-play-state:paused}
+.t-item{display:inline-flex;align-items:center;gap:6px;padding:0 18px;
+         font-size:11px;color:#85B7EB;border-right:0.5px solid #1A3A5C;flex-shrink:0}
+.t-sym{color:white;font-weight:500}
+.t-up{color:#97C459}.t-dn{color:#E24B4A}.t-neu{color:#888780}
+@keyframes ticker-move{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.signal-bars{display:flex;align-items:flex-end;justify-content:center;
+              gap:3px;height:28px;margin-top:12px}
+.sbar{width:4px;border-radius:2px;animation:sbar-pulse 1.4s ease-in-out infinite}
+@keyframes sbar-pulse{0%,100%{opacity:.2;transform:scaleY(.35)}50%{opacity:1;transform:scaleY(1)}}
+.footer{font-size:12px;color:#8A9AB8;text-align:center;margin-top:16px;
+         padding:20px 16px;border-top:1px solid rgba(255,255,255,0.06);
+         background:#080812;border-radius:8px;line-height:2.0}
+.footer-cobhc{font-size:12px;color:#C8D4E8;font-weight:500;margin-top:6px;
+              letter-spacing:.02em}
+.footer-cobhc span{color:#E24B4A;font-style:italic}
+.pdf-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);
+          border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:500;
+          padding:5px 14px;border-radius:20px;cursor:pointer;transition:background .15s}
+.pdf-btn:hover{background:rgba(255,255,255,.25)}
+@media print{
+  .pdf-btn,.meth-trigger,.meth-body,.expand{display:none!important}
+  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .card{break-inside:avoid;page-break-inside:avoid}
+  body{padding:0}
+  .layer{min-width:100px}
+}
+@media(max-width:768px){
+  .hero{padding:14px 12px 16px}
+  .hero-title{font-size:15px}
+  .hero-title span:first-child{font-size:22px!important}
+  .hero-title span:last-child{font-size:11px!important}
+  .hero-sub{font-size:10px}
+  .hm-grid{grid-template-columns:1fr 1fr;gap:5px}
+  .hm-val{font-size:13px}
+  .hm-lbl,.hm-note{font-size:9px}
+  .body{padding:8px 8px 0;margin-top:0}
+  .card{padding:10px 8px;border-radius:8px;margin-bottom:8px}
+  .card-label{font-size:9px;margin-bottom:6px}
+  .layer{min-width:120px;max-width:150px;padding:8px 7px}
+  .lyr-score{font-size:20px}
+  .lyr-name{font-size:9px}
+  .lyr-pill{font-size:8px;padding:1px 5px}
+  .lyr-meta{font-size:9px}
+  .lyr-tk{font-size:9px}
+  .lyr-delta span{font-size:9px}
+  .heat-grid{grid-template-columns:40px repeat(7,1fr);gap:2px;margin-top:10px}
+  .heat-lbl{font-size:9px;padding-right:4px}
+  .heat-day{font-size:8px}
+  .heat-cell{height:13px}
+  .as-title{font-size:12px}
+  .as-body{font-size:11px;padding-left:28px;line-height:1.5}
+  .as-icon{width:20px;height:20px;font-size:11px}
+  .as{padding:10px 0}
+  .action-card{padding:10px}
+  .action-title{font-size:12px}
+  .action-body{font-size:11px;line-height:1.5}
+  .meth-trigger{padding:8px 10px}
+  .sigs{grid-template-columns:1fr}
+  #bottleneck-strip{font-size:10px;padding:5px 8px;gap:5px}
+  .footer{font-size:9px}
+  .pdf-btn{font-size:9px;padding:3px 8px}
+  .reg-pill{font-size:9px;padding:3px 8px}
+  .ex-grid{grid-template-columns:1fr 1fr}
+  .hero-top{gap:6px}
+  #hero-chain-status{flex-wrap:wrap}
+  #hero-chain-status > div{min-width:calc(33.3% - 1px);flex:none}
+}
+@media(max-width:768px){
+  #radar-grid{grid-template-columns:repeat(2,1fr)!important}
+}
+@media(max-width:380px){
+  .hm-grid{grid-template-columns:1fr 1fr}
+  .layer{min-width:110px}
+  .hero-title span:first-child{font-size:20px!important}
+  .hero-title span:last-child{font-size:10px!important}
+  #hero-chain-status > div{min-width:calc(50% - 1px)}
+}
 </style>
 </head>
 <body>
  
 <div class="hero">
+  <div class="hero-laser"></div>
+  <div class="hero-glow"></div>
   <div class="hero-grid"></div>
+  <div class="hero-accent"></div>
   <div class="hero-top">
     <div>
-      <div class="hero-title">AI investment agent</div>
-      <div class="hero-sub">Tuesday, April 28 2026 · 13:53</div>
+      <div class="hero-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:30px;font-weight:500;letter-spacing:-1px">Ray<span style="color:#85B7EB;font-weight:300">Dar</span></span>
+        <span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;flex-shrink:0;display:inline-block;margin-top:6px"></span>
+        <span style="font-size:14px;font-weight:400;background:linear-gradient(90deg,#85B7EB,#AFA9EC,#85B7EB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.08em;opacity:0.95">AI value chain intelligence</span>
+      </div>
+      <div class="hero-sub" style="color:#8A9AB8;font-size:11px;margin-top:3px">Wednesday, September 16 2026 · 23:05</div>
     </div>
-    <div class="reg-pill">Risk-On</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="pdf-btn" onclick="window.print()">↓ PDF</button>
+      <div class="reg-pill" tabindex="0">Market regime: Risk-On
+        <div class="reg-tooltip">
+          <b>What is Market Regime?</b><br><br>
+          A systemic filter applied to all layer scores. Reflects the overall macro environment for AI investments today.<br><br>
+          <b>Risk-On</b> — VIX low, yields stable, tech leading. All signals at full strength.<br>
+          <b>Neutral</b> — Some uncertainty. Scores dampened. Caution on new positions.<br>
+          <b>Risk-Off</b> — High fear, rising yields, tech selling off. Do not initiate new positions.<br><br>
+          Signals used: VIX · 10Y yield change · NASDAQ vs S&amp;P 500
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="hm-grid">
+  <div class="hm-grid" style="margin-bottom:12px">
     <div class="hm-card">
       <div class="hm-lbl">VIX</div>
-      <div class="hm-val">18.4</div>
+      <div class="hm-val">17.7</div>
       <div class="hm-note" style="color:#C0DD97">Low fear</div>
     </div>
     <div class="hm-card">
-      <div class="hm-lbl">10Y yield change</div>
-      <div class="hm-val">-10.4</div>
-      <div class="hm-note" style="color:#C0DD97">bps · falling</div>
+      <div class="hm-lbl">10Y YIELD CHANGE</div>
+      <div class="hm-val">+30.0</div>
+      <div class="hm-note" style="color:#FAC775">bps · rising</div>
     </div>
     <div class="hm-card">
-      <div class="hm-lbl">NASDAQ vs S&P</div>
-      <div class="hm-val">+6.6%</div>
+      <div class="hm-lbl">NASDAQ VS S&P</div>
+      <div class="hm-val">+0.7%</div>
       <div class="hm-note" style="color:#C0DD97">Tech leading</div>
     </div>
     <div class="hm-card">
-      <div class="hm-lbl">Layers scored</div>
-      <div class="hm-val">6</div>
-      <div class="hm-note" style="color:#85B7EB">25 tickers</div>
+      <div class="hm-lbl">LAYERS SCORED</div>
+      <div class="hm-val">7</div>
+      <div class="hm-note" style="color:#85B7EB">35 tickers</div>
     </div>
   </div>
+  <div id="hero-chain-status" style="position:relative;display:flex;gap:1px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;margin-top:12px"></div>
 </div>
  
+<div class="ticker-band">
+  <div class="ticker-scroll" id="top-ticker"></div>
+</div>
 <div class="body">
  
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div class="card-label" style="margin-bottom:0">AI value chain — signal scores</div>
-    <div style="display:flex;gap:12px;font-size:10px;color:#5F5E5A;align-items:center;flex-wrap:wrap">
-      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#E24B4A;margin-right:4px"></span>Hot / bottleneck</span>
-      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EF9F27;margin-right:4px"></span>Emerging</span>
-      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#639922;margin-right:4px"></span>Neutral / healthy</span>
-      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#378ADD;margin-right:4px"></span>Cooling</span>
+    <div style="font-size:12px;font-weight:500;color:#C8D4E8;letter-spacing:0.02em;margin-bottom:0">AI value chain — signal scores</div>
+    <div style="display:flex;gap:12px;font-size:10px;color:#8A9AB8;align-items:center;flex-wrap:wrap">
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#E24B4A;margin-right:4px"></span>Hot / bottleneck</span>
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#EF9F27;margin-right:4px"></span>Emerging</span>
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#639922;margin-right:4px"></span>Neutral / healthy</span>
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#378ADD;margin-right:4px"></span>Cooling</span>
     </div>
   </div>
-  <div class="fetch-note" style="margin-bottom:8px">Fetched 13:53 · Quarterly financials may be up to 90 days old</div>
-  <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-       border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
-       font-size:11px;color:#5F5E5A;margin-bottom:10px;flex-wrap:wrap">
+  <div class="fetch-note" style="margin-bottom:8px;color:#6A7A9A">Fetched 23:05 · Quarterly financials may be up to 90 days old</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+    <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+         border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
+         font-size:11px;color:#5F5E5A;flex-wrap:wrap;flex:1"></div>
+    <button onclick="toggleAbout()" style="font-size:12px;font-weight:500;
+            padding:8px 16px;border:1.5px solid #378ADD;border-radius:6px;
+            background:#E6F1FB;color:#0C447C;cursor:pointer;white-space:nowrap;
+            flex-shrink:0;display:flex;align-items:center;gap:6px"
+            id="about-btn">ℹ️ About this dashboard</button>
+  </div>
+  <div id="about-section" style="display:none;background:#F8F8F7;border:0.5px solid #E0DFDC;
+       border-radius:8px;padding:14px;margin-bottom:10px;font-size:12px;color:#5F5E5A;line-height:1.7">
+    <div style="font-size:13px;font-weight:500;color:#1A1A1A;margin-bottom:10px">About this dashboard</div>
+    <p style="margin-bottom:8px">A daily signal dashboard tracking the AI supply chain — from power plants to software — identifying where investment opportunities and risks are building.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔴 Hot / Bottleneck</div>
+        <div style="font-size:11px">Current dominant constraint. Supply cannot meet demand. Highest conviction signal.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟠 Emerging</div>
+        <div style="font-size:11px">Building momentum. Becoming the next bottleneck, or price running ahead of fundamentals.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟢 Neutral / Healthy</div>
+        <div style="font-size:11px">Stable. No constraint pressure. Not a concern, not an urgent opportunity.</div>
+      </div>
+      <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+        <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔵 Cooling</div>
+        <div style="font-size:11px">Previously hot layer. Constraint easing, growth decelerating.</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Warning flags</div>
+    <p style="margin-bottom:4px"><strong>⚡ Narrative ahead of fundamentals</strong> — Investment story exists in news but not yet confirmed in quarterly earnings. Wait for financial confirmation.</p>
+    <p style="margin-bottom:10px"><strong>🟠 Orange card</strong> — Stock price has moved significantly more than revenue growth justifies. Market may have already priced in the good news.</p>
+    <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
+    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — Reuters, CNBC, MarketWatch · AI analysis — Google Gemini 2.5</p>
+    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
   </div>
   <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
   <div id="expand-area"></div>
   <div style="margin-top:14px">
-    <div style="font-size:10px;font-weight:500;color:#888780;margin-bottom:8px">7-day heat trail</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex;gap:3px;background:#E6F1FB;border-radius:8px;padding:4px;border:1.5px solid #378ADD">
+          <button onclick="setHeatDays(7)"  id="hbtn-7"  class="hbtn active-hbtn">7d</button>
+          <button onclick="setHeatDays(30)" id="hbtn-30" class="hbtn">30d</button>
+          <button onclick="setHeatDays(90)" id="hbtn-90" class="hbtn">90d</button>
+        </div>
+        <div style="font-size:10px;font-weight:500;color:#888780" id="heat-label">Signal heat trail</div>
+      </div>
+    </div>
     <div class="heat-grid" id="heat"></div>
   </div>
 </div>
  
 <div class="card">
-  <div class="card-label">Daily analysis — Gemini 2.5-flash · 13:53</div>
+  <div class="card-label">Daily analysis — Gemini 2.5-flash · 23:05</div>
   <div class="as-wrap" id="analysis"></div>
 </div>
  
+<div class="card" id="radar-card" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <div class="card-label" style="margin-bottom:0">🚀 <strong>RayDar</strong> — Next Nvidia Top 5 today</div>
+    <span style="font-size:10px;color:#888780" id="radar-count">Multi-quarter acceleration</span>
+  </div>
+  <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">
+    Ranked by sustained revenue acceleration across multiple quarters — not just latest growth.
+    Low analyst coverage = earlier in discovery cycle.
+    <span style="color:#B4B2A9"> · Confidence improves as quarterly data accumulates over time.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
+  <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;border-top:0.5px solid #E0DFDC">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:16px">🃏</span>
+      <span style="font-size:13px;font-weight:600;color:#1A1A1A;letter-spacing:.02em">WILDCARD</span>
+      <span style="font-size:11px;color:#888780">— under the radar</span>
+    </div>
+    <div id="wildcard-card"></div>
+  </div>
+</div>
+ 
 <div class="action-card" id="action"></div>
+<div id="track-record" style="display:none;margin-bottom:12px;
+     background:white;border:0.5px solid #E0DFDC;border-radius:10px;padding:14px">
+  <div style="font-size:10px;font-weight:500;color:#888780;letter-spacing:.04em;margin-bottom:10px">
+    📊 ONE ACTION TRACK RECORD — last 5 picks
+  </div>
+  <div id="track-rows"></div>
+  <div style="font-size:10px;color:#B4B2A9;margin-top:8px;line-height:1.5">
+    Returns measured from recommendation date to today. Not financial advice.
+  </div>
+</div>
  
 <div class="meth-trigger" onclick="toggleMeth()">
   <div style="display:flex;align-items:center;gap:8px">
     <span style="font-size:12px;font-weight:500;color:#1A1A1A">How to read this dashboard</span>
-    <span style="font-size:10px;padding:1px 7px;border:0.5px solid #E0DFDC;
-                 border-radius:8px;color:#888780">methodology</span>
+    <span style="font-size:10px;padding:1px 7px;border:0.5px solid #E0DFDC;border-radius:8px;color:#888780">methodology</span>
   </div>
   <span style="font-size:11px;color:#B4B2A9" id="marrow">▾</span>
 </div>
@@ -195,6 +420,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="mc" style="background:#E6F1FB;border-color:#378ADD">
     <div class="mc-name" style="color:#0C447C">Blue — cooling</div>
     <div class="mc-desc" style="color:#185FA5">Growth acceleration declining. A previously hot layer easing off.</div>
+  </div>
+  <div style="background:#F8F8F7;border-left:2px solid #378ADD;border-radius:0 6px 6px 0;
+              padding:8px 10px;font-size:10px;color:#5F5E5A;line-height:1.6;margin-top:4px">
+    <strong>Note on AI Security layer:</strong> Security companies (CRWD, PANW) are steady compounders
+    growing at 10–25% annually — not hardware bottlenecks. A Blue/Green Security layer is normal and
+    healthy. Watch for Orange/Red only during major breach cycles or regulatory shifts.
   </div>
   <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin:12px 0 8px">Three signal categories</div>
   <div class="sigs">
@@ -220,13 +451,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 </div>
  
-<div class="footer">AI Investment Agent · Tuesday, April 28 2026 · 13:53 · Not financial advice · Always do your own research</div>
+<div class="footer">
+  <div><strong>RayDar</strong> · Wednesday, September 16 2026 · 23:05</div>
+  <div style="font-size:11px;color:#888780;margin-top:2px">
+    Not financial advice · Always do your own research · Data may be up to 90 days old
+  </div>
+  <div class="footer-cobhc">
+    ⚔️ Powered by COBHC · Built in Espoo, Finland ·
+    <span>Are You Dead Yet?</span> — the market will tell you 🤘
+  </div>
+  <div class="signal-bars" id="signal-bars"></div>
+</div>
  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const LAYERS = [{"id": "energy", "n1": "Energy", "n2": "resources", "score": 32.3, "color": "Green", "news_vel": 0, "momentum_label": "+mild", "delta_score": -0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "CEG", "name": "Constellation Energy Corporation", "price": 315.17, "ret30": 4.5, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "VST", "name": "Vistra Corp.", "price": 166.58, "ret30": 7.1, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "NEE", "name": "NextEra Energy, Inc.", "price": 94.83, "ret30": 3.8, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "PWR", "name": "Quanta Services, Inc.", "price": 637.28, "ret30": 15.9, "delta_band": "decelerating", "hype": false, "color": "Blue"}]}, {"id": "compute", "n1": "Semicon", "n2": "hardware", "score": 40.0, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": 0.5, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "NVDA", "name": "NVIDIA Corporation", "price": 216.61, "ret30": 29.3, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "AMD", "name": "Advanced Micro Devices, Inc.", "price": 334.63, "ret30": 65.7, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "AVGO", "name": "Broadcom Inc.", "price": 418.2, "ret30": 39.1, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "ASML", "name": "ASML Holding N.V.", "price": 1432.44, "ret30": 10.2, "delta_band": "decelerating", "hype": false, "color": "Blue"}]}, {"id": "memory", "n1": "HBM memory", "n2": "storage", "score": 55.4, "color": "Red", "news_vel": 0, "momentum_label": "+strong", "delta_score": 0.0, "prev_color": "Green", "color_changed": true, "tickers": [{"sym": "MU", "name": "Micron Technology, Inc.", "price": 524.56, "ret30": 46.9, "delta_band": "accelerating", "hype": false, "color": "Red"}, {"sym": "WDC", "name": "Western Digital Corporation", "price": 400.73, "ret30": 45.5, "delta_band": "decelerating", "hype": false, "color": "Blue"}, {"sym": "AMAT", "name": "Applied Materials, Inc.", "price": 404.86, "ret30": 20.1, "delta_band": "stable", "hype": true, "color": "Green"}, {"sym": "LRCX", "name": "Lam Research Corporation", "price": 259.47, "ret30": 22.7, "delta_band": "accelerating", "hype": true, "color": "Green"}]}, {"id": "infra", "n1": "Data center", "n2": "infra", "score": 46.3, "color": "Orange", "news_vel": 0, "momentum_label": "+strong", "delta_score": 0.0, "prev_color": "Green", "color_changed": true, "tickers": [{"sym": "VRT", "name": "Vertiv Holdings Co", "price": 322.43, "ret30": 28.4, "delta_band": "decelerating", "hype": true, "color": "Blue"}, {"sym": "ANET", "name": "Arista Networks, Inc.", "price": 172.47, "ret30": 42.8, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "EQIX", "name": "Equinix, Inc.", "price": 1089.85, "ret30": 13.2, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "SMCI", "name": "Super Micro Computer, Inc.", "price": 27.85, "ret30": 26.8, "delta_band": "accelerating", "hype": false, "color": "Orange"}]}, {"id": "cloud", "n1": "Cloud", "n2": "hyperscalers", "score": 38.1, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": -0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "MSFT", "name": "Microsoft Corporation", "price": 424.82, "ret30": 19.1, "delta_band": "stable", "hype": true, "color": "Blue"}, {"sym": "GOOGL", "name": "Alphabet Inc.", "price": 350.34, "ret30": 27.7, "delta_band": "stable", "hype": false, "color": "Green"}, {"sym": "AMZN", "name": "Amazon.com, Inc.", "price": 261.12, "ret30": 31.0, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "META", "name": "Meta Platforms, Inc.", "price": 678.62, "ret30": 29.1, "delta_band": "stable", "hype": false, "color": "Green"}]}, {"id": "software", "n1": "AI software", "n2": "apps", "score": 31.0, "color": "Green", "news_vel": 0, "momentum_label": "+moderate", "delta_score": 0.0, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "PLTR", "name": "Palantir Technologies Inc.", "price": 143.1, "ret30": 0.0, "delta_band": "accelerating", "hype": false, "color": "Green"}, {"sym": "NOW", "name": "ServiceNow, Inc.", "price": 90.45, "ret30": -9.0, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "SNOW", "name": "Snowflake Inc.", "price": 144.25, "ret30": -5.6, "delta_band": "stable", "hype": false, "color": "Blue"}, {"sym": "CRM", "name": "Salesforce, Inc.", "price": 180.18, "ret30": 0.7, "delta_band": "accelerating", "hype": false, "color": "Green"}]}];
-const MAIN_SECTIONS = [{"title": "\ud83c\udf0d MACRO REGIME", "body": "The current macro regime is Risk-On across all AI chain layers. This indicates a positive sentiment for growth-oriented investments, making today an opportune time to capitalize on high-potential AI sectors and companies."}, {"title": "\ud83d\udd29 AI CHAIN BOTTLENECK", "body": "The dominant AI chain bottleneck remains MEMORY (Red), driven by insatiable demand for high-performance memory. Micron (MU) is the most critical company here with an outstanding score of 55.37 and a staggering growth acceleration delta of +64.2%. The emerging next constraint is INFRA (Orange), where Super Micro Computer (SMCI) stands out with a score of 46.3 and an exceptional delta of +111.2%, signaling rapidly increasing demand for AI server and cooling solutions."}, {"title": "\ud83d\ude80 NEXT NVIDIA SIGNAL", "body": "The single company exhibiting the strongest Nvidia-like growth acceleration today is Super Micro Computer (SMCI). With a staggering 120% revenue growth and an exceptional delta of +111.2% (compared to NVDA's 46% growth and +16.4% delta), SMCI is rapidly becoming a pivotal player. Its current score of 46.3 places it at the top of the INFRA layer, which is highlighted as an emerging bottleneck (Orange). *   Bull Case: SMCI's outsized growth and accelerating fundamentals demonstrate its critical role in building out AI infrastructure. As the AI arms race continues, SMCI is uniquely positioned to capture significant market share in AI server and cooling solutions. *   Invalidation: A sharp deceleration in enterprise AI infrastructure spending, significant competitive pressure from larger players, or signs of unsustainable pricing/demand could rapidly deflate its current trajectory."}, {"title": "\u26a0\ufe0f HYPE WARNINGS", "body": "We observe an Orange signal for the entire INFRA layer, indicating potential overheating, with Super Micro Computer (SMCI) showing an exceptionally high delta of +111.2% within this category. While impressive, this rapid acceleration warrants close monitoring for sustainability. Additionally, we flag Microsoft (MSFT) and Vertiv (VRT) for momentum/fundamental divergences. Both show hype=True flags, but their respective scores are color=Blue with cooling fundamental deltas (MSFT: delta=-4.5%, VRT: delta=-10.2%), suggesting that market enthusiasm may be outpacing current fundamental performance."}];
-const ACTION = {"title": "\ud83d\udca1 ONE ACTION", "body": "Invest in Micron Technology (MU). *   Thesis: MU is the clear leader within the MEMORY layer, which is identified as the dominant AI chain bottleneck (Red). With the highest overall score of 55.37 and an astounding growth acceleration delta of +64.2%, coupled with 111% revenue growth, MU is uniquely positioned to capitalize on the acute shortage and soaring demand for high-bandwidth memory (HBM) essential for next-generation AI processors. This represents a foundational, structural demand play on the most critical limiting factor in AI scaling today. *   Risk: While current demand is robust, the memory market is inherently cyclical. An unexpected oversupply, intensified competition, or a deceleration in overall AI infrastructure build-out could temper future growth and profitability."};
-const HAS_YESTERDAY = true;
+const LAYERS       = [{"id": "energy", "n1": "Energy", "n2": "power infra", "score": 37.2, "color": "Green", "news_vel": 6, "momentum_label": "+moderate", "delta_score": -4.3, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "CEG", "name": "Constellation Energy Corporation", "price": 259.53, "ret30": -2.7, "delta_band": "decelerating", "hype": false, "color": "Blue", "sparkline": [300.56, 271.98, 279.39, 293.82, 276.84, 314.2, 306.86, 310.32, 274.04, 260.27, 301.11, 265.29, 254.44, 246.33, 266.76, 267.56, 247.99, 239.34, 257.17, 252.0, 275.18, 257.55, 266.84, 270.01, 282.07, 272.92, 279.52, 280.31, 299.05, 264.57], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 63, "week52_high": 412.7, "week52_low": 228.63}, {"sym": "VST", "name": "Vistra Corp.", "price": 140.39, "ret30": -0.1, "delta_band": "decelerating", "hype": false, "color": "Blue", "sparkline": [155.26, 150.97, 152.54, 162.71, 154.69, 166.35, 155.06, 153.73, 142.41, 134.52, 164.33, 154.54, 148.55, 146.18, 158.61, 162.87, 158.63, 155.73, 158.12, 155.44, 168.98, 142.81, 143.23, 142.87, 148.13, 138.94, 140.03, 138.08, 151.72, 140.73], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 64, "week52_high": 219.82, "week52_low": 132.66}, {"sym": "PWR", "name": "Quanta Services, Inc.", "price": 619.28, "ret30": -11.0, "delta_band": "accelerating", "hype": false, "color": "Orange", "sparkline": [549.79, 560.54, 581.97, 591.73, 605.8, 637.18, 742.1, 750.62, 773.6, 714.02, 742.07, 687.37, 695.0, 683.19, 714.74, 701.77, 719.93, 656.79, 646.7, 628.53, 653.8, 561.14, 693.0, 660.86, 685.78, 662.47, 616.73, 611.39, 639.05, 622.02], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2191", "target": "A", "label": "Upgrade likely", "color": "#27500A", "reason": "Accelerating into bottleneck layer"}, "run_rate": null, "pct_of_high": 79, "week52_high": 788.75, "week52_low": 373.4}, {"sym": "GEV", "name": "GE Vernova Inc.", "price": 925.09, "ret30": -7.9, "delta_band": "accelerating", "hype": false, "color": "Green", "sparkline": [852.72, 898.11, 967.53, 985.42, 990.79, 1119.66, 1062.41, 1045.1, 1062.03, 1011.28, 1069.92, 950.05, 933.13, 906.33, 1048.86, 1057.65, 1174.86, 1077.08, 1042.6, 1057.84, 1031.19, 900.28, 1018.53, 990.85, 1063.25, 966.01, 953.09, 898.53, 971.31, 874.76], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 77, "week52_high": 1195.94, "week52_low": 530.16}], "divergence": false, "divergence_msg": ""}, {"id": "compute", "n1": "Semicon", "n2": "& chip design", "score": 37.6, "color": "Orange", "news_vel": 6, "momentum_label": "+strong", "delta_score": -7.3, "prev_color": "Orange", "color_changed": false, "tickers": [{"sym": "NVDA", "name": "NVIDIA Corporation", "price": 213.9, "ret30": -2.5, "delta_band": "stable", "hype": false, "color": "Blue", "sparkline": [167.14, 176.99, 183.49, 198.42, 199.42, 216.12, 198.0, 211.02, 225.31, 220.11, 214.37, 223.85, 204.87, 204.64, 204.42, 198.78, 199.87, 196.71, 203.3, 202.58, 208.53, 189.8, 211.7, 217.31, 224.91, 216.61, 209.43, 217.2, 225.48, 210.96], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 90, "week52_high": 236.54, "week52_low": 164.27}, {"sym": "AMD", "name": "Advanced Micro Devices, Inc.", "price": 512.5, "ret30": 5.8, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [201.99, 217.5, 236.64, 258.12, 284.49, 334.63, 360.54, 408.46, 445.5, 414.05, 503.89, 510.13, 466.38, 488.45, 512.48, 519.74, 580.91, 516.11, 534.39, 495.76, 539.69, 429.56, 518.58, 469.56, 514.39, 469.46, 480.93, 459.61, 505.74, 493.41], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 88, "week52_high": 584.73, "week52_low": 149.85}, {"sym": "AVGO", "name": "Broadcom Inc.", "price": 339.51, "ret30": -10.7, "delta_band": "accelerating", "hype": false, "color": "Orange", "sparkline": [300.2, 314.05, 354.35, 396.09, 401.53, 417.54, 420.61, 411.91, 416.13, 410.42, 421.34, 459.24, 385.12, 384.96, 392.28, 382.07, 377.75, 370.78, 384.05, 370.83, 392.47, 370.32, 418.16, 422.4, 392.99, 364.03, 355.59, 369.68, 368.56, 344.72], "rating": "A", "prev_rating": "A", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "A", "label": "Holding strong", "color": "#27500A", "reason": "Sustained acceleration"}, "run_rate": null, "pct_of_high": 69, "week52_high": 495.0, "week52_low": 289.96}, {"sym": "ASML", "name": "ASML Holding N.V.", "price": 1602.22, "ret30": -11.1, "delta_band": "decelerating", "hype": false, "color": "Blue", "sparkline": [1297.95, 1312.66, 1443.62, 1476.63, 1453.91, 1430.59, 1425.18, 1514.64, 1579.54, 1457.55, 1629.92, 1626.47, 1639.62, 1897.03, 1865.42, 1760.49, 1986.87, 1745.02, 1723.81, 1745.32, 1800.67, 1550.69, 1711.89, 1733.48, 1844.08, 1750.31, 1745.64, 1665.14, 1764.85, 1575.15], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 80, "week52_high": 1999.96, "week52_low": 861.18}], "divergence": false, "divergence_msg": ""}, {"id": "memory", "n1": "HBM memory", "n2": "storage", "score": 58.1, "color": "Red", "news_vel": 3, "momentum_label": "+strong", "delta_score": -10.6, "prev_color": "Red", "color_changed": false, "tickers": [{"sym": "MU", "name": "Micron Technology, Inc.", "price": 926.55, "ret30": -1.5, "delta_band": "accelerating", "hype": false, "color": "Red", "sparkline": [357.02, 366.18, 421.45, 456.16, 449.31, 524.48, 542.13, 646.53, 803.51, 698.63, 895.74, 1035.34, 863.88, 995.72, 1043.03, 1048.35, 1154.11, 938.38, 937.0, 848.95, 990.21, 739.0, 892.67, 861.0, 971.66, 974.33, 938.4, 933.44, 1000.26, 924.03], "rating": "A", "prev_rating": "A", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "A", "label": "Holding strong", "color": "#27500A", "reason": "Sustained acceleration"}, "run_rate": null, "pct_of_high": 74, "week52_high": 1255.0, "week52_low": 154.65}, {"sym": "WDC", "name": "Western Digital Corporation", "price": 416.97, "ret30": -15.9, "delta_band": "accelerating", "hype": false, "color": "Green", "sparkline": [275.18, 294.8, 337.68, 364.79, 383.59, 400.5, 431.27, 463.64, 493.8, 455.53, 524.34, 545.88, 511.56, 529.12, 711.9, 643.62, 638.52, 531.93, 555.37, 477.07, 558.12, 461.89, 548.38, 438.2, 508.64, 468.9, 468.73, 450.3, 477.3, 426.94], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 52, "week52_high": 799.87, "week52_low": 99.72}, {"sym": "AMAT", "name": "Applied Materials, Inc.", "price": 415.38, "ret30": -19.1, "delta_band": "accelerating", "hype": false, "color": "Green", "sparkline": [336.39, 347.67, 396.89, 393.35, 393.42, 403.93, 388.18, 409.69, 435.6, 405.97, 454.4, 457.68, 452.53, 552.05, 592.29, 588.34, 722.23, 553.91, 574.78, 529.09, 562.2, 435.98, 546.04, 521.56, 506.64, 496.21, 479.76, 441.85, 472.79, 424.21], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 56, "week52_high": 739.67, "week52_low": 173.97}, {"sym": "LRCX", "name": "Lam Research Corporation", "price": 269.23, "ret30": -17.9, "delta_band": "accelerating", "hype": false, "color": "Green", "sparkline": [211.26, 218.29, 258.58, 264.97, 258.19, 259.29, 256.54, 286.32, 295.23, 273.19, 322.45, 316.9, 303.07, 362.26, 374.18, 374.8, 433.33, 326.13, 329.92, 313.3, 319.78, 252.35, 317.74, 306.4, 332.36, 310.53, 312.88, 290.2, 320.42, 273.49], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 61, "week52_high": 438.5, "week52_low": 119.51}], "divergence": false, "divergence_msg": ""}, {"id": "infra", "n1": "Data center", "n2": "& bandwidth", "score": 33.9, "color": "Green", "news_vel": 7, "momentum_label": "+moderate", "delta_score": -8.6, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "VRT", "name": "Vertiv Holdings Co", "price": 239.41, "ret30": -12.1, "delta_band": "accelerating", "hype": false, "color": "Green", "sparkline": [250.96, 261.17, 287.51, 301.02, 312.3, 322.28, 328.16, 339.86, 369.82, 322.48, 323.76, 323.24, 300.37, 297.75, 317.5, 316.35, 334.74, 305.51, 305.8, 289.49, 303.97, 222.99, 269.86, 270.03, 293.77, 264.57, 263.75, 255.91, 290.76, 237.39], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 63, "week52_high": 379.935, "week52_low": 132.685}, {"sym": "ANET", "name": "Arista Networks, Inc.", "price": 197.54, "ret30": 2.3, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [120.77, 126.68, 146.05, 154.33, 172.86, 172.47, 172.7, 141.75, 140.69, 141.58, 158.01, 170.68, 154.27, 156.4, 164.93, 161.74, 169.88, 166.46, 181.15, 168.61, 176.61, 157.97, 190.51, 191.52, 198.82, 183.75, 202.25, 189.26, 194.96, 187.81], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 92, "week52_high": 214.89, "week52_low": 114.52}, {"sym": "EQIX", "name": "Equinix, Inc.", "price": 1016.16, "ret30": -5.9, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [953.7, 990.71, 1021.61, 1042.81, 1083.78, 1079.33, 1074.56, 1056.46, 1066.88, 1038.31, 1072.51, 1045.77, 1075.81, 1038.22, 1083.34, 1089.79, 1037.43, 1018.07, 1034.59, 1015.15, 1028.64, 1003.23, 1046.53, 1038.42, 1096.86, 1082.61, 1079.61, 1027.59, 1041.21, 998.72], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 90, "week52_high": 1128.68, "week52_low": 720.62}, {"sym": "SMCI", "name": "Super Micro Computer, Inc.", "price": 36.85, "ret30": -1.5, "delta_band": "decelerating", "hype": false, "color": "Blue", "sparkline": [21.97, 23.22, 23.22, 27.29, 28.43, 27.85, 27.09, 33.62, 32.0, 30.56, 37.1, 46.88, 41.64, 31.97, 27.78, 32.45, 29.33, 26.25, 27.66, 24.18, 31.2, 25.7, 31.69, 31.46, 39.84, 36.5, 37.39, 36.71, 40.26, 36.74], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 63, "week52_high": 58.78, "week52_low": 19.48}], "divergence": false, "divergence_msg": ""}, {"id": "cloud", "n1": "Cloud", "n2": "hyperscalers", "score": 25.4, "color": "Green", "news_vel": 2, "momentum_label": "+mild", "delta_score": -10.8, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "MSFT", "name": "Microsoft Corporation", "price": 490.3, "ret30": 2.0, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [355.33, 371.95, 371.56, 409.56, 422.45, 423.11, 412.77, 419.07, 403.57, 415.74, 415.25, 459.65, 415.89, 389.61, 378.2, 364.77, 372.32, 388.11, 390.26, 393.08, 380.86, 389.81, 491.88, 505.11, 494.47, 481.15, 496.37, 501.02, 493.95, 505.41], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 89, "week52_high": 553.72, "week52_low": 349.2}, {"sym": "GOOGL", "name": "Alphabet Inc.", "price": 342.87, "ret30": -0.3, "delta_band": "stable", "hype": false, "color": "Blue", "sparkline": [274.0, 295.4, 318.1, 336.7, 331.88, 349.91, 385.21, 397.5, 402.12, 387.18, 388.4, 375.9, 368.07, 357.54, 363.56, 345.07, 357.14, 366.79, 352.28, 346.55, 317.49, 336.49, 377.41, 357.29, 345.68, 340.45, 341.78, 334.8, 338.36, 349.39], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 84, "week52_high": 408.61, "week52_low": 235.84}, {"sym": "AMZN", "name": "Amazon.com, Inc.", "price": 245.96, "ret30": -5.2, "delta_band": "decelerating", "hype": false, "color": "Blue", "sparkline": [199.34, 209.77, 233.65, 248.5, 249.91, 261.12, 268.26, 271.17, 270.13, 259.34, 265.29, 261.26, 246.03, 241.51, 237.5, 234.27, 238.34, 245.98, 247.31, 247.23, 233.66, 226.65, 277.42, 278.09, 262.65, 260.11, 260.28, 254.92, 256.97, 253.54], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 86, "week52_high": 287.2, "week52_low": 196.0}, {"sym": "META", "name": "Meta Platforms, Inc.", "price": 673.31, "ret30": 23.8, "delta_band": "decelerating", "hype": true, "color": "Blue", "sparkline": [547.03, 578.69, 611.85, 661.88, 670.29, 674.4, 611.34, 612.31, 602.44, 610.64, 609.69, 631.92, 626.99, 570.45, 600.21, 562.2, 562.6, 600.29, 669.21, 664.54, 627.17, 593.41, 590.24, 592.1, 594.97, 546.03, 570.05, 572.34, 616.77, 648.03], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2193", "target": "D", "label": "Avoid", "color": "#E24B4A", "reason": "Hype unwinding with deteriorating fundamentals"}, "run_rate": null, "pct_of_high": 85, "week52_high": 790.8, "week52_low": 520.26}], "divergence": false, "divergence_msg": ""}, {"id": "software", "n1": "AI software", "n2": "& observability", "score": 27.8, "color": "Green", "news_vel": 6, "momentum_label": "+moderate", "delta_score": -9.1, "prev_color": "Green", "color_changed": false, "tickers": [{"sym": "PLTR", "name": "Palantir Technologies Inc.", "price": 174.34, "ret30": 1.6, "delta_band": "stable", "hype": false, "color": "Blue", "sparkline": [143.06, 148.46, 130.49, 142.15, 145.97, 143.1, 144.07, 137.05, 130.05, 135.26, 136.6, 160.65, 135.53, 131.08, 130.63, 113.5, 116.67, 134.37, 130.04, 132.38, 123.37, 123.0, 162.66, 175.23, 174.04, 173.96, 177.5, 179.92, 170.3, 173.31], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 84, "week52_high": 207.52, "week52_low": 106.37}, {"sym": "NOW", "name": "ServiceNow, Inc.", "price": 139.82, "ret30": 17.0, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [99.41, 102.0, 89.81, 94.19, 100.14, 90.45, 91.16, 93.59, 87.05, 101.83, 99.92, 135.86, 112.45, 103.08, 95.48, 93.8, 99.28, 110.73, 111.26, 103.24, 91.94, 115.76, 118.14, 127.44, 124.0, 129.75, 125.8, 142.9, 134.21, 142.35], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 72, "week52_high": 194.726, "week52_low": 81.24}, {"sym": "SNOW", "name": "Snowflake Inc.", "price": 331.02, "ret30": 1.8, "delta_band": "accelerating", "hype": false, "color": "Green", "sparkline": [152.8, 151.85, 132.24, 144.48, 150.84, 144.25, 141.0, 153.72, 152.37, 169.55, 177.6, 280.16, 238.26, 240.39, 234.52, 225.95, 254.5, 262.74, 268.65, 268.9, 265.13, 282.9, 316.77, 334.7, 328.92, 321.29, 315.37, 319.8, 335.5, 332.35], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 86, "week52_high": 384.56, "week52_low": 118.3}, {"sym": "CRM", "name": "Salesforce, Inc.", "price": 250.54, "ret30": 27.7, "delta_band": "decelerating", "hype": true, "color": "Blue", "sparkline": [178.4, 186.23, 170.41, 177.14, 186.63, 179.72, 183.35, 185.86, 165.41, 178.96, 178.62, 209.06, 185.18, 166.45, 155.02, 152.76, 156.66, 169.52, 171.22, 170.77, 156.93, 188.38, 190.99, 197.51, 196.21, 205.43, 205.62, 258.11, 249.12, 259.43], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2193", "target": "D", "label": "Avoid", "color": "#E24B4A", "reason": "Hype unwinding with deteriorating fundamentals"}, "run_rate": null, "pct_of_high": 93, "week52_high": 269.11, "week52_low": 146.32}], "divergence": false, "divergence_msg": ""}, {"id": "security", "n1": "AI security", "n2": "& governance", "score": 41.8, "color": "Orange", "news_vel": 5, "momentum_label": "+moderate", "delta_score": -4.5, "prev_color": "Orange", "color_changed": false, "tickers": [{"sym": "CRWD", "name": "CrowdStrike Holdings, Inc.", "price": 241.36, "ret30": 13.4, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [92.39, 99.78, 98.67, 102.79, 112.4, 113.65, 113.91, 126.43, 140.64, 154.22, 167.89, 195.54, 167.76, 172.88, 170.74, 168.26, 190.79, 194.62, 187.91, 203.08, 183.42, 179.38, 211.22, 225.16, 216.95, 190.34, 189.18, 215.07, 210.02, 235.38], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 98, "week52_high": 245.19, "week52_low": 85.68}, {"sym": "PANW", "name": "Palo Alto Networks, Inc.", "price": 375.65, "ret30": 0.4, "delta_band": "accelerating", "hype": false, "color": "Orange", "sparkline": [147.02, 163.21, 166.99, 164.11, 174.96, 182.9, 181.08, 196.53, 227.79, 240.13, 256.75, 300.48, 272.05, 279.53, 282.13, 285.26, 341.02, 337.04, 330.3, 358.68, 325.63, 314.15, 366.34, 385.04, 384.27, 349.56, 339.31, 362.09, 336.98, 373.94], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2191", "target": "A", "label": "Upgrade likely", "color": "#27500A", "reason": "Accelerating into bottleneck layer"}, "run_rate": null, "pct_of_high": 94, "week52_high": 398.88, "week52_low": 139.57}, {"sym": "S", "name": "SentinelOne, Inc.", "price": 23.17, "ret30": 3.0, "delta_band": "stable", "hype": false, "color": "Green", "sparkline": [12.58, 13.33, 12.77, 13.26, 14.46, 14.63, 14.9, 15.92, 16.08, 17.66, 18.56, 17.81, 15.95, 14.76, 14.8, 15.12, 16.97, 18.16, 18.55, 19.57, 17.38, 18.52, 20.98, 22.23, 23.11, 20.94, 20.51, 20.63, 19.43, 22.61], "rating": "B", "prev_rating": "B", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "B", "label": "Stable", "color": "#378ADD", "reason": "Fundamentals holding steady"}, "run_rate": null, "pct_of_high": 97, "week52_high": 23.95, "week52_low": 11.81}, {"sym": "OKTA", "name": "Okta, Inc.", "price": 188.12, "ret30": 30.7, "delta_band": "stable", "hype": true, "color": "Green", "sparkline": [73.23, 80.19, 67.76, 67.35, 77.64, 76.14, 75.78, 80.88, 78.2, 85.7, 93.81, 139.79, 118.72, 117.5, 113.03, 118.58, 136.45, 148.47, 139.53, 149.35, 136.1, 136.91, 147.82, 150.77, 147.43, 134.16, 134.42, 166.43, 167.6, 186.45], "rating": "C", "prev_rating": "C", "rating_up": false, "rating_down": false, "forecast": {"direction": "\u2192", "target": "C", "label": "Still cautious", "color": "#EF9F27", "reason": "No clear recovery signal yet"}, "run_rate": null, "pct_of_high": 98, "week52_high": 191.99, "week52_low": 62.66}], "divergence": false, "divergence_msg": ""}];
+const MAIN_SECTIONS= [{"title": "\ud83c\udf0d MACRO REGIME", "body": "The current macro regime is Neutral, indicating a mixed environment for AI investments. While certain segments of the AI supply chain are experiencing significant acceleration and bottlenecks, broader market sentiment shows cooling trends in several established areas. Investors should be selective, focusing on core bottleneck technologies and companies demonstrating strong fundamental growth rather than broad market exposure."}, {"title": "\ud83d\udd29 AI CHAIN BOTTLENECK", "body": "The dominant constraint layer in the AI chain is Memory, with a best score of 58 and a Red color signal. The emerging next constraint is Security, with a best score of 42 and an Orange color signal. Within the Memory layer, Micron Technology (MU) is the most critical company, showing an astounding score delta of +93.0% and 204% revenue growth."}, {"title": "\ud83d\ude80 NEXT NVIDIA SIGNAL", "body": "Micron Technology (MU) presents the strongest Nvidia-like growth acceleration among all listed companies. The bull case for MU is its unparalleled 204% revenue growth, indicating it is a primary beneficiary of the severe memory bottleneck in the AI supply chain. This outlook would be invalidated by a significant slowdown in its revenue growth or a sudden easing of the memory supply constraints."}, {"title": "\u26a0\ufe0f HYPE WARNINGS", "body": "Two companies warrant hype warnings due to cooling fundamentals despite previous attention. META, categorized as hype=True, shows a cooling score of 24 with a negative delta of -8.4%, suggesting its market enthusiasm is not matched by recent fundamental acceleration. Similarly, CRM, also hype=True, has a low score of 14 and a cooling delta of -7.2%, indicating a decline in its underlying performance metrics."}];
+const ACTION       = {"title": "\ud83d\udca1 ONE ACTION", "body": "Company: MU (Micron Technology) Action: Buy Thesis: Micron Technology (MU) exhibits exceptional revenue growth of 204% and a score delta of +93.0%, making it the dominant player in the critical Red-colored Memory bottleneck layer. Primary risk: The significant dependency on sustained demand for memory products and the potential for a rapid unwinding of the current supply-demand imbalance."};
+const HAS_YESTERDAY= true;
+const RADAR        = {"top5": [{"ticker": "PLTR", "name": "Palantir", "layer": "software", "score": 35.3, "ret_1mo": 1.6, "ret_3mo": 33.5, "gross_margin": 84.8, "analyst_count": 27, "confidence": "LOW", "consecutive": 0, "latest_growth": 92.8, "trajectory": ["\ud83d\udd25"]}, {"ticker": "ALAB", "name": "Astera Labs", "layer": "infra", "score": 34.8, "ret_1mo": -11.3, "ret_3mo": -28.2, "gross_margin": 75.1, "analyst_count": 23, "confidence": "LOW", "consecutive": 0, "latest_growth": 104.5, "trajectory": ["\ud83d\udd25"]}, {"ticker": "NVDA", "name": "Nvidia", "layer": "compute", "score": 34.7, "ret_1mo": -2.5, "ret_3mo": 4.6, "gross_margin": 74.7, "analyst_count": 58, "confidence": "LOW", "consecutive": 0, "latest_growth": 105.9, "trajectory": ["\ud83d\udd25"]}, {"ticker": "TER", "name": "Teradyne", "layer": "compute", "score": 34.5, "ret_1mo": -15.6, "ret_3mo": -16.5, "gross_margin": 59.2, "analyst_count": 15, "confidence": "LOW", "consecutive": 0, "latest_growth": 103.9, "trajectory": ["\ud83d\udd25"]}, {"ticker": "MU", "name": "Micron Technology", "layer": "memory", "score": 34.2, "ret_1mo": -1.5, "ret_3mo": -11.2, "gross_margin": 72.6, "analyst_count": 45, "confidence": "LOW", "consecutive": 0, "latest_growth": 345.7, "trajectory": ["\ud83d\udd25"]}], "wildcard": {"ticker": "TER", "name": "Teradyne", "layer": "compute", "score": 34.5, "ret_1mo": -15.6, "ret_3mo": -16.5, "gross_margin": 59.2, "analyst_count": 15, "confidence": "LOW", "consecutive": 0, "latest_growth": 103.9, "trajectory": ["\ud83d\udd25"], "sparkline": [295.38, 309.37, 363.93, 364.68, 379.64, 401.69, 345.16, 353.84, 363.1, 321.28, 388.99, 369.33, 357.79, 381.25, 408.4, 427.04, 483.65, 342.98, 340.98, 322.24, 373.61, 319.29, 403.41, 364.96, 418.63, 383.0, 362.96, 335.33, 372.06, 329.2]}};
+const HISTORY      = {"layer_ids": ["energy", "compute", "memory", "infra", "cloud", "software", "security"], "days": [{"date": "2026-06-19", "label": "Jun 19", "short": "19", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-20", "label": "Jun 20", "short": "20", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-21", "label": "Jun 21", "short": "21", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-22", "label": "Jun 22", "short": "22", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-23", "label": "Jun 23", "short": "23", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-24", "label": "Jun 24", "short": "24", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-25", "label": "Jun 25", "short": "25", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-26", "label": "Jun 26", "short": "26", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-27", "label": "Jun 27", "short": "27", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-28", "label": "Jun 28", "short": "28", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-29", "label": "Jun 29", "short": "29", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-06-30", "label": "Jun 30", "short": "30", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-01", "label": "Jul 01", "short": "01", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-02", "label": "Jul 02", "short": "02", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-03", "label": "Jul 03", "short": "03", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-04", "label": "Jul 04", "short": "04", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-05", "label": "Jul 05", "short": "05", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-06", "label": "Jul 06", "short": "06", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-07", "label": "Jul 07", "short": "07", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-08", "label": "Jul 08", "short": "08", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-09", "label": "Jul 09", "short": "09", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-10", "label": "Jul 10", "short": "10", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-11", "label": "Jul 11", "short": "11", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-12", "label": "Jul 12", "short": "12", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-13", "label": "Jul 13", "short": "13", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-14", "label": "Jul 14", "short": "14", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-15", "label": "Jul 15", "short": "15", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-16", "label": "Jul 16", "short": "16", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-17", "label": "Jul 17", "short": "17", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-18", "label": "Jul 18", "short": "18", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-19", "label": "Jul 19", "short": "19", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-20", "label": "Jul 20", "short": "20", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-21", "label": "Jul 21", "short": "21", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-22", "label": "Jul 22", "short": "22", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-23", "label": "Jul 23", "short": "23", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-24", "label": "Jul 24", "short": "24", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-25", "label": "Jul 25", "short": "25", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-26", "label": "Jul 26", "short": "26", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-27", "label": "Jul 27", "short": "27", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-28", "label": "Jul 28", "short": "28", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-29", "label": "Jul 29", "short": "29", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-30", "label": "Jul 30", "short": "30", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-07-31", "label": "Jul 31", "short": "31", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-01", "label": "Aug 01", "short": "01", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-02", "label": "Aug 02", "short": "02", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-03", "label": "Aug 03", "short": "03", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-04", "label": "Aug 04", "short": "04", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-05", "label": "Aug 05", "short": "05", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-06", "label": "Aug 06", "short": "06", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-07", "label": "Aug 07", "short": "07", "layers": {"energy": "Red", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-08", "label": "Aug 08", "short": "08", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-09", "label": "Aug 09", "short": "09", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-10", "label": "Aug 10", "short": "10", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-11", "label": "Aug 11", "short": "11", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-12", "label": "Aug 12", "short": "12", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-13", "label": "Aug 13", "short": "13", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-14", "label": "Aug 14", "short": "14", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-15", "label": "Aug 15", "short": "15", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-16", "label": "Aug 16", "short": "16", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-17", "label": "Aug 17", "short": "17", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-18", "label": "Aug 18", "short": "18", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-19", "label": "Aug 19", "short": "19", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-20", "label": "Aug 20", "short": "20", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-21", "label": "Aug 21", "short": "21", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-22", "label": "Aug 22", "short": "22", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-23", "label": "Aug 23", "short": "23", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-24", "label": "Aug 24", "short": "24", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-25", "label": "Aug 25", "short": "25", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-26", "label": "Aug 26", "short": "26", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-27", "label": "Aug 27", "short": "27", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-28", "label": "Aug 28", "short": "28", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-29", "label": "Aug 29", "short": "29", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-08-30", "label": "Aug 30", "short": "30", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-08-31", "label": "Aug 31", "short": "31", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-01", "label": "Sep 01", "short": "01", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-02", "label": "Sep 02", "short": "02", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-03", "label": "Sep 03", "short": "03", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-04", "label": "Sep 04", "short": "04", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-05", "label": "Sep 05", "short": "05", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-09-06", "label": "Sep 06", "short": "06", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-09-07", "label": "Sep 07", "short": "07", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-08", "label": "Sep 08", "short": "08", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-09", "label": "Sep 09", "short": "09", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-10", "label": "Sep 10", "short": "10", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-11", "label": "Sep 11", "short": "11", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-12", "label": "Sep 12", "short": "12", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-09-13", "label": "Sep 13", "short": "13", "layers": {"energy": "none", "compute": "none", "memory": "none", "infra": "none", "cloud": "none", "software": "none", "security": "none"}}, {"date": "2026-09-14", "label": "Sep 14", "short": "14", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-15", "label": "Sep 15", "short": "15", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}, {"date": "2026-09-16", "label": "Sep 16", "short": "16", "layers": {"energy": "Green", "compute": "Orange", "memory": "Red", "infra": "Green", "cloud": "Green", "software": "Green", "security": "Orange"}}]};
+const TRACK_RECORD = [{"ticker": "AMAT", "date": "2026-09-01", "ret_since": null}, {"ticker": "MU", "date": "2026-09-16", "ret_since": null}];
  
 const CC = {
   Red:    {bg:"#FCEBEB",border:"#E24B4A",pill:"#E24B4A",pft:"#FCEBEB",lbl:"Hot"},
@@ -235,7 +480,6 @@ const CC = {
   Blue:   {bg:"#E6F1FB",border:"#378ADD",pill:"#378ADD",pft:"#E6F1FB",lbl:"Cooling"},
 };
  
-const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 let active = null;
  
 function fmt(v, decimals=1) {
@@ -244,7 +488,7 @@ function fmt(v, decimals=1) {
  
 function deltaArrow(d) {
   if (d === null || d === undefined) return "";
-  const col = d > 0 ? "#27500A" : d < 0 ? "#A32D2D" : "#888780";
+  const col   = d > 0 ? "#27500A" : d < 0 ? "#A32D2D" : "#888780";
   const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "—";
   return `<span style="color:${col};font-size:10px">${arrow} ${Math.abs(d).toFixed(1)}</span>`;
 }
@@ -254,30 +498,167 @@ function colorChangeBadge(l) {
   const prev = CC[l.prev_color] || CC.Green;
   return `<span style="font-size:9px;padding:1px 5px;border-radius:4px;
                         background:${prev.bg};color:${prev.pill};
-                        border:0.5px solid ${prev.pill};margin-left:4px">
-            was ${prev.lbl}
-          </span>`;
+                        border:0.5px solid ${prev.pill};margin-left:4px">was ${prev.lbl}</span>`;
+}
+ 
+const EARNINGS_WATCH = {
+  "memory":   { companies: ["MU","WDC"],            next: "Jun 2026" },
+  "compute":  { companies: ["NVDA","AMD"],           next: "May-Jun 2026" },
+  "infra":    { companies: ["SMCI","VRT"],           next: "May 2026" },
+  "cloud":    { companies: ["MSFT","GOOGL","AMZN","META"], next: "Jul 2026" },
+  "energy":   { companies: ["CEG","GEV"],            next: "Aug 2026" },
+  "security": { companies: ["CRWD","PANW"],          next: "Jun 2026" },
+  "software": { companies: ["PLTR","SNOW"],          next: "May 2026" },
+};
+ 
+function getEarningsBadge(layerId) {
+  const watch = EARNINGS_WATCH[layerId];
+  if (!watch) return "";
+  const nearTerm = ["compute","infra","software","security"];
+  if (nearTerm.includes(layerId)) {
+    return `<span style="font-size:9px;padding:1px 5px;border-radius:4px;
+                         background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;
+                         margin-left:4px" title="Earnings: ${watch.companies.join(', ')} — ${watch.next}">
+              📅 Earnings soon</span>`;
+  }
+  return "";
+}
+ 
+const sparkCharts = {};
+ 
+function toggleTickerDetail(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const open = el.style.display === "none";
+  document.querySelectorAll('[id^="tk-detail-"]').forEach(d => d.style.display = "none");
+  Object.keys(sparkCharts).forEach(k => { try { sparkCharts[k].destroy(); } catch(e) {} delete sparkCharts[k]; });
+  el.style.display = open ? "block" : "none";
+  if (!open) return;
+ 
+  const sym = id.replace(/^tk-detail-[^-]+-/, "");
+  LAYERS.forEach(l => l.tickers.forEach(t => {
+    if (t.sym !== sym || !t.sparkline || t.sparkline.length < 5) return;
+    const data  = t.sparkline;
+    const mn    = Math.min(...data);
+    const mx    = Math.max(...data);
+    const range = mx - mn;
+    const canvasWrap = document.getElementById("spark-wrap-" + sym);
+    if (range < 1) {
+      if (canvasWrap) canvasWrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:#B4B2A9;font-style:italic">Fetching 6-month history...</div>';
+      return;
+    }
+    const pad   = range * 0.12;
+    const col   = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+    const bgCol = t.ret30 >= 0 ? "rgba(39,80,10,0.07)" : "rgba(163,45,45,0.07)";
+    const today = new Date();
+    const step  = Math.max(1, Math.floor(180 / data.length));
+    const labels = data.map((_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (data.length - 1 - i) * step);
+      return d.toLocaleDateString("en", {month:"short", day:"numeric"});
+    });
+    if (canvasWrap) canvasWrap.innerHTML = '<canvas id="spark-' + sym + '" style="width:100%;height:100%"></canvas>';
+    setTimeout(() => {
+      const canvas = document.getElementById("spark-" + sym);
+      if (!canvas) return;
+      sparkCharts["spark-" + sym] = new Chart(canvas, {
+        type: "line",
+        data: { labels, datasets: [{ data, borderColor: col, borderWidth: 2, pointRadius: 0,
+                 pointHoverRadius: 3, fill: true, backgroundColor: bgCol, tension: 0.35 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode:"index", intersect:false },
+          plugins: { legend:{display:false}, tooltip:{ callbacks:{
+            label: c => "$" + c.parsed.y.toFixed(2), title: c => c[0].label } } },
+          scales: {
+            x: { display:true, ticks:{maxTicksLimit:5,font:{size:9},color:"#888780",maxRotation:0},
+                  grid:{display:false}, border:{display:false} },
+            y: { display:true, min:mn-pad, max:mx+pad,
+                  ticks:{maxTicksLimit:4,font:{size:9},color:"#888780",callback:v=>"$"+Math.round(v)},
+                  grid:{color:"rgba(0,0,0,0.04)"}, border:{display:false} }
+          },
+          animation: { duration:500 }
+        }
+      });
+    }, 80);
+  }));
+}
+ 
+function getCompanyContext(sym, layerId) {
+  const ctx = {
+    "CEG":"Constellation Energy is the largest US nuclear operator. Signing AI-specific Power Purchase Agreements with hyperscalers — directly powering data centers with 24/7 carbon-free power.",
+    "VST":"Vistra operates natural gas and nuclear plants. Benefits from surging electricity demand driven by AI data center buildout in Texas and the Southeast.",
+    "PWR":"Quanta Services builds and maintains power grid infrastructure. As data centers require grid upgrades, Quanta executes the physical construction work.",
+    "GEV":"GE Vernova makes transformers, switchgear and grid equipment. These components connect data centers to the power grid — currently on 2-3 year backlog.",
+    "ETN":"Eaton makes power distribution and management systems inside data centers. Every rack of servers needs Eaton's PDUs and UPS systems.",
+    "NVDA":"Nvidia's H100/H200/B200 GPUs are the primary compute engine for AI training and inference. Near-monopoly on AI accelerators with 70-80% gross margins.",
+    "AMD":"AMD's MI300X competes with Nvidia for AI training workloads. Gaining share with hyperscalers looking to diversify away from single-vendor dependency.",
+    "AVGO":"Broadcom designs custom AI chips (ASICs) for Google, Meta and others. Also makes the networking silicon connecting GPU clusters — two AI revenue streams.",
+    "ASML":"ASML makes EUV lithography machines — the only company in the world that can. Every advanced AI chip requires ASML equipment to manufacture.",
+    "TSM":"TSMC manufactures chips for Nvidia, AMD, Apple and ARM. The world's most advanced semiconductor foundry — 90%+ of leading-edge AI chips are made here.",
+    "ARM":"ARM licenses chip architectures used in virtually every mobile and edge AI device. Royalties from every Apple, Qualcomm and MediaTek chip that ships.",
+    "CDNS":"Cadence Design Systems makes EDA software — the tools used to design every AI chip. Without Cadence, NVDA couldn't design its next GPU.",
+    "MU":"Micron is the only US-listed pure-play HBM supplier. HBM memory is essential for AI training — each H100 GPU uses Micron or SK Hynix HBM stacks.",
+    "WDC":"Western Digital makes NAND flash storage used in AI data centers. Also pivoting toward HBM with recent product announcements.",
+    "AMAT":"Applied Materials makes the deposition and etch equipment used to manufacture memory chips. Picks-and-shovels play on all memory production expansion.",
+    "LRCX":"Lam Research makes etch equipment critical for advanced memory fabrication. Benefits directly when memory fabs expand capacity for HBM production.",
+    "VRT":"Vertiv makes liquid cooling systems for dense GPU clusters. As GPU power density increases, air cooling fails — Vertiv's moment is now.",
+    "ANET":"Arista Networks makes the high-speed ethernet switches connecting GPU clusters. Moving from data center to AI networking with Ultra Ethernet Consortium.",
+    "EQIX":"Equinix operates 260+ data centers globally. AI workloads need colocation space close to fiber interconnects — Equinix's core offering.",
+    "SMCI":"Super Micro Computer builds AI-optimized server racks. Fastest to market with liquid-cooled GPU servers — direct beneficiary of Nvidia GPU demand.",
+    "CSCO":"Cisco provides the networking backbone for enterprise AI deployments. Pivoting AI strategy around its silicon and software for data center switching.",
+    "CIEN":"Ciena makes optical networking equipment — the bandwidth pipes connecting AI data centers across distances. Critical for multi-site AI cluster deployments.",
+    "MSFT":"Microsoft is the primary distribution partner for OpenAI. Azure AI services and Copilot are the monetization vehicle for the largest AI investment in history.",
+    "GOOGL":"Google DeepMind and Gemini models run on Google Cloud. Also designs its own TPU AI chips — vertically integrated from silicon to application.",
+    "AMZN":"AWS is the largest cloud provider. Amazon Bedrock offers access to multiple AI models. Also deploying Trainium and Inferentia custom AI chips.",
+    "META":"Meta open-sources LLaMA models, driving AI adoption at scale. Investing $65B in AI infrastructure in 2026 — one of the largest capex programs ever.",
+    "PLTR":"Palantir's AIP platform brings AI agents to enterprise operations. Unique position with US government and defense — classified AI applications.",
+    "NOW":"ServiceNow automates enterprise workflows with AI. 80%+ gross margins and sticky multi-year contracts across Fortune 500.",
+    "SNOW":"Snowflake provides the data cloud layer AI models need for training and inference. Clean, governed data is the prerequisite for enterprise AI.",
+    "CRM":"Salesforce embeds AI (Einstein) across its CRM platform. 150,000+ enterprise customers provide a massive distribution channel for AI features.",
+    "DDOG":"Datadog monitors AI infrastructure performance and cost. As AI deployments scale, observability becomes critical — Datadog is the market leader.",
+    "CRWD":"CrowdStrike uses AI to detect and stop cyber threats in real time. The Falcon platform protects AI infrastructure from adversarial attacks.",
+    "PANW":"Palo Alto Networks provides AI-powered network security. Platformization strategy bundles AI security across firewall, cloud and endpoint.",
+    "S":"SentinelOne uses autonomous AI agents for threat detection. Fastest growing pure-play AI security company by revenue.",
+    "OKTA":"Okta manages identity and access for AI applications. As AI agents proliferate, controlling who and what can access systems becomes critical.",
+  };
+  return ctx[sym] || `${sym} is a key player in the ${layerId} layer of the AI value chain.`;
+}
+ 
+function toggleAbout() {
+  const sec = document.getElementById("about-section");
+  const btn = document.getElementById("about-btn");
+  const open = sec.style.display === "none";
+  sec.style.display = open ? "block" : "none";
+  btn.innerHTML = open ? "✕ Close" : "ℹ️ About this dashboard";
 }
  
 function buildBottleneckStrip() {
   const strip = document.getElementById("bottleneck-strip");
   if (!strip) return;
-  const sorted = [...LAYERS].sort((a,b) => b.score - a.score);
-  const hot     = sorted.find(l => l.color === "Red");
-  const emerging = sorted.find(l => l.color === "Orange");
-  const easing   = sorted.find(l => l.color === "Blue");
-  const current  = hot || emerging || sorted[0];
-  const next     = emerging && emerging !== current ? emerging : sorted.find(l => l !== current && l.color === "Orange") || sorted[1];
-  const ease     = easing || sorted[sorted.length-1];
-  strip.innerHTML = `
-    <span style="color:#888780">Current bottleneck:</span>
-    <strong style="color:${(CC[current.color]||CC.Green).border}">${current.n1}</strong>
-    <span style="color:#B4B2A9">→</span>
-    <span style="color:#888780">Emerging next:</span>
-    <strong style="color:${(CC[next.color]||CC.Green).border}">${next.n1}</strong>
-    <span style="color:#B4B2A9">→</span>
-    <span style="color:#888780">Easing:</span>
-    <strong style="color:${(CC[ease.color]||CC.Green).border}">${ease.n1}</strong>`;
+  const sorted    = [...LAYERS].sort((a,b) => b.score - a.score);
+  const hotLayers = sorted.filter(l => l.color === "Red");
+  const emerging  = sorted.find(l => l.color === "Orange");
+  const easing    = sorted.find(l => l.color === "Blue");
+  const ease      = easing || sorted[sorted.length-1];
+ 
+  let html = "";
+  if (hotLayers.length > 0) {
+    html += `<span style="color:#888780">Bottleneck${hotLayers.length > 1 ? "s" : ""}:</span>`;
+    hotLayers.forEach((l, i) => {
+      html += `<strong style="color:#E24B4A">${l.n1}</strong>`;
+      if (i < hotLayers.length - 1) html += `<span style="color:#E24B4A;margin:0 2px">+</span>`;
+    });
+  }
+  if (emerging) {
+    html += `<span style="color:#B4B2A9;margin:0 4px">→</span>`;
+    html += `<span style="color:#888780">Emerging:</span>`;
+    html += `<strong style="color:#EF9F27">${emerging.n1}</strong>`;
+  }
+  html += `<span style="color:#B4B2A9;margin:0 4px">→</span>`;
+  html += `<span style="color:#888780">Easing:</span>`;
+  html += `<strong style="color:${(CC[ease.color]||CC.Green).border}">${ease.n1}</strong>`;
+  strip.innerHTML = html;
 }
  
 function buildChain() {
@@ -286,7 +667,6 @@ function buildChain() {
   LAYERS.forEach((l, idx) => {
     const c   = CC[l.color] || CC.Green;
     const pct = Math.min(100, Math.round(l.score));
-    const isA = active === l.id;
     const top3 = l.tickers.slice(0, 3);
     const tkHtml = top3.map(t => {
       const col = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
@@ -300,30 +680,35 @@ function buildChain() {
  
     const div = document.createElement("div");
     div.className = "layer";
-    div.style.cssText = `flex:1;min-width:120px;background:${c.bg};border-color:${c.border};${isA ? "box-shadow:0 0 0 2px "+c.border : ""}`;
+    div.style.cssText = `flex:1;min-width:120px;background:${c.bg};border-color:${c.border};${active===l.id?"box-shadow:0 0 0 2px "+c.border:""}`;
     div.innerHTML = `
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;margin-bottom:6px">
         <span class="lyr-pill" style="background:${c.pill};color:${c.pft}">${c.lbl}</span>
-        ${colorChangeBadge(l)}
+        ${colorChangeBadge(l)}${getEarningsBadge(l.id)}
       </div>
       <div class="lyr-name">${l.n1}<br><span style="color:#888780;font-weight:400">${l.n2}</span></div>
       <div class="lyr-score" style="color:${c.border}">${l.score.toFixed(0)}</div>
       <div class="lyr-delta">
-        ${HAS_YESTERDAY && l.delta_score !== null ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs yesterday</span>" : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}
+        ${HAS_YESTERDAY && l.delta_score !== null
+          ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs yesterday</span>"
+          : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${pct}%;background:${c.border}"></div></div>
       <div class="lyr-meta">News ${l.news_vel} hits · Momentum ${l.momentum_label}</div>
+      <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
+        ${l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${t.rating}" style="font-size:9px;padding:1px 4px" title="${t.sym}: ${t.rating==='A'?'Accelerating':t.rating==='B'?'Stable':t.rating==='C'?'Caution':'Deteriorating'}">${t.sym} ${t.rating}</span>`).join("")}
+      </div>
+      ${l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
+        <div class="div-tooltip">${l.divergence_msg}</div></div>` : ""}
       <div class="lyr-tickers">${tkHtml}</div>`;
     div.onclick = () => { active = active === l.id ? null : l.id; buildChain(); buildExpand(); };
     wrap.appendChild(div);
  
-    // Arrow between boxes
     if (idx < LAYERS.length - 1) {
       const arrow = document.createElement("div");
       arrow.style.cssText = "display:flex;align-items:center;padding:0 3px;flex-shrink:0;padding-top:20px";
       arrow.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M3 8h10M9 4l4 4-4 4" stroke="#B4B2A9" stroke-width="1.5"
-              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="#B4B2A9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
       wrap.appendChild(arrow);
     }
@@ -336,19 +721,71 @@ function buildExpand() {
   if (!active) { area.innerHTML = ""; return; }
   const l = LAYERS.find(x => x.id === active);
   const c = CC[l.color] || CC.Green;
+ 
   const cards = l.tickers.map(t => {
-    const dc = t.delta >= 0 ? "#27500A" : "#A32D2D";
-    const rc = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
-    const hyp = t.hype ? `<span style="font-size:9px;background:#FAEEDA;color:#854F0B;
-                                       padding:1px 5px;border-radius:4px;margin-left:4px">hype</span>` : "";
-    return `<div class="ex-tk">
-      <div style="display:flex;align-items:center">
-        <div class="ex-sym">${t.sym}</div>${hyp}
+    const rc    = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+    const hyp   = t.hype ? `<span style="font-size:9px;background:#FAEEDA;color:#854F0B;padding:1px 5px;border-radius:4px;margin-left:4px">hype</span>` : "";
+    const tIcon = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : "—";
+    const tCol  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
+    const cardId = `tk-detail-${l.id}-${t.sym}`;
+    const deepDive = `Give me a focused investment deep dive on ${t.sym} (${t.name}) in the context of the AI value chain. Cover: 1) What specific role does ${t.sym} play in AI infrastructure? 2) Latest revenue trend and whether growth is accelerating or decelerating. 3) Gross margin trend — is pricing power expanding? 4) The strongest bull case in one paragraph. 5) The main risk that would invalidate the bull case. 6) Compared to peers in the ${l.n1} layer, is ${t.sym} gaining or losing ground?`;
+ 
+    return `<div class="ex-tk" style="cursor:pointer" onclick="toggleTickerDetail('${cardId}')">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="ex-sym">${t.sym}</div>
+          <span class="rating-badge rating-${t.rating}"
+                title="${t.rating_up ? 'Upgraded from '+t.prev_rating+' — buy signal' : t.rating_down ? 'Downgraded from '+t.prev_rating+' — warning' : 'Rating: '+t.rating}"
+          >${t.rating}</span>
+          ${t.rating_up ? `<span style="font-size:10px;color:#27500A;font-weight:600">↑ was ${t.prev_rating}</span>` : ""}
+          ${t.rating_down ? `<span style="font-size:10px;color:#A32D2D;font-weight:600">↓ was ${t.prev_rating}</span>` : ""}
+          ${hyp}
+        </div>
+        <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
       <div class="ex-name">${t.name}</div>
+      ${t.run_rate ? `<div style="font-size:10px;font-weight:600;color:#27500A;margin:3px 0;
+          padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
+        Run rate $${t.run_rate}B/yr</div>` : ""}
       <div class="ex-row"><span class="ex-lbl">Price</span><span>$${t.price.toLocaleString()}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${rc}">${fmt(t.ret30)}%</span></div>
-      <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${dc}">${t.delta_band}</span></div>
+      <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${tCol}">${tIcon} ${t.delta_band}</span></div>
+      <div style="margin-top:6px;padding:5px 8px;border-radius:5px;
+                  background:#F8F8F7;border-left:2px solid ${t.forecast.color}">
+        <span style="font-size:10px;font-weight:500;color:${t.forecast.color}">
+          ${t.forecast.direction} ${t.rating} → ${t.forecast.target}
+        </span>
+        <span style="font-size:10px;color:#888780;margin-left:6px">${t.forecast.label}</span>
+      </div>
+      <div id="${cardId}" style="display:none;margin-top:10px;padding-top:10px;
+           border-top:0.5px solid #E0DFDC" onclick="event.stopPropagation()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+          ${t.run_rate ? `<div style="background:#EAF3DE;border-radius:6px;padding:8px 10px;border:0.5px solid #639922">
+            <div style="font-size:9px;color:#27500A;font-weight:500;margin-bottom:2px">REVENUE RUN RATE</div>
+            <div style="font-size:16px;font-weight:500;color:#27500A">$${t.run_rate}B</div>
+            <div style="font-size:9px;color:#3B6D11">annualized · latest quarter ×4</div>
+          </div>` : ""}
+          ${t.pct_of_high ? `<div style="background:#F8F8F7;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
+            <div style="font-size:9px;color:#888780;font-weight:500;margin-bottom:2px">52W POSITION</div>
+            <div style="font-size:16px;font-weight:500;color:#1A1A1A">${t.pct_of_high}%</div>
+            <div style="font-size:9px;color:#888780">of 52-week high ($${t.week52_high?.toFixed(0)})</div>
+            <div style="margin-top:4px;height:4px;background:#E0DFDC;border-radius:2px">
+              <div style="height:4px;border-radius:2px;background:${t.pct_of_high>80?'#E24B4A':t.pct_of_high>50?'#EF9F27':'#639922'};width:${t.pct_of_high}%"></div>
+            </div>
+          </div>` : ""}
+        </div>
+        <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">6-month price trend</div>
+        <div id="spark-wrap-${t.sym}" style="position:relative;width:100%;height:120px;margin-bottom:8px;background:#F8F8F7;border-radius:4px">
+          <canvas id="spark-${t.sym}" style="width:100%;height:100%" role="img" aria-label="${t.sym} 6-month price chart"></canvas>
+        </div>
+        <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">Strategic role in AI chain</div>
+        <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:8px">${getCompanyContext(t.sym, l.id)}</div>
+        <button onclick="sendPrompt('${deepDive}')"
+                style="width:100%;padding:7px;border:1px solid #378ADD;border-radius:6px;
+                       background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;cursor:pointer">
+          🔍 Deep dive with Claude ↗
+        </button>
+      </div>
     </div>`;
   }).join("");
  
@@ -361,33 +798,86 @@ function buildExpand() {
   </div>`;
 }
  
+function colorFromName(c) {
+  return {Red:"#E24B4A",Orange:"#EF9F27",Green:"#97C459",Blue:"#B5D4F4"}[c] || "#E8E6DF";
+}
+ 
+let currentHeatDays = 7;
+ 
+function setHeatDays(days) {
+  currentHeatDays = days;
+  [7,30,90].forEach(d => {
+    const btn = document.getElementById("hbtn-"+d);
+    if (btn) btn.className = "hbtn" + (d===days ? " active-hbtn" : "");
+  });
+  const lbl = document.getElementById("heat-label");
+  if (lbl) lbl.textContent = `Signal heat trail · last ${days} days`;
+  buildHeat();
+}
+ 
 function buildHeat() {
   const g = document.getElementById("heat");
+  if (!g) return;
   g.innerHTML = "";
-  const addEl = (cls, txt, bg) => {
+  const days    = currentHeatDays;
+  const slice   = HISTORY.days.slice(HISTORY.days.length - days);
+  const cellMin = days<=7?"32px":days<=30?"12px":"6px";
+  g.style.gridTemplateColumns = `56px repeat(${days}, minmax(${cellMin},1fr))`;
+ 
+  g.appendChild(document.createElement("div"));
+  const showEvery = days<=7?1:days<=30?5:15;
+  slice.forEach((day,i) => {
     const d = document.createElement("div");
-    d.className = cls;
-    if (bg) d.style.background = bg;
-    if (txt) d.textContent = txt;
+    d.className = "heat-day";
+    d.style.fontSize = days>30?"7px":"9px";
+    d.textContent = i%showEvery===0 ? day.short : "";
     g.appendChild(d);
-  };
-  addEl("heat-lbl", "");
-  DAYS.forEach(d => addEl("heat-day", d));
-  const rng = s => { let x = s; return () => { x = Math.sin(x) * 10000; return x - Math.floor(x); }; };
-  const heatCol = v => v > 55 ? "#E24B4A" : v >= 40 ? "#EF9F27" : v > 20 ? "#97C459" : v > 5 ? "#B5D4F4" : "#E0DFDC";
+  });
+ 
+  const displaySlice = days === 7
+    ? slice.filter(day => HISTORY.layer_ids.some(lid => day.layers[lid] && day.layers[lid] !== "none"))
+    : slice;
+ 
+  if (days === 7 && displaySlice.length !== slice.length) {
+    g.style.gridTemplateColumns = `56px repeat(${displaySlice.length}, minmax(32px,1fr))`;
+    g.innerHTML = "";
+    g.appendChild(document.createElement("div"));
+    displaySlice.forEach((day,i) => {
+      const d = document.createElement("div");
+      d.className = "heat-day";
+      d.style.fontSize = "9px";
+      d.textContent = day.short;
+      g.appendChild(d);
+    });
+  }
+ 
   LAYERS.forEach((l, li) => {
-    const r = rng(li * 7 + 42);
-    addEl("heat-lbl", l.n1);
-    for (let d = 0; d < 7; d++) {
-      const v = Math.max(5, Math.min(95, l.score + (r() * 20 - 10)));
-      addEl("heat-cell", "", heatCol(v));
-    }
+    const lbl = document.createElement("div");
+    lbl.className = "heat-lbl";
+    lbl.textContent = l.n1;
+    g.appendChild(lbl);
+    displaySlice.forEach((day) => {
+      const cell = document.createElement("div");
+      cell.className = "heat-cell";
+      cell.style.height = days>30?"13px":"18px";
+      const realColor = day.layers[l.id];
+      let displayColor;
+      if (realColor && realColor !== "none") {
+        displayColor = colorFromName(realColor);
+        cell.title = `${l.n1} · ${day.label} · ${realColor}`;
+      } else {
+        displayColor = days === 7 ? colorFromName(l.color) : "#EDEAE0";
+        cell.style.opacity = days === 7 ? "0.4" : "1";
+        cell.title = `${l.n1} · ${day.label} · ${days===7?"estimated":"no data yet"}`;
+      }
+      cell.style.background = displayColor;
+      g.appendChild(cell);
+    });
   });
 }
  
 function buildAnalysis() {
   const wrap = document.getElementById("analysis");
-  const icons = {"🌍":"🌍","🔩":"🔩","🚀":"🚀","⚠️":"⚠️","💡":"💡"};
   wrap.innerHTML = MAIN_SECTIONS.map(s => `
     <div class="as">
       <div class="as-hdr">
@@ -396,13 +886,225 @@ function buildAnalysis() {
       </div>
       <div class="as-body">${s.body}</div>
     </div>`).join("");
- 
   if (ACTION) {
     document.getElementById("action").innerHTML = `
       <div class="action-lbl">ONE ACTION TODAY</div>
       <div class="action-title">${ACTION.title}</div>
       <div class="action-body">${ACTION.body}</div>`;
   }
+}
+ 
+function buildRadar() {
+  const grid = document.getElementById("radar-grid");
+  const card = document.getElementById("radar-card");
+  const count = document.getElementById("radar-count");
+  if (!RADAR || !RADAR.top5 || RADAR.top5.length === 0) { card.style.display="none"; return; }
+  card.style.display = "block";
+  if (count) count.textContent = `Multi-quarter acceleration · ${RADAR.top5.length} of 45 companies scored`;
+ 
+  const LAYER_SHORT = {energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐",edge:"📡"};
+ 
+  // ── Wildcard ──────────────────────────────────────────────────────────────
+  const wildcard  = RADAR.wildcard || null;
+  const wcSection = document.getElementById("wildcard-section");
+  const wcCard    = document.getElementById("wildcard-card");
+  if (wildcard && wcSection && wcCard) {
+    wcSection.style.display = "block";
+    const wret = wildcard.ret_1mo >= 0 ? `+${wildcard.ret_1mo}%` : `${wildcard.ret_1mo}%`;
+    const wrc  = wildcard.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
+    const wlg  = wildcard.latest_growth ? `Rev +${wildcard.latest_growth?.toFixed(0)}%` : "";
+    const wgm  = wildcard.gross_margin  ? `GM ${wildcard.gross_margin}%` : "";
+    const wtraj = (wildcard.trajectory || []).join(" ");
+    const wPrompt = `Deep dive on ${wildcard.ticker} (${wildcard.name}) as a potential under-the-radar AI play. Only ${wildcard.analyst_count} analysts cover this company. Analyse: revenue acceleration trend, gross margin, competitive moat in the AI value chain, and what specific catalyst could make this the next Nvidia-like breakout.`;
+    const wcContextMap = {
+      memory:"memory chips and storage — the fuel every AI model runs on",
+      compute:"chip design and processing — the brain of AI systems",
+      infra:"data center hardware and networking — the physical backbone",
+      energy:"power delivery and grid equipment — the electricity AI needs",
+      cloud:"cloud platforms and hyperscaler infrastructure",
+      software:"AI applications and observability tooling",
+      security:"AI security and governance platforms",
+      edge:"edge computing and on-device AI processing",
+    };
+    const wcContext = wcContextMap[wildcard.layer] || wildcard.layer;
+ 
+    wcCard.innerHTML = `
+      <div style="background:white;border:1px solid #EF9F27;border-radius:10px;overflow:hidden">
+        <div style="padding:12px 14px;border-bottom:0.5px solid #E0DFDC;display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:20px;font-weight:500;color:#1A1A1A">${wildcard.ticker}</div>
+            <div style="font-size:11px;color:#888780;margin-top:2px">${wildcard.name} · ${wildcard.layer}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
+              Only ${wildcard.analyst_count} analysts — early discovery signal
+            </span>
+            <button onclick="sendPrompt('${wPrompt}')"
+                    style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
+              🔍 Deep dive ↗
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;border-bottom:0.5px solid #E0DFDC">
+          <div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">Revenue</div>
+            <div style="font-size:12px;font-weight:500;color:${wrc}">${wlg}</div>
+          </div>
+          <div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">Gross margin</div>
+            <div style="font-size:12px;font-weight:500;color:#1A1A1A">${wgm}</div>
+          </div>
+          <div style="flex:1;padding:8px 12px;border-right:0.5px solid #E0DFDC">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">1-month return</div>
+            <div style="font-size:12px;font-weight:500;color:${wrc}">${wret}</div>
+          </div>
+          <div style="flex:1;padding:8px 12px">
+            <div style="font-size:10px;color:#888780;margin-bottom:3px">Momentum</div>
+            <div style="font-size:12px;font-weight:500;color:#1A1A1A">${wtraj}</div>
+          </div>
+        </div>
+        <div style="padding:10px 14px;background:#F8F8F7">
+          <div style="font-size:10px;color:#888780;margin-bottom:6px">6-month price trend</div>
+          <div id="wc-chart-wrap" style="position:relative;height:80px">
+            <canvas id="wc-spark" style="width:100%;height:100%"></canvas>
+          </div>
+        </div>
+        <div style="padding:10px 14px;font-size:11px;color:#5F5E5A;line-height:1.6;border-top:0.5px solid #E0DFDC">
+          ${wildcard.ticker} operates in ${wcContext}. Only ${wildcard.analyst_count} Wall Street analysts cover it.
+          When revenue fundamentals accelerate before analyst coverage catches up, that is historically the
+          earliest signal of an outsized opportunity.
+        </div>
+      </div>`;
+ 
+    // Render wildcard sparkline
+    setTimeout(() => {
+      const wcSpark = document.getElementById("wc-spark");
+      if (wcSpark && wildcard.sparkline && wildcard.sparkline.length > 3) {
+        const wcData = wildcard.sparkline;
+        const wcMn   = Math.min(...wcData);
+        const wcMx   = Math.max(...wcData);
+        if (wcMx - wcMn > 1) {
+          const wcPad  = (wcMx - wcMn) * 0.12;
+          const wcCol  = wildcard.ret_1mo >= 0 ? "#3B6D11" : "#A32D2D";
+          const wcBg   = wcCol === "#3B6D11" ? "rgba(39,80,10,0.07)" : "rgba(163,45,45,0.07)";
+          const wcToday = new Date();
+          const wcLabels = wcData.map((_, i) => {
+            const d = new Date(wcToday);
+            d.setDate(d.getDate() - (wcData.length - 1 - i) * 6);
+            return d.toLocaleDateString("en", {month:"short", day:"numeric"});
+          });
+          try {
+            new Chart(wcSpark, {
+              type: "line",
+              data: { labels: wcLabels, datasets: [{ data: wcData, borderColor: wcCol,
+                       borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: wcBg, tension: 0.4 }] },
+              options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => "$" + c.parsed.y.toFixed(0) } } },
+                scales: {
+                  x: { display:true, ticks:{maxTicksLimit:5,font:{size:9},color:"#888780",maxRotation:0},
+                        grid:{display:false}, border:{display:false} },
+                  y: { display:true, min:wcMn-wcPad, max:wcMx+wcPad,
+                        ticks:{maxTicksLimit:3,font:{size:9},color:"#888780",callback:v=>"$"+Math.round(v)},
+                        grid:{color:"rgba(0,0,0,0.04)"}, border:{display:false} }
+                },
+                animation: {duration:500}
+              }
+            });
+          } catch(e) { console.log("Wildcard chart error:", e); }
+        } else {
+          document.getElementById("wc-chart-wrap").innerHTML =
+            '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:#B4B2A9;font-style:italic">Price history loading...</div>';
+        }
+      }
+    }, 150);
+  }
+ 
+  // ── Top 5 grid ────────────────────────────────────────────────────────────
+  grid.innerHTML = (RADAR.top5 || []).map((r, i) => {
+    const pct    = Math.min(100, r.score);
+    const conf   = r.confidence || "LOW";
+    const traj   = (r.trajectory || []).join(" ");
+    const ret1   = r.ret_1mo >= 0 ? `+${r.ret_1mo}%` : `${r.ret_1mo}%`;
+    const retCol = r.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
+    const gm     = r.gross_margin ? `GM ${r.gross_margin}%` : "";
+    const lg     = r.latest_growth ? `Rev ${r.latest_growth > 0 ? "+" : ""}${r.latest_growth?.toFixed(0)}%` : "";
+    const cons   = r.consecutive > 0 ? `${r.consecutive}Q accel` : "No accel";
+ 
+    return `<div class="radar-card">
+      <div class="radar-rank">#${i+1} ${LAYER_SHORT[r.layer]||""} ${r.layer}</div>
+      <div class="radar-sym">${r.ticker}</div>
+      <div class="radar-name">${r.name}</div>
+      <div class="radar-traj">${traj}</div>
+      <div class="radar-bar-wrap"><div class="radar-bar" style="width:${pct}%"></div></div>
+      <div class="radar-meta">
+        <span class="radar-conf-${conf}">${conf} confidence</span>
+        <span>${cons}</span>
+      </div>
+      <div class="radar-meta">
+        <span style="color:${retCol}">${ret1} (1mo)</span>
+        ${lg ? `<span>${lg}</span>` : ""}
+        ${gm ? `<span>${gm}</span>` : ""}
+      </div>
+      <div style="margin-top:4px">
+        <button onclick="sendPrompt('Deep dive on ${r.ticker} (${r.name}) as a potential Next Nvidia play. Analyse their revenue acceleration, gross margin trend, competitive position and what would confirm or invalidate the bull case.')"
+                style="font-size:10px;padding:3px 8px;border:0.5px solid #E0DFDC;
+                       border-radius:4px;background:white;cursor:pointer;color:#1A1A1A">
+          Deep dive ↗
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+ 
+function buildTopTicker(layers) {
+  const el = document.getElementById("top-ticker");
+  if (!el) return;
+  const STATUS   = {Red:"Hot",Orange:"Emerging",Green:"Neutral",Blue:"Cooling"};
+  const ICONS    = {energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐"};
+  const items = [];
+  layers.forEach(l => {
+    l.tickers.slice(0,3).forEach(t => {
+      const dir = t.ret30 > 1 ? "up" : t.ret30 < -1 ? "dn" : "neu";
+      items.push(`<span class="t-item">
+        <span class="t-sym">${t.sym}</span>
+        <span>${ICONS[l.id]||""} ${l.n1} · ${STATUS[l.color]||"Neutral"}</span>
+        <span class="t-${dir}">${t.ret30>=0?"+":""}${t.ret30.toFixed(1)}%</span>
+      </span>`);
+    });
+  });
+  el.innerHTML = [...items,...items].join("");
+}
+ 
+function buildSignalBars() {
+  const wrap = document.getElementById("signal-bars");
+  if (!wrap) return;
+  const heights = [8,14,22,28,24,18,10,14,20,28,22,16,8,12,20,26,28,18,10,8];
+  const colors  = ["#378ADD","#378ADD","#534AB7","#534AB7","#E24B4A","#E24B4A",
+                   "#534AB7","#534AB7","#378ADD","#378ADD","#534AB7","#E24B4A",
+                   "#E24B4A","#534AB7","#378ADD","#378ADD","#534AB7","#534AB7","#E24B4A","#378ADD"];
+  wrap.innerHTML = heights.map((h,i) =>
+    `<div class="sbar" style="height:${h}px;background:${colors[i]};animation-delay:${(i*0.07).toFixed(2)}s"></div>`
+  ).join("");
+}
+ 
+function buildTrackRecord() {
+  const section = document.getElementById("track-record");
+  const rows    = document.getElementById("track-rows");
+  if (!TRACK_RECORD || TRACK_RECORD.length === 0) return;
+  section.style.display = "block";
+  rows.innerHTML = TRACK_RECORD.map(r => {
+    const retCol = r.ret_since > 0 ? "#27500A" : r.ret_since < 0 ? "#A32D2D" : "#888780";
+    const retTxt = r.ret_since !== null ? `${r.ret_since >= 0 ? "+" : ""}${r.ret_since.toFixed(1)}%` : "pending";
+    return `<div style="display:flex;justify-content:space-between;align-items:center;
+                         padding:6px 0;border-bottom:0.5px solid #E0DFDC;font-size:11px">
+      <div>
+        <span style="font-weight:500;color:#1A1A1A">${r.ticker}</span>
+        <span style="color:#888780;margin-left:8px">${r.date}</span>
+      </div>
+      <span style="font-weight:500;color:${retCol}">${retTxt}</span>
+    </div>`;
+  }).join("");
 }
  
 function toggleMeth() {
@@ -412,7 +1114,34 @@ function toggleMeth() {
   a.textContent = open ? "▴" : "▾";
 }
  
+function sendPrompt(text) {
+  window.open('https://claude.ai/new?q=' + encodeURIComponent(text), '_blank');
+}
+ 
 buildChain(); buildExpand(); buildHeat(); buildAnalysis();
+ 
+function buildHeroStatus() {
+  const el = document.getElementById("hero-chain-status");
+  if (!el || !LAYERS.length) return;
+  const HCOLOR = {
+    Red:    {label:"BOTTLENECK", val:"#E24B4A", bg:"rgba(226,75,74,0.12)",   border:"rgba(226,75,74,0.5)"},
+    Orange: {label:"EMERGING",   val:"#EF9F27", bg:"rgba(239,159,39,0.10)",  border:"rgba(239,159,39,0.4)"},
+    Green:  {label:"NEUTRAL",    val:"#639922", bg:"rgba(8,8,26,0.5)",        border:"rgba(255,255,255,0.04)"},
+    Blue:   {label:"EASING",     val:"#378ADD", bg:"rgba(55,138,221,0.10)",  border:"rgba(55,138,221,0.3)"},
+  };
+  const order = {Red:0, Orange:1, Blue:2, Green:3};
+  const sorted = [...LAYERS].sort((a,b) => (order[a.color] ?? 3) - (order[b.color] ?? 3));
+  el.innerHTML = sorted.map(l => {
+    const c = HCOLOR[l.color] || HCOLOR.Green;
+    return `<div style="flex:1;padding:7px 10px;background:${c.bg};border-right:0.5px solid rgba(255,255,255,0.06);">
+      <div style="font-size:8px;color:${c.val};font-weight:600;letter-spacing:.08em;margin-bottom:1px">${c.label}</div>
+      <div style="font-size:11px;font-weight:500;color:#fff;margin-bottom:1px">${l.n1}</div>
+      <div style="font-size:16px;font-weight:500;color:${c.val};line-height:1">${l.score.toFixed(0)}</div>
+    </div>`;
+  }).join("");
+}
+buildHeroStatus();
+buildRadar(); buildTopTicker(LAYERS); buildSignalBars(); buildTrackRecord();
 </script>
 </body>
 </html>
