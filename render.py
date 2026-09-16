@@ -248,11 +248,8 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             delta_score   = None
             color_changed = False
  
-        # News velocity
-        raw_tickers = market_data.get(layer_id, [])
-        news_vel = next((ts.get("news_velocity", 0) for ts in all_scores if ts.get("news_velocity")), 0)
-        if not news_vel and raw_tickers:
-            news_vel = raw_tickers[0].get("news_velocity", 0)
+        # News velocity — the layer's own best (highest-scoring) ticker's news, not a scan/fallback
+        news_vel = best.get("news_velocity", 0)
  
         fund_delta = best.get("fund_delta") or 0
  
