@@ -1716,7 +1716,7 @@ buildRadar(); buildTopTicker(LAYERS); buildSignalBars(); buildTrackRecord();
 </body>
 </html>"""
  
-    path = Path("ai_chain_report.html")
+    path = Path("index.html")
     path.write_text(html, encoding="utf-8")
     log.info(f"  Dashboard saved: {path.absolute()}")
     return str(path.absolute())
