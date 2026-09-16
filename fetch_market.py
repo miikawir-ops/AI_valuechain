@@ -35,7 +35,6 @@ AI_CHAIN_LAYERS = {
         "name": "Energy & Power Infrastructure",
         "tickers": ["CEG", "VST", "PWR", "GEV", "ETN"],
         "keywords": [
-            "constellation energy", "vistra", "quanta", "GE vernova", "eaton",
             "nuclear", "power", "grid", "electricity", "energy", "ppa",
             "megawatt", "gigawatt", "utility", "transformer", "switchgear",
             "power equipment", "power delivery", "uranium", "reactor",
@@ -53,7 +52,6 @@ AI_CHAIN_LAYERS = {
         "name": "Semiconductors & Chip Design",
         "tickers": ["NVDA", "AMD", "AVGO", "ASML", "TSM", "ARM", "CDNS"],
         "keywords": [
-            "nvidia", "broadcom", "TSMC", "cadence", "arm holdings",
             "gpu", "chip", "semiconductor", "H100", "H200", "B200", "B100",
             "blackwell", "hopper", "GB200", "NVL72", "MI300", "MI300X",
             "AI chip", "AI accelerator", "accelerator", "custom silicon", "ASIC",
@@ -69,8 +67,6 @@ AI_CHAIN_LAYERS = {
         "name": "HBM Memory & Storage",
         "tickers": ["MU", "WDC", "AMAT", "LRCX"],
         "keywords": [
-            "micron", "western digital", "applied materials", "lam research",
-            "SK hynix", "hynix", "samsung memory",
             "HBM", "HBM3", "HBM3e", "HBM4", "high bandwidth memory",
             "memory bandwidth", "memory stack", "memory bottleneck",
             "DRAM", "NAND", "flash memory", "memory chip",
@@ -84,7 +80,6 @@ AI_CHAIN_LAYERS = {
         "name": "Data Center & Networking",
         "tickers": ["VRT", "ANET", "EQIX", "SMCI", "CSCO", "CIEN"],
         "keywords": [
-            "vertiv", "arista", "equinix", "supermicro", "cisco", "ciena",
             "liquid cooling", "direct liquid cooling", "DLC", "cooling",
             "thermal management", "power density", "heat dissipation",
             "data center", "data centre", "colocation", "hyperscale",
@@ -100,7 +95,6 @@ AI_CHAIN_LAYERS = {
         "name": "Cloud & Hyperscalers",
         "tickers": ["MSFT", "GOOGL", "AMZN", "META"],
         "keywords": [
-            "microsoft", "google", "amazon", "meta",
             "azure", "AWS", "google cloud", "amazon web services",
             "cloud revenue", "cloud growth", "cloud spending",
             "copilot", "gemini", "bedrock", "llama", "openai",
@@ -116,7 +110,6 @@ AI_CHAIN_LAYERS = {
         "name": "AI Software & Observability",
         "tickers": ["PLTR", "NOW", "SNOW", "CRM", "DDOG"],
         "keywords": [
-            "palantir", "servicenow", "snowflake", "salesforce", "datadog",
             "AI software", "AI platform", "AI agent", "agentic",
             "enterprise AI", "AI workflow", "AI deployment", "AI operations",
             "generative AI", "AI application", "AI tool", "AI adoption",
@@ -131,7 +124,6 @@ AI_CHAIN_LAYERS = {
         "name": "AI Security & Governance",
         "tickers": ["CRWD", "PANW", "S", "OKTA"],
         "keywords": [
-            "crowdstrike", "palo alto", "sentinelone", "okta",
             "breach", "cyberattack", "ransomware", "zero day", "CVE",
             "nation state", "CISA", "vulnerability", "incident response",
             "data breach", "hack", "malware", "threat actor",
