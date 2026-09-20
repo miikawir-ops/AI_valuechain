@@ -117,6 +117,13 @@ LAYER_NAMES = {
     "software": ("AI software", "& observability"),
     "security": ("AI security", "& governance"),
 }
+
+# Sub-agent deep-dive links — layer_id -> URL. Absent layer_id = no
+# affordance rendered. Add an entry here when a new sub-agent deep-dive
+# should surface on a layer card; no other code change needed (Part B7).
+LAYER_DEEP_DIVE_URLS = {
+    "infra": "https://miikawir-ops.github.io/RayDar-DataCenter/",
+}
  
 DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
  
@@ -330,6 +337,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             "tickers":        tickers_out,
             "divergence":     divergence,
             "divergence_msg": divergence_msg,
+            "deep_dive_url":  LAYER_DEEP_DIVE_URLS.get(layer_id),
         })
  
     return json.dumps(layers)
@@ -631,6 +639,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .lyr-tickers{{border-top:1px solid rgba(0,0,0,.06);padding-top:7px;
               display:flex;flex-direction:column;gap:4px}}
 .lyr-tk{{display:flex;justify-content:space-between;font-size:10px;font-weight:500}}
+.lyr-deepdive{{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:500;
+              color:#378ADD;text-decoration:none;margin-top:6px}}
+.lyr-deepdive:hover{{text-decoration:underline}}
 .expand{{border:0.5px solid #E0DFDC;border-radius:10px;padding:14px;
          margin-top:10px;background:#F8F8F7;display:none}}
 .expand.open{{display:block}}
@@ -1270,7 +1281,8 @@ function buildChain() {{
       </div>
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}
-      <div class="lyr-tickers">${{tkHtml}}</div>`;
+      <div class="lyr-tickers">${{tkHtml}}</div>
+      ${{l.deep_dive_url ? `<a href="${{l.deep_dive_url}}" target="_blank" rel="noopener" class="lyr-deepdive" onclick="event.stopPropagation()">↗ Deep dive</a>` : ""}}`;
     div.onclick = () => {{ active = active === l.id ? null : l.id; buildChain(); buildExpand(); }};
     wrap.appendChild(div);
  
