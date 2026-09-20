@@ -2466,12 +2466,12 @@
   },
   {
     "date": "2026-09-20",
-    "time": "19:36",
+    "time": "20:04",
     "action_ticker": "MU",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 40.34,
+        "score": 39.81,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2538,7 +2538,7 @@
         }
       },
       "security": {
-        "score": 39.44,
+        "score": 38.84,
         "color": "Orange",
         "ratings": {
           "CRWD": "B",
