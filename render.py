@@ -118,11 +118,13 @@ LAYER_NAMES = {
     "security": ("AI security", "& governance"),
 }
 
-# Sub-agent deep-dive links — layer_id -> URL. Absent layer_id = no
-# affordance rendered. Add an entry here when a new sub-agent deep-dive
-# should surface on a layer card; no other code change needed (Part B7).
+# Sub-agent deep-dive links — layer_id -> {"url", "label"}. Absent layer_id
+# = no affordance rendered. Label travels with the URL so a new sub-agent
+# needs only a new entry here, no buildChain() template edit, to get its
+# own named affordance ("Enter <product name> ↗") on its layer card.
 LAYER_DEEP_DIVE_URLS = {
-    "infra": "https://miikawir-ops.github.io/RayDar-DataCenter/",
+    "infra": {"url": "https://miikawir-ops.github.io/RayDar-DataCenter/",
+              "label": "Enter RayDar Data Center"},
 }
  
 DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
@@ -337,7 +339,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             "tickers":        tickers_out,
             "divergence":     divergence,
             "divergence_msg": divergence_msg,
-            "deep_dive_url":  LAYER_DEEP_DIVE_URLS.get(layer_id),
+            "deep_dive":      LAYER_DEEP_DIVE_URLS.get(layer_id),
         })
  
     return json.dumps(layers)
@@ -639,9 +641,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .lyr-tickers{{border-top:1px solid rgba(0,0,0,.06);padding-top:7px;
               display:flex;flex-direction:column;gap:4px}}
 .lyr-tk{{display:flex;justify-content:space-between;font-size:10px;font-weight:500}}
-.lyr-deepdive{{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:500;
-              color:#378ADD;text-decoration:none;margin-top:6px}}
-.lyr-deepdive:hover{{text-decoration:underline}}
+.lyr-deepdive{{display:flex;align-items:center;justify-content:center;gap:5px;
+              font-size:11px;font-weight:600;color:#fff;text-decoration:none;
+              margin-top:8px;padding:6px 8px;border-radius:6px;
+              background:rgba(0,0,0,0.15);transition:background .15s}}
+.lyr-deepdive:hover{{background:rgba(0,0,0,0.25)}}
 .expand{{border:0.5px solid #E0DFDC;border-radius:10px;padding:14px;
          margin-top:10px;background:#F8F8F7;display:none}}
 .expand.open{{display:block}}
@@ -1282,7 +1286,7 @@ function buildChain() {{
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}
       <div class="lyr-tickers">${{tkHtml}}</div>
-      ${{l.deep_dive_url ? `<a href="${{l.deep_dive_url}}" target="_blank" rel="noopener" class="lyr-deepdive" onclick="event.stopPropagation()">↗ Deep dive</a>` : ""}}`;
+      ${{l.deep_dive ? `<a href="${{l.deep_dive.url}}" target="_blank" rel="noopener" class="lyr-deepdive" onclick="event.stopPropagation()">${{l.deep_dive.label}} ↗</a>` : ""}}`;
     div.onclick = () => {{ active = active === l.id ? null : l.id; buildChain(); buildExpand(); }};
     wrap.appendChild(div);
  
@@ -1374,7 +1378,6 @@ function buildExpand() {{
   area.innerHTML = `<div class="expand open" style="border-color:${{c.border}}">
     <div class="ex-hdr">
       <div class="ex-title">${{l.n1}} ${{l.n2}} — ${{c.lbl}} · score ${{l.score.toFixed(1)}}</div>
-      <button class="ex-btn" onclick="sendPrompt('Deep dive on the ${{l.n1}} ${{l.n2}} layer of the AI value chain today. Which company is best positioned and what would make this layer turn Red?')">Deep dive ↗</button>
     </div>
     <div class="ex-grid">${{cards}}</div>
   </div>`;
