@@ -642,10 +642,12 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
               display:flex;flex-direction:column;gap:4px}}
 .lyr-tk{{display:flex;justify-content:space-between;font-size:10px;font-weight:500}}
 .lyr-deepdive{{display:flex;align-items:center;justify-content:center;gap:5px;
-              font-size:11px;font-weight:600;color:#fff;text-decoration:none;
-              margin-top:8px;padding:6px 8px;border-radius:6px;
-              background:rgba(0,0,0,0.15);transition:background .15s}}
-.lyr-deepdive:hover{{background:rgba(0,0,0,0.25)}}
+              font-size:11px;font-weight:700;color:#fff;text-decoration:none;
+              margin-top:8px;padding:7px 8px;border-radius:6px;
+              background:linear-gradient(135deg,#0C1A3A,#3C3489);
+              box-shadow:0 0 0 1px rgba(133,183,235,0.35),0 0 10px rgba(83,74,183,0.4);
+              transition:box-shadow .15s}}
+.lyr-deepdive:hover{{box-shadow:0 0 0 1px rgba(133,183,235,0.7),0 0 16px rgba(83,74,183,0.7)}}
 .expand{{border:0.5px solid #E0DFDC;border-radius:10px;padding:14px;
          margin-top:10px;background:#F8F8F7;display:none}}
 .expand.open{{display:block}}
