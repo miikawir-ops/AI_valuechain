@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-23 — RayDar Vice: fixed the 404 that this file's own index.html rule came from
+
+### What
+
+- `RayDar-Vice` (sibling repo, `github.com/miikawir-ops/RayDar-Vice`) had no `index.html` at repo root at all — its daily workflow (`.github/workflows/daily_brief.yml`) only ever committed `raydar_vice.html`, `seen_hashes.json`, `signal_history.json`. GitHub Pages had nothing to serve at the bare root URL. Confirmed live before the fix: root 404, `/raydar_vice.html` 200 directly — ruling out a Pages configuration problem, isolating the cause to the missing file.
+- This is the same failure this repo's own `CLAUDE.md` rule ("Every GitHub Pages repo needs index.html at root... Learned from a 404 on a sibling site") was written from. That rule existed for months while the 404 it was learned from remained unfixed on the site that taught it.
+
+### Fix
+
+- Added a minimal `index.html` redirect at `RayDar-Vice` repo root (meta-refresh + `<link rel="canonical">` + a visible fallback link) pointing to `raydar_vice.html`. A redirect, not a rename: `raydar_vice.html` and its workflow are untouched, so existing direct links keep working — a smaller, lower-risk fix than the rename-to-canonical approach used on this repo's own `index.html`/`ai_chain_report.html` split, appropriate here since Vice's daily file was never split into two competing copies the way this repo's was.
+- The file is deliberately excluded from the workflow's `git add` list, and carries an inline HTML comment warning against a future workflow change silently starting to write over it — the same orphaning failure mode this repo hit, forestalled at the point of risk rather than in a doc no one reads before touching that file.
+
+### Verified
+
+- Local clone was 123 commits behind origin — pulled fast-forward to match `origin/main` exactly, confirmed clean tree, before making the single-file commit (per this file's own "check ahead/behind at session start" rule, applied here to a sibling repo for the same reason).
+- Live, after push: root returns 200 and serves the redirect content correctly (meta-refresh tag, canonical link verified byte-for-byte against what was committed). A real browser (Playwright) navigating to the bare root URL actually lands on `.../raydar_vice.html` with the correct title — not just inferred from a 200 status, the redirect was confirmed to execute. `raydar_vice.html` confirmed still reachable directly, unaffected.
+
 ## 2026-09-21 — Part B7: data-driven sub-agent deep-dive link (parent ↔ Data Center)
 
 ### What
