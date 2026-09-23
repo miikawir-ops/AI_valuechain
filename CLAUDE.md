@@ -37,6 +37,10 @@ A successful run is not a correct run. No errors / green CI proves the code didn
 Verify against the REAL production path (the actual pipeline, live data), not only a standalone or bypass script — a bypass script can hide the exact bug (pooling, aggregation, scope) that only appears at the real call sites.
 If something can't be verified, say so explicitly rather than assuming.
 When a fix has multiple independent parts, land them as separate commits, each verified against real output before the next starts. This is what makes a regression traceable to one change instead of a tangle of several.
+Approval scope
+Needs Ray's approval before committing: anything that changes how something looks (share screenshots first — a passing test run verifies function, not whether it looks right to Ray); any user-facing text; any change to rendered output on this live site; any change to scoring logic, weights or thresholds; any architecture decision, new dependency or multi-file change.
+Proceed without approval, report afterwards: bug fixes with a reproduced and verified root cause; refactors with no behavior change; documentation; test and verification tooling — provided verification passes and the change is committed separately so it can be reverted on its own.
+Always stop and ask regardless: when the fix would change agreed behavior; when the root cause isn't actually understood; when the change affects more than the reported problem.
 Data & honesty
 Never fabricate data, metrics, or milestones. Mark sparse or estimated data as such.
 Financial data may be stale (quarterly financials up to 90 days old) — disclose it.
