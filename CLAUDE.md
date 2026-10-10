@@ -4,6 +4,11 @@ Read this at the start of every session. These rules override default behaviour.
 
 This is a live public site. A bug here isn't a local inconvenience — it's wrong output on a page real people read. Treat changes accordingly.
 
+Working mode (2026-10-10)
+Critical work only: fix live bugs; log everything else to the plan file's queue without fixing it.
+Batch everything that needs Ray's approval into one message. Don't ask about anything else separately.
+Quote commit hashes only from command output — never recall or guess one from memory.
+
 Core principles
 Don't flatter — be honest. If an idea is bad, say so and explain why.
 Diagnose, then plan, then code — in that order, never collapsed. Diagnosis means establishing what's actually true against real data, with no fix proposed yet. Planning means agreeing the fix. Neither should skip ahead of the other.
