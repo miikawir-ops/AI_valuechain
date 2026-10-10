@@ -21,6 +21,7 @@ Returns two objects:
 """
  
 import json
+import math
 import logging
 import datetime
 import argparse
@@ -293,7 +294,16 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         price_act   = round((price - prev) / prev, 4) if prev else 0.0
         gross_margin = info.get("grossMargins")
  
-        hist    = t.history(period="6mo")
+        data_missing: list = []
+
+        hist = t.history(period="6mo")
+        # Drop a trailing unfinished/not-yet-traded bar: yfinance can append
+        # "today" with a NaN Close right after 00:00 UTC, before the market
+        # this ticker trades on has actually opened. Computing off that row
+        # poisons every derived return/momentum value with NaN.
+        while not hist.empty and math.isnan(hist["Close"].iloc[-1]):
+            hist = hist.iloc[:-1]
+
         closes  = hist["Close"].tolist() if not hist.empty else []
         if closes:
             step = max(1, len(closes) // 30)
@@ -303,6 +313,10 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         volumes = hist["Volume"].tolist() if not hist.empty else []
  
         price_30d = round((closes[-1] / closes[-21] - 1), 4) if len(closes) >= 21 else 0.0
+        if isinstance(price_30d, float) and math.isnan(price_30d):
+            data_missing.append("price_30d_return")
+            price_30d = None
+
         vol_avg   = sum(volumes[-20:]) / 20 if len(volumes) >= 20 else None
         vol_spike = round(volumes[-1] / vol_avg, 2) if vol_avg and volumes else 1.0
  
@@ -310,7 +324,13 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         ret_90d = (closes[-1] / closes[-63] - 1) if len(closes) >= 63 else ret_5d
         avg_5d_from_90d = ret_90d / 18 if ret_90d != 0 else 0.001
         price_momentum  = round(ret_5d / avg_5d_from_90d, 2) if avg_5d_from_90d != 0 else 1.0
-        price_momentum  = max(-5.0, min(5.0, price_momentum))
+        if isinstance(price_momentum, float) and math.isnan(price_momentum):
+            # Check before clamping — max(-5, min(5, nan)) silently resolves
+            # to 5.0 in Python, which would masquerade as strong bullish data.
+            data_missing.append("price_momentum")
+            price_momentum = None
+        else:
+            price_momentum = max(-5.0, min(5.0, price_momentum))
  
         growth_curr       = None
         growth_prev       = None
@@ -450,6 +470,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             "sector":            info.get("sector", "N/A"),
             "data_date":         datetime.datetime.now().strftime("%Y-%m-%d"),
             "data_age_note":     "Quarterly financials may be up to 90 days old",
+            "data_missing":      data_missing,
         }
  
     except Exception as e:
@@ -468,6 +489,37 @@ def add_peer_outperformance(ticker_list: list) -> list:
     return ticker_list
  
  
+def find_nan_paths(obj, path: str = "") -> list:
+    """Recursively locate any float('nan') values in a nested dict/list.
+
+    Final backstop for the NaN-to-live-page bug: individual fields are
+    converted to None at the source (see data_missing above), but this
+    catches anything that slips through — any remaining NaN anywhere in
+    the fetched data means the run should fail rather than publish it.
+    """
+    paths = []
+    if isinstance(obj, float) and math.isnan(obj):
+        paths.append(path or "<root>")
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            paths.extend(find_nan_paths(v, f"{path}.{k}" if path else str(k)))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            paths.extend(find_nan_paths(v, f"{path}[{i}]"))
+    return paths
+
+
+def assert_no_nan(market_data: dict) -> None:
+    """Raise if any NaN remains in fetched data. Call this OUTSIDE any
+    try/except that would swallow it — the whole point is for the run to
+    fail loudly (non-zero exit, no commit) instead of publishing NaN."""
+    paths = find_nan_paths(market_data)
+    if paths:
+        shown = ", ".join(paths[:10])
+        more = f" (+{len(paths) - 10} more)" if len(paths) > 10 else ""
+        raise ValueError(f"NaN in fetched market data at: {shown}{more} — refusing to render/publish.")
+
+
 def fetch_macro() -> dict:
     log.info("  Fetching macro signals...")
     result = {"vix": 20.0, "yield_10y_change": 0.0, "nasdaq_vs_spx_20d": 0.0}

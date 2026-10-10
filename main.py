@@ -412,6 +412,13 @@ def run_full_pipeline(score_only: bool = False):
     log.info(f"{'='*55}")
  
     market_data, macro_data = stage_fetch()
+
+    # Deliberately outside stage_fetch()'s own try/except, which swallows
+    # exceptions into an empty-data fallback — this needs to crash the run
+    # instead, so a bad fetch never reaches render/publish.
+    from fetch_market import assert_no_nan
+    assert_no_nan(market_data)
+
     scored_data = stage_score(market_data, macro_data)
  
     if score_only:
