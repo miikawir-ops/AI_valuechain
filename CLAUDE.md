@@ -5,7 +5,7 @@ Read this at the start of every session. These rules override default behaviour.
 This is a live public site. A bug here isn't a local inconvenience — it's wrong output on a page real people read. Treat changes accordingly.
 
 Working mode (2026-10-10)
-Critical work only: fix live bugs; log everything else to the plan file's queue without fixing it.
+Critical work only: fix live bugs; log everything else to PLAN.md's Queue section without fixing it.
 Batch everything that needs Ray's approval into one message. Don't ask about anything else separately.
 Quote commit hashes only from command output — never recall or guess one from memory.
 
