@@ -1,8 +1,8 @@
-yfinance>=0.2.40
-feedparser>=6.0.11
-requests>=2.31.0
-schedule>=1.2.1
-python-dotenv>=1.0.0
-numpy>=1.26.0
-pandas>=2.0.0
-google-genai>=1.0.0
+yfinance==1.4.0
+feedparser==6.0.12
+requests==2.34.2
+schedule==1.2.2
+python-dotenv==1.2.2
+numpy==2.4.6
+pandas==3.0.3
+google-genai==2.6.0
