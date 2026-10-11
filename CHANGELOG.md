@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-10-10/11 — yfinance NaN, session dating, pinned deps, display fixes
+
+### What was wrong
+
+- **NaN on the live page.** Confirmed directly against the deployed site: every ticker's `ret30` was the literal value `NaN` on the runs at 2026-10-08 00:17, 10-09 00:32 and 10-10 00:08 UTC (28/28 tickers). Root cause: `yfinance` can append a trailing "today" bar with NaN `Close` right after 00:00 UTC, before the market has opened, poisoning `price_30d_return`/`price_momentum`. The existing clamp made it worse: `max(-5.0, min(5.0, nan))` resolves to exactly `5.0` in Python (confirmed in the REPL) — a plausible-looking "strong bullish momentum" reading, not an obviously-wrong value. Also silently corrupted `peer_outperformance` for every ticker in an affected layer, via `add_peer_outperformance()`'s `is not None` filter (already written assuming None-means-missing, which NaN doesn't satisfy).
+- **History dated by UTC run time, not trading session.** A run shortly after midnight UTC reflects the *prior* day's session close, but `scores_history.json` keyed entries by `datetime.now()` (the run date) — producing weekend entries and lost/duplicated sessions.
+- **A missing session read as 0.** `_load_recent_layer_scores`'s `.get("score", 0)` default made a partial-failure run's missing layer score indistinguishable from a real bearish 0 reading.
+- **Unpinned dependencies.** `yfinance`/`pandas`/`numpy`/etc. all used `>=` floors — the exact failure class above (a library release silently changing data shape) had no guard against recurring.
+- **Display**: the "AI value chain — signal scores" heading was inline `12px #C8D4E8` on a white card (a color meant for dark backgrounds) — nearly invisible. No "UTC" marker on displayed times. "vs yesterday" didn't say which day.
+
+### Fix
+
+- `fetch_market.py`: drop trailing NaN-Close rows before computing anything; check `isnan()` before clamping `price_momentum` (not after); any NaN still remaining → `None`, named in a new `data_missing` list; new `find_nan_paths()`/`assert_no_nan()` as a final backstop, scanning all fetched data.
+- `main.py`: `assert_no_nan()` called right after `stage_fetch()`, deliberately outside its own try/except (which otherwise swallows exceptions into an empty-data fallback) — the point is to fail the whole run rather than publish degraded data.
+- New `fetch_market.get_last_session_date()` (from `^GSPC`'s own daily-bar calendar, no try/except — a failed fetch must fail the run). Threaded through `save_scores_history`, `get_yesterday_scores`, `_load_recent_layer_scores`, `_confirmed_color` so history is keyed by session, not run date; a rerun of the same session now overwrites instead of duplicating.
+- `_load_recent_layer_scores`: a session with no recorded score for a layer is skipped and logged, never defaulted to 0.
+- `requirements.txt`: pinned to exact versions (best available proxy — local pipeline-run versions, not confirmed against CI's own install log, which returned 403 unauthenticated).
+- `render.py`: new `.card-title` CSS class (20px bold navy `#0C1A3A`, reusing an existing color) replacing the inline near-invisible heading style; header and fetch-note now show "UTC" explicitly and "Data: close of \<session date\> · fetched HH:MM UTC"; "vs yesterday" → "vs \<session date\>" (e.g. "vs Fri Oct 9").
+
+### Verified
+
+- `test_nan_handling.py` and `test_session_dating.py` (plain scripts, no pytest in this environment): both confirmed to genuinely fail against the pre-fix code (temporarily stashed each fix, reran, got real failures — `AssertionError: price_30d_return is NaN: nan` and `AttributeError: module 'fetch_market' has no attribute 'get_last_session_date'` — restored, reran clean) rather than just asserted to fail.
+- Whole-chain sanity checks against live data (`main.py --score` and a full `main.py --now`): exit 0, correct session date logged, plausible differentiated scores, `index.html` regenerated with all three display changes confirmed present (screenshots at 1400px/375px).
+- Live deploy pending a successful Actions run — manual `workflow_dispatch` trigger requested, not yet confirmed as of this entry.
+
+### Commits
+
+`63e69d2` (NaN), `8a43626` (pinning), `48d0ada` (session dating + display), `441c4e7` (PLAN.md queue cleared).
+
 ## 2026-09-23 — RayDar Vice: fixed the 404 that this file's own index.html rule came from
 
 ### What
