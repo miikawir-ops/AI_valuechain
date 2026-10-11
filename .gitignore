@@ -4,3 +4,4 @@ market_data.json
 next_nvidia_cache.json
 scores_history_backup.json
 audit_log.json
+.venv*/
