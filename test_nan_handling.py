@@ -15,6 +15,7 @@ convention. Run: python test_nan_handling.py
 """
 
 import math
+import statistics
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -36,6 +37,13 @@ def _mock_ticker(hist: pd.DataFrame, **info_overrides) -> MagicMock:
     m.history.return_value = hist
     m.quarterly_financials = pd.DataFrame()
     m.recommendations = pd.DataFrame()
+    # Non-empty with the right column but dated well outside the 30-day
+    # analyst window — resolves to a real 0 (not missing), so this shared
+    # fixture doesn't pollute data_missing for tests that don't care about
+    # the analyst signal specifically.
+    m.upgrades_downgrades = pd.DataFrame(
+        {"ToGrade": ["Buy"]}, index=pd.DatetimeIndex(["2020-01-01"])
+    )
     m.quarterly_cashflow = pd.DataFrame()
     return m
 
@@ -55,16 +63,18 @@ def test_trailing_nan_row_is_dropped_and_does_not_propagate():
 
     # Independently compute the expected momentum from the CLEAN series
     # (what should remain after the trailing NaN row is dropped), using
-    # fetch_market.py's own formula. If the trailing-row-drop regresses,
-    # fetch_ticker_data computes off the polluted 70-point series instead
-    # — NaN all the way through, then old code's blind clamp turns that
-    # into exactly 5.0, which will not match this independently-derived
-    # value for a smooth linear ramp.
-    clean = closes[:-1]
-    ret_5d_exp  = clean[-1] / clean[-5]  - 1
-    ret_90d_exp = clean[-1] / clean[-63] - 1
-    avg_exp = ret_90d_exp / 18 if ret_90d_exp != 0 else 0.001
-    momentum_exp = round(ret_5d_exp / avg_exp, 2) if avg_exp != 0 else 1.0
+    # fetch_market.py's own current formula (ledger-ported from RayDar-
+    # DataCenter, 2026-10-11 — the ratio formula this replaced is gone).
+    # If the trailing-row-drop regresses, fetch_ticker_data computes off
+    # the polluted 70-point series instead — NaN all the way through,
+    # which would fail the isnan() checks below regardless of this exact
+    # value, so this also still catches that regression.
+    clean = closes[:-1]   # 69 points — exactly the window size required
+    ret_5d_exp = clean[-1] / clean[-6] - 1
+    pace_exp   = (clean[-1] / clean[-64]) ** (5 / 63) - 1
+    moves_exp  = [clean[i] / clean[i - 5] - 1 for i in range(len(clean) - 63, len(clean))]
+    scale_exp  = max(abs(pace_exp), statistics.pstdev(moves_exp))
+    momentum_exp = round(1 + (ret_5d_exp - pace_exp) / scale_exp, 2) if scale_exp > 0 else 1.0
     momentum_exp = max(-5.0, min(5.0, momentum_exp))
     assert momentum_exp != 5.0, "test setup bug: expected value coincides with the clamp ceiling"
 
@@ -81,8 +91,8 @@ def test_trailing_nan_row_is_dropped_and_does_not_propagate():
     assert r30 is not None, "should compute from the clean history, not be marked missing"
     assert mom == momentum_exp, (
         f"expected {momentum_exp} (computed from the clean history), got {mom} — "
-        f"a value of exactly 5.0 here would mean the trailing NaN row leaked "
-        f"into the ratio and got blindly clamped: the original bug."
+        f"a mismatch here means the trailing NaN row leaked into the formula "
+        f"instead of being dropped first."
     )
     assert result["data_missing"] == []
 

@@ -25,7 +25,9 @@ import math
 import logging
 import datetime
 import argparse
+import statistics
 import feedparser
+import pandas as pd
 import yfinance as yf
 from pathlib import Path
  
@@ -276,8 +278,15 @@ def score_news_velocity(
  
     # Cap at 20 weighted points, scale to 0-10 output
     return round(min(weighted_hits, 20.0) / 2.0, 1)
- 
- 
+
+
+# Buy-side grades counted by the analyst signal, among actions within the
+# last ANALYST_WINDOW_DAYS up to the ticker's own last session (ported from
+# RayDar-DataCenter, ledger R45 item 1 / R49).
+BUY_GRADES = ("Buy", "Strong Buy", "Overweight", "Outperform", "Positive")
+ANALYST_WINDOW_DAYS = 30
+
+
 def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
                       layer_tickers: list = None):
     try:
@@ -320,17 +329,30 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         vol_avg   = sum(volumes[-20:]) / 20 if len(volumes) >= 20 else None
         vol_spike = round(volumes[-1] / vol_avg, 2) if vol_avg and volumes else 1.0
  
-        ret_5d  = (closes[-1] / closes[-5]  - 1) if len(closes) >= 5  else 0
-        ret_90d = (closes[-1] / closes[-63] - 1) if len(closes) >= 63 else ret_5d
-        avg_5d_from_90d = ret_90d / 18 if ret_90d != 0 else 0.001
-        price_momentum  = round(ret_5d / avg_5d_from_90d, 2) if avg_5d_from_90d != 0 else 1.0
-        if isinstance(price_momentum, float) and math.isnan(price_momentum):
-            # Check before clamping — max(-5, min(5, nan)) silently resolves
-            # to 5.0 in Python, which would masquerade as strong bullish data.
-            data_missing.append("price_momentum")
-            price_momentum = None
-        else:
+        # Momentum: the last 5 sessions' return against the average (compound)
+        # 5-session pace of the last 63 sessions (~90 days); 1.0 means exactly
+        # on pace. The excess over the pace is measured in units of the pace
+        # itself when the trend is clear, or of the typical 5-session move
+        # when the trend is weaker than that noise (ported from
+        # RayDar-DataCenter, ledger R45 item 2). This replaces a ratio
+        # (ret_5d / avg_5d_from_90d) that had two bugs: two negative returns
+        # divided to a positive ratio (wrong sign — declining both short- and
+        # long-term read as bullish), and a near-zero 90-day return drove the
+        # denominator toward a 0.001 floor, blowing the ratio up to the clamp
+        # ceiling regardless of the actual 5-day move. Also fixes an off-by-
+        # one in the windows: the old code's closes[-5]/closes[-63] spanned 4
+        # and 62 sessions respectively, not 5 and 90/18-ish.
+        window = closes[-69:]
+        if len(window) == 69 and all(math.isfinite(c) for c in window):
+            ret_5d = closes[-1] / closes[-6] - 1
+            pace   = (closes[-1] / closes[-64]) ** (5 / 63) - 1
+            moves  = [closes[i] / closes[i - 5] - 1 for i in range(len(closes) - 63, len(closes))]
+            scale  = max(abs(pace), statistics.pstdev(moves))
+            price_momentum = round(1 + (ret_5d - pace) / scale, 2) if scale > 0 else 1.0
             price_momentum = max(-5.0, min(5.0, price_momentum))
+        else:
+            price_momentum = None
+            data_missing.append("price_momentum")
  
         growth_curr       = None
         growth_prev       = None
@@ -392,19 +414,29 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         if growth_prev is None:
             growth_prev = info.get("earningsGrowth")
  
-        analyst_upgrades = 0
+        # Analyst grades: per-action rows from upgrades_downgrades, not
+        # t.recommendations — that's a monthly summary table with no grade
+        # column in current yfinance, so "To Grade" never matched anything
+        # and this silently scored every company 0 (ported fix, RayDar-
+        # DataCenter ledger R45 item 1 / R49). Counted: how many actions in
+        # the 30 days up to this ticker's own last session set a buy-side
+        # grade, at most the 10 most recent of them (the original limit).
+        # No actions in the window is a real 0; a failed fetch or no table
+        # at all is missing data (None + data_missing), not a silent 0.
+        analyst_upgrades = None
         try:
-            recs = t.recommendations
-            if recs is not None and not recs.empty:
-                recent = recs.tail(10)
-                if "To Grade" in recent.columns:
-                    up = recent[recent["To Grade"].isin([
-                        "Buy", "Strong Buy", "Overweight", "Outperform", "Positive"
-                    ])]
-                    analyst_upgrades = len(up)
-        except Exception:
-            analyst_upgrades = 0
- 
+            ud = t.upgrades_downgrades
+            if ud is not None and "ToGrade" in ud.columns and not ud.empty:
+                session = hist.index[-1].date() if not hist.empty else datetime.date.today()
+                dates   = pd.Index([ts.date() for ts in ud.index])
+                inside  = (dates > session - datetime.timedelta(days=ANALYST_WINDOW_DAYS)) & (dates <= session)
+                recent  = ud[inside].sort_index().tail(10)
+                analyst_upgrades = int(recent["ToGrade"].isin(BUY_GRADES).sum())
+        except Exception as e:
+            log.debug(f"  {ticker} upgrades_downgrades error: {e}")
+        if analyst_upgrades is None:
+            data_missing.append("analyst_upgrades")
+
         short_int_change = 0.0
         try:
             short_info = info.get("shortPercentOfFloat")
