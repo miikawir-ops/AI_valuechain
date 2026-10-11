@@ -50,11 +50,21 @@ RATING_QUALITY = {"A": 4, "B": 3, "C": 2, "D": 1}
  
 # ── Score history helpers ─────────────────────────────────────────────────────
  
-def _load_recent_layer_scores(layer_id: str, days: int = 3) -> list[float]:
+def _date_key(session_date) -> str:
+    """Format a date-like value as the "YYYY-MM-DD" key used throughout
+    scores_history.json, keyed by trading session — not the UTC run date."""
+    return session_date.strftime("%Y-%m-%d") if hasattr(session_date, "strftime") else str(session_date)
+
+
+def _load_recent_layer_scores(layer_id: str, session_date, days: int = 3) -> list[float]:
     """
-    Load the last N days of weighted scores for a specific layer
+    Load the last N sessions' weighted scores for a specific layer
     from scores_history.json. Used for color confirmation.
     Returns list of scores, most recent last. Empty list if no history.
+
+    A session entry that exists but has no recorded score for this layer
+    (e.g. a partial-failure run) is skipped and named in the log — never
+    silently read as 0, which would look like a real bearish reading.
     """
     p = Path(SCORES_HISTORY_FILE)
     if not p.exists():
@@ -63,14 +73,19 @@ def _load_recent_layer_scores(layer_id: str, days: int = 3) -> list[float]:
         history = json.loads(p.read_text())
         if not isinstance(history, list):
             return []
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        # Exclude today (not yet saved) — look at previous days only
-        prev_days = [e for e in history if e.get("date") != today]
-        recent = prev_days[-days:]
-        return [
-            e.get("scores", {}).get(layer_id, {}).get("score", 0)
-            for e in recent
-        ]
+        session_key = _date_key(session_date)
+        # Exclude the current session (not yet saved) — previous sessions only
+        prev_sessions = [e for e in history if e.get("date") != session_key]
+        recent = prev_sessions[-days:]
+        scores = []
+        for e in recent:
+            layer_entry = e.get("scores", {}).get(layer_id)
+            if not layer_entry or "score" not in layer_entry:
+                log.info(f"  {layer_id}: session {e.get('date', '?')} has no recorded "
+                         f"score — skipped, not read as 0")
+                continue
+            scores.append(layer_entry["score"])
+        return scores
     except Exception:
         return []
  
@@ -80,6 +95,7 @@ def _confirmed_color(
     today_color: str,
     layer_id: str,
     top_fund_delta: float | None,
+    session_date,
 ) -> tuple[str, str]:
     """
     3-day color confirmation system.
@@ -100,7 +116,7 @@ def _confirmed_color(
  
     Returns (confirmed_color, confirmation_note)
     """
-    recent = _load_recent_layer_scores(layer_id, days=3)
+    recent = _load_recent_layer_scores(layer_id, session_date, days=3)
  
     # No history yet — trust today's score directly (first days of running)
     if len(recent) < 2:
@@ -139,8 +155,7 @@ def _confirmed_color(
         p = Path(SCORES_HISTORY_FILE)
         if p.exists():
             history = json.loads(p.read_text())
-            today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-            prev = [e for e in history if e.get("date") != today_str]
+            prev = [e for e in history if e.get("date") != _date_key(session_date)]
             prev_colors = [
                 e.get("scores", {}).get(layer_id, {}).get("color", "")
                 for e in prev[-3:]
@@ -257,7 +272,7 @@ def stage_fetch() -> tuple[dict, dict]:
         return {}, MACRO_DEFAULTS
  
  
-def stage_score(market_data: dict, macro_data: dict) -> dict:
+def stage_score(market_data: dict, macro_data: dict, session_date) -> dict:
     """
     Score every ticker, then build a market-cap weighted layer score.
  
@@ -343,7 +358,7 @@ def stage_score(market_data: dict, macro_data: dict) -> dict:
         # Colors must be sustained across multiple runs to be confirmed.
         # Extreme signals (score > 80 or fund_delta > 0.60) bypass confirmation.
         layer_color, confirm_note = _confirmed_color(
-            weighted_score, layer_color, layer_id, top_fund_delta
+            weighted_score, layer_color, layer_id, top_fund_delta, session_date
         )
         if confirm_note:
             layer_status = confirm_note
@@ -386,12 +401,12 @@ def stage_analyze(scored_data: dict, market_data: dict) -> str:
  
  
 def stage_render(scored_data: dict, analysis: str, macro_data: dict,
-                 market_data: dict = None, radar_data: list = None):
+                 session_date, market_data: dict = None, radar_data: list = None):
     log.info("[4/4] Rendering and delivering report...")
     try:
         from render import generate_dashboard, deliver
         html_path = generate_dashboard(
-            scored_data, analysis, macro_data,
+            scored_data, analysis, macro_data, session_date,
             market_data or {}, radar_data or []
         )
         deliver(analysis, html_path)
@@ -416,10 +431,12 @@ def run_full_pipeline(score_only: bool = False):
     # Deliberately outside stage_fetch()'s own try/except, which swallows
     # exceptions into an empty-data fallback — this needs to crash the run
     # instead, so a bad fetch never reaches render/publish.
-    from fetch_market import assert_no_nan
+    from fetch_market import assert_no_nan, get_last_session_date
     assert_no_nan(market_data)
+    session_date = get_last_session_date()
+    log.info(f"  Last completed session: {session_date}")
 
-    scored_data = stage_score(market_data, macro_data)
+    scored_data = stage_score(market_data, macro_data, session_date)
  
     if score_only:
         log.info("--score flag: stopping after scoring")
@@ -447,7 +464,7 @@ def run_full_pipeline(score_only: bool = False):
         radar_data = []
  
     analysis = stage_analyze(scored_data, market_data)
-    stage_render(scored_data, analysis, macro_data, market_data, radar_data)
+    stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data)
  
     # Auto-publish to GitHub Pages
     try:

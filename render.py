@@ -173,13 +173,21 @@ def load_scores_history() -> list:
         return []
  
  
-def save_scores_history(scored_data: dict, action_ticker: str = "", action_price: float = None):
+def _date_key(session_date) -> str:
+    """Format a date-like value as the "YYYY-MM-DD" key used throughout
+    scores_history.json, keyed by trading session — not the UTC run date."""
+    return session_date.strftime("%Y-%m-%d") if hasattr(session_date, "strftime") else str(session_date)
+
+
+def save_scores_history(scored_data: dict, session_date, action_ticker: str = "", action_price: float = None):
     history = load_scores_history()
-    today   = datetime.datetime.now().strftime("%Y-%m-%d")
-    # Remove existing entry for today if re-running
-    history = [e for e in history if e.get("date") != today]
+    session_key = _date_key(session_date)
+    # Remove existing entry for this SESSION if re-running — the last run
+    # per session overwrites, so a run just after midnight UTC updates the
+    # prior session's entry instead of creating a spurious new-day column.
+    history = [e for e in history if e.get("date") != session_key]
     history.append({
-        "date":          today,
+        "date":          session_key,
         "time":          datetime.datetime.now().strftime("%H:%M"),
         "action_ticker": action_ticker,
         "action_price":  action_price,
@@ -207,11 +215,11 @@ def save_scores_history(scored_data: dict, action_ticker: str = "", action_price
     log.info(f"  Scores history saved ({len(history)} days)")
  
  
-def get_yesterday_scores(scored_data: dict) -> dict:
-    """Returns {layer_id: {score, color}} for the most recent previous run."""
+def get_yesterday_scores(scored_data: dict, session_date) -> dict:
+    """Returns {layer_id: {score, color}} for the most recent previous session."""
     history = load_scores_history()
-    today   = datetime.datetime.now().strftime("%Y-%m-%d")
-    prev    = [e for e in history if e.get("date") != today]
+    session_key = _date_key(session_date)
+    prev = [e for e in history if e.get("date") != session_key]
     if not prev:
         return {}
     return prev[-1].get("scores", {})
@@ -534,13 +542,13 @@ def _radar_js_data(radar_data: list) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
  
-def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
+def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, session_date,
                        market_data: dict = None, radar_data: list = None) -> str:
     if market_data is None:
         market_data = {}
     if radar_data is None:
         radar_data  = []
- 
+
     # Extract One Action ticker for track record
     action_ticker = ""
     try:
@@ -550,15 +558,20 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict,
             action_ticker = match.group(1)
     except Exception:
         pass
-    save_scores_history(scored_data, action_ticker)
- 
-    yesterday    = get_yesterday_scores(scored_data)
+    save_scores_history(scored_data, session_date, action_ticker)
+
+    yesterday    = get_yesterday_scores(scored_data, session_date)
     full_history = load_scores_history()
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
-    datetime_str = f"{date_str} · {time_str}"
-    fetch_note   = f"Fetched {time_str} · Quarterly financials may be up to 90 days old"
+    datetime_str = f"{date_str} · {time_str} UTC"
+    # %-d (no leading zero) is a glibc/Linux strftime extension, not
+    # available on Windows — build the no-leading-zero day manually so
+    # this works identically on the GitHub Actions runner and locally.
+    session_date_long  = session_date.strftime("%A, %B %d") if hasattr(session_date, "strftime") else str(session_date)
+    session_date_short = f"{session_date.strftime('%a %b')} {session_date.day}" if hasattr(session_date, "strftime") else str(session_date)
+    fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials may be up to 90 days old"
  
     vix      = macro_data.get("vix", 0)
     yield_ch = macro_data.get("yield_10y_change", 0)
@@ -626,6 +639,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        padding:16px;margin-bottom:12px}}
 .card-label{{font-size:10px;font-weight:500;color:#888780;
              letter-spacing:.05em;margin-bottom:12px}}
+.card-title{{font-size:20px;font-weight:700;color:#0C1A3A;
+             letter-spacing:-0.01em;margin-bottom:0}}
 .fetch-note{{font-size:10px;color:#B4B2A9;margin-top:4px}}
 .layer{{flex:1;min-width:120px;width:148px;border:1.5px solid;border-radius:10px;
         padding:11px 10px;cursor:pointer;transition:transform .1s,box-shadow .1s}}
@@ -778,6 +793,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .body{{padding:8px 8px 0;margin-top:0}}
   .card{{padding:10px 8px;border-radius:8px;margin-bottom:8px}}
   .card-label{{font-size:9px;margin-bottom:6px}}
+  .card-title{{font-size:16px}}
   .layer{{min-width:120px;max-width:150px;padding:8px 7px}}
   .lyr-score{{font-size:20px}}
   .lyr-name{{font-size:9px}}
@@ -899,7 +915,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div style="font-size:12px;font-weight:500;color:#C8D4E8;letter-spacing:0.02em;margin-bottom:0">AI value chain — signal scores</div>
+    <div class="card-title">AI value chain — signal scores</div>
     <div style="display:flex;gap:12px;font-size:10px;color:#8A9AB8;align-items:center;flex-wrap:wrap">
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#E24B4A;margin-right:4px"></span>Hot / bottleneck</span>
       <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#EF9F27;margin-right:4px"></span>Emerging</span>
@@ -1311,7 +1327,7 @@ function buildChain() {{
       <div class="lyr-score" style="color:${{c.border}}">${{l.score.toFixed(0)}}</div>
       <div class="lyr-delta">
         ${{HAS_YESTERDAY && l.delta_score !== null
-          ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs yesterday</span>"
+          ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs {session_date_short}</span>"
           : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>

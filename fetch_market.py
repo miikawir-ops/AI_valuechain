@@ -520,6 +520,24 @@ def assert_no_nan(market_data: dict) -> None:
         raise ValueError(f"NaN in fetched market data at: {shown}{more} — refusing to render/publish.")
 
 
+def get_last_session_date() -> datetime.date:
+    """The date of the last completed US trading session, from ^GSPC's own
+    daily-bar calendar — not the UTC run date, which can be a day ahead of
+    the session right after midnight UTC, or land on a weekend with no
+    session at all.
+
+    Deliberately has no try/except: every date-keyed piece of output
+    (history entries, "vs <date>" labels, the header) depends on this
+    being right, so a failed fetch must fail the run, not silently fall
+    back to run-date or a stale value.
+    """
+    hist = yf.Ticker("^GSPC").history(period="5d")
+    if hist.empty:
+        raise RuntimeError("get_last_session_date: ^GSPC history fetch returned no data")
+    last_ts = hist.index[-1]
+    return last_ts.date() if hasattr(last_ts, "date") else last_ts
+
+
 def fetch_macro() -> dict:
     log.info("  Fetching macro signals...")
     result = {"vix": 20.0, "yield_10y_change": 0.0, "nasdaq_vs_spx_20d": 0.0}
