@@ -16,7 +16,7 @@
 - `main.py`: `assert_no_nan()` called right after `stage_fetch()`, deliberately outside its own try/except (which otherwise swallows exceptions into an empty-data fallback) — the point is to fail the whole run rather than publish degraded data.
 - New `fetch_market.get_last_session_date()` (from `^GSPC`'s own daily-bar calendar, no try/except — a failed fetch must fail the run). Threaded through `save_scores_history`, `get_yesterday_scores`, `_load_recent_layer_scores`, `_confirmed_color` so history is keyed by session, not run date; a rerun of the same session now overwrites instead of duplicating.
 - `_load_recent_layer_scores`: a session with no recorded score for a layer is skipped and logged, never defaulted to 0.
-- `requirements.txt`: pinned to exact versions (best available proxy — local pipeline-run versions, not confirmed against CI's own install log, which returned 403 unauthenticated).
+- `requirements.txt`: pinned to exact versions. **Correction, same session (`7161085`)**: the first pass (`8a43626`) used this session's local Python 3.14 environment's versions — wrong reference point, since CI runs Python 3.11 and numpy 2.4.x may not even support it. Redone properly: workflow's `python-version` bumped to `'3.12'` to match RayDar-DataCenter's own CI; `requirements.txt` rebuilt from DataCenter's CI-verified pins (run `38068453210`) for the overlapping packages plus their full transitive tree, with this repo's three extra direct dependencies (`schedule`, `python-dotenv`, `google-genai`) resolved by actually installing everything together in a fresh 3.12 venv — not a naive concatenation. That caught a real conflict: `google-genai` forces `websockets` down to `16.1.1` from DataCenter's `17.2` (yfinance's own range accepts it).
 - `render.py`: new `.card-title` CSS class (20px bold navy `#0C1A3A`, reusing an existing color) replacing the inline near-invisible heading style; header and fetch-note now show "UTC" explicitly and "Data: close of \<session date\> · fetched HH:MM UTC"; "vs yesterday" → "vs \<session date\>" (e.g. "vs Fri Oct 9").
 
 ### Verified
@@ -27,7 +27,7 @@
 
 ### Commits
 
-`63e69d2` (NaN), `8a43626` (pinning), `48d0ada` (session dating + display), `441c4e7` (PLAN.md queue cleared).
+`63e69d2` (NaN), `8a43626` (pinning, superseded — see correction above), `48d0ada` (session dating + display), `441c4e7` (PLAN.md queue cleared), `48fa058` (this entry), `7161085` (pinning correction).
 
 ## 2026-09-23 — RayDar Vice: fixed the 404 that this file's own index.html rule came from
 
