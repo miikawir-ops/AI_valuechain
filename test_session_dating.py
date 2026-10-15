@@ -189,6 +189,24 @@ def test_delta_is_labelled_with_the_previous_session():
     print("PASS: the delta is labelled with the previous session, not the current one")
 
 
+def test_vix_is_the_last_completed_close_not_the_live_quote():
+    """VIX comes from daily bars through drop_unfinished_bar, like every
+    other daily series — not from .info's live quote (old code read
+    regularMarketPrice, intraday during US trading hours)."""
+    def bars(closes):
+        return pd.DataFrame({"Close": closes}, index=pd.bdate_range(end="2026-10-09", periods=len(closes)))
+    vix = MagicMock()
+    vix.info = {"regularMarketPrice": 99.0, "previousClose": 98.0}   # live quote the old code used
+    vix.history.return_value = bars([16.0, 16.5, 17.0, 17.25, float("nan")])  # trailing empty bar
+    flat = MagicMock()
+    flat.history.return_value = bars([100.0] * 30)
+    tickers = {"^VIX": vix, "^TNX": flat, "^IXIC": flat, "^GSPC": flat}
+    with patch("fetch_market.yf.Ticker", side_effect=lambda sym: tickers[sym]):
+        macro = fetch_market.fetch_macro()
+    assert macro["vix"] == 17.25, f"expected the last completed close 17.25, got {macro['vix']}"
+    print("PASS: VIX is the last completed session's close, not the live quote")
+
+
 if __name__ == "__main__":
     test_trading_sessions_raises_on_empty_fetch()
     test_mid_session_run_uses_previous_session()
@@ -199,4 +217,5 @@ if __name__ == "__main__":
     test_rerun_same_session_overwrites_not_duplicates()
     test_confirmation_window_comes_from_the_calendar()
     test_delta_is_labelled_with_the_previous_session()
+    test_vix_is_the_last_completed_close_not_the_live_quote()
     print("\nAll session-dating tests passed.")

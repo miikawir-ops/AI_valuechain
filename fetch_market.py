@@ -606,10 +606,11 @@ def fetch_macro() -> dict:
     log.info("  Fetching macro signals...")
     result = {"vix": 20.0, "yield_10y_change": 0.0, "nasdaq_vs_spx_20d": 0.0}
     try:
-        vix_info = yf.Ticker("^VIX").info
-        result["vix"] = round(
-            vix_info.get("regularMarketPrice") or vix_info.get("previousClose", 20.0), 2
-        )
+        # Last completed session's close, not the live quote — the same
+        # session every other daily series is scored on (RayDar-DataCenter).
+        vix = drop_unfinished_bar(yf.Ticker("^VIX").history(period="5d"), label="^VIX")
+        if not vix.empty:
+            result["vix"] = round(float(vix["Close"].iloc[-1]), 2)
         tnx = drop_unfinished_bar(yf.Ticker("^TNX").history(period="35d"), label="^TNX")
         if not tnx.empty and len(tnx) >= 21:
             result["yield_10y_change"] = round(
