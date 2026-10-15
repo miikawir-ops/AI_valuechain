@@ -294,32 +294,56 @@ class ScoreEngine:
  
     # ── Stage 5: Macro multiplier ─────────────────────────────────────────────
  
-    def get_macro_multiplier(self) -> tuple[float, str]:
+    def get_macro_multiplier(self, missing: list = None) -> tuple[float, str]:
         """
-        Macro regime dampener.
- 
+        Macro regime dampener, voting across up to 3 signals.
+
         v3: Neutral multiplier raised from 0.80 → 0.85
         Rationale: 20% dampening was too aggressive for a single neutral signal —
         it was preventing valid bottleneck layers from reaching Red.
- 
+
         Risk-Off still uses 0.65 — genuine fear environments warrant strong dampening.
+
+        A missing signal (None — fetch_macro() returns None on a failed fetch)
+        is left out of the vote and named in `missing`, never replaced by a
+        neutral default. If all three are missing: 1.0x, regime "Unknown".
+        (Ported from RayDar-DataCenter. The old `.get("vix", 20.0)` returned
+        None for a present-but-None key and crashed on `None > 30`, which
+        process_sector caught as a scoring error: every ticker 0, Green.)
         """
-        vix          = self.macro_data.get("vix",               20.0)
-        yield_change = self.macro_data.get("yield_10y_change",   0.0)
-        nasdaq_rel   = self.macro_data.get("nasdaq_vs_spx_20d",  0.0)
- 
+        missing = missing if missing is not None else []
+        vix          = self.macro_data.get("vix")
+        yield_change = self.macro_data.get("yield_10y_change")
+        nasdaq_rel   = self.macro_data.get("nasdaq_vs_spx_20d")
+
         risk_signals = 0
         neut_signals = 0
- 
-        if vix > 30:          risk_signals += 1
-        elif vix > 20:        neut_signals += 1
- 
-        if yield_change > 100:   risk_signals += 1
-        elif yield_change > 50:  neut_signals += 1
- 
-        if nasdaq_rel < -0.05:   risk_signals += 1
-        elif nasdaq_rel < -0.02: neut_signals += 1
- 
+        usable       = 0
+
+        if vix is not None:
+            usable += 1
+            if vix > 30:          risk_signals += 1
+            elif vix > 20:        neut_signals += 1
+        else:
+            missing.append("macro_vix")
+
+        if yield_change is not None:
+            usable += 1
+            if yield_change > 100:   risk_signals += 1
+            elif yield_change > 50:  neut_signals += 1
+        else:
+            missing.append("macro_yield_10y_change")
+
+        if nasdaq_rel is not None:
+            usable += 1
+            if nasdaq_rel < -0.05:   risk_signals += 1
+            elif nasdaq_rel < -0.02: neut_signals += 1
+        else:
+            missing.append("macro_nasdaq_vs_spx_20d")
+
+        if usable == 0:
+            return 1.0, "Unknown (macro data unavailable)"
+
         if risk_signals >= 2:
             return 0.65, "Risk-Off"
         elif risk_signals == 1 or neut_signals >= 2:
@@ -391,7 +415,7 @@ class ScoreEngine:
             )
  
             # Stage 6 — Macro multiplier
-            multiplier, regime = self.get_macro_multiplier()
+            multiplier, regime = self.get_macro_multiplier(missing_fields)
             final_score = self._clamp(raw * multiplier)
  
             # Stage 7 — Color

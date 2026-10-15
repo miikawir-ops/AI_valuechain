@@ -40,10 +40,13 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
  
+# Used when the whole fetch stage fails: every macro input missing, never a
+# made-up value (the multiplier then applies no dampening, regime "Unknown").
 MACRO_DEFAULTS = {
-    "vix":               20.0,
-    "yield_10y_change":  0.0,
-    "nasdaq_vs_spx_20d": 0.0,
+    "vix":               None,
+    "yield_10y_change":  None,
+    "nasdaq_vs_spx_20d": None,
+    "data_missing":      ["vix", "yield_10y_change", "nasdaq_vs_spx_20d"],
 }
  
 # Rating quality map — used for Red reality check

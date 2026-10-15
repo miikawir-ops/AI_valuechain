@@ -577,16 +577,32 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     prev_label    = f"{prev_session.strftime('%a %b')} {prev_session.day}" if prev_session else ""
     fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials may be up to 90 days old"
  
-    vix      = macro_data.get("vix", 0)
-    yield_ch = macro_data.get("yield_10y_change", 0)
-    nasdaq_r = macro_data.get("nasdaq_vs_spx_20d", 0) * 100
- 
-    if vix > 30 or yield_ch > 100:
+    # A missing macro input is None (fetch_macro's data_missing), never a
+    # default: its card shows "—" / "No data", and the regime ignores it.
+    vix        = macro_data.get("vix")
+    yield_ch   = macro_data.get("yield_10y_change")
+    nasdaq_raw = macro_data.get("nasdaq_vs_spx_20d")
+    nasdaq_r   = nasdaq_raw * 100 if nasdaq_raw is not None else None
+
+    if vix is None and yield_ch is None and nasdaq_r is None:
+        reg_lbl = "Market regime: Unknown (macro data unavailable)"
+    elif (vix is not None and vix > 30) or (yield_ch is not None and yield_ch > 100):
         reg_lbl = "Market regime: Risk-Off"
-    elif vix > 20 or yield_ch > 50:
+    elif (vix is not None and vix > 20) or (yield_ch is not None and yield_ch > 50):
         reg_lbl = "Market regime: Neutral"
     else:
         reg_lbl = "Market regime: Risk-On"
+
+    missing_col = "#888780"
+    vix_disp    = f"{vix:.1f}" if vix is not None else "—"
+    vix_note    = ("Low fear" if vix < 20 else "Elevated") if vix is not None else "No data"
+    vix_col     = ("#C0DD97" if vix < 20 else "#FAC775") if vix is not None else missing_col
+    yield_disp  = f"{yield_ch:+.1f}" if yield_ch is not None else "—"
+    yield_note  = f"bps · {'falling' if yield_ch < 0 else 'rising'}" if yield_ch is not None else "No data"
+    yield_col   = ("#C0DD97" if yield_ch < 0 else "#FAC775") if yield_ch is not None else missing_col
+    nasdaq_disp = f"{nasdaq_r:+.1f}%" if nasdaq_r is not None else "—"
+    nasdaq_note = ("Tech leading" if nasdaq_r > 0 else "Tech lagging") if nasdaq_r is not None else "No data"
+    nasdaq_col  = ("#C0DD97" if nasdaq_r > 0 else "#FAC775") if nasdaq_r is not None else missing_col
  
     layers_js              = _chain_js_data(scored_data, market_data, yesterday)
     radar_js               = _radar_js_data(radar_data)
@@ -890,18 +906,18 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="hm-grid" style="margin-bottom:12px">
     <div class="hm-card">
       <div class="hm-lbl">VIX</div>
-      <div class="hm-val">{vix:.1f}</div>
-      <div class="hm-note" style="color:{'#C0DD97' if vix<20 else '#FAC775'}">{'Low fear' if vix<20 else 'Elevated'}</div>
+      <div class="hm-val">{vix_disp}</div>
+      <div class="hm-note" style="color:{vix_col}">{vix_note}</div>
     </div>
     <div class="hm-card">
       <div class="hm-lbl">10Y YIELD CHANGE</div>
-      <div class="hm-val">{yield_ch:+.1f}</div>
-      <div class="hm-note" style="color:{'#C0DD97' if yield_ch<0 else '#FAC775'}">bps · {'falling' if yield_ch<0 else 'rising'}</div>
+      <div class="hm-val">{yield_disp}</div>
+      <div class="hm-note" style="color:{yield_col}">{yield_note}</div>
     </div>
     <div class="hm-card">
       <div class="hm-lbl">NASDAQ VS S&P</div>
-      <div class="hm-val">{nasdaq_r:+.1f}%</div>
-      <div class="hm-note" style="color:{'#C0DD97' if nasdaq_r>0 else '#FAC775'}">{'Tech leading' if nasdaq_r>0 else 'Tech lagging'}</div>
+      <div class="hm-val">{nasdaq_disp}</div>
+      <div class="hm-note" style="color:{nasdaq_col}">{nasdaq_note}</div>
     </div>
     <div class="hm-card">
       <div class="hm-lbl">LAYERS SCORED</div>

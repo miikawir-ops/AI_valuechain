@@ -603,30 +603,57 @@ def assert_no_nan(market_data: dict) -> None:
 
 
 def fetch_macro() -> dict:
+    """
+    Each macro signal is fetched independently, so one failure can't blank
+    out the others (a single shared try used to discard already-fetched
+    signals and return hardcoded defaults for everything). A missing signal
+    is None, named in data_missing — never a made-up number (no VIX 20, no
+    zeros), per CLAUDE.md's fetch-failure rule. Ported from RayDar-DataCenter.
+    """
     log.info("  Fetching macro signals...")
-    result = {"vix": 20.0, "yield_10y_change": 0.0, "nasdaq_vs_spx_20d": 0.0}
+    result = {"vix": None, "yield_10y_change": None, "nasdaq_vs_spx_20d": None}
+    data_missing = []
+
     try:
         # Last completed session's close, not the live quote — the same
-        # session every other daily series is scored on (RayDar-DataCenter).
+        # session every other daily series is scored on.
         vix = drop_unfinished_bar(yf.Ticker("^VIX").history(period="5d"), label="^VIX")
         if not vix.empty:
             result["vix"] = round(float(vix["Close"].iloc[-1]), 2)
+    except Exception as e:
+        log.warning(f"  VIX fetch error: {e}")
+
+    try:
         tnx = drop_unfinished_bar(yf.Ticker("^TNX").history(period="35d"), label="^TNX")
         if not tnx.empty and len(tnx) >= 21:
             result["yield_10y_change"] = round(
                 (tnx["Close"].iloc[-1] - tnx["Close"].iloc[-21]) * 100, 2
             )
+    except Exception as e:
+        log.warning(f"  10Y yield fetch error: {e}")
+
+    try:
         nasdaq = drop_unfinished_bar(yf.Ticker("^IXIC").history(period="25d"), label="^IXIC")
         spx    = drop_unfinished_bar(yf.Ticker("^GSPC").history(period="25d"), label="^GSPC")
         if len(nasdaq) >= 20 and len(spx) >= 20:
             nasdaq_ret = nasdaq["Close"].iloc[-1] / nasdaq["Close"].iloc[-20] - 1
             spx_ret    = spx["Close"].iloc[-1]    / spx["Close"].iloc[-20]    - 1
             result["nasdaq_vs_spx_20d"] = round(nasdaq_ret - spx_ret, 4)
+    except Exception as e:
+        log.warning(f"  Nasdaq/SPX fetch error: {e}")
+
+    # Anything not fetched, or not a finite number, is missing — not a default.
+    for key, value in result.items():
+        if value is None or not math.isfinite(value):
+            result[key] = None
+            data_missing.append(key)
+    result["data_missing"] = data_missing
+    if data_missing:
+        log.warning(f"  Macro data missing: {data_missing}")
+    else:
         log.info(f"  Macro: VIX={result['vix']} "
                  f"yield_chg={result['yield_10y_change']}bps "
                  f"nasdaq_rel={result['nasdaq_vs_spx_20d']*100:.1f}%")
-    except Exception as e:
-        log.warning(f"  Macro fetch error: {e} — using defaults")
     return result
  
  

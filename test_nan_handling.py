@@ -145,8 +145,65 @@ def test_assert_no_nan_is_the_final_backstop():
     print("PASS: assert_no_nan raises on NaN, passes clean data")
 
 
+def _macro_tickers(tnx_raises: bool = False):
+    def bars(closes):
+        return pd.DataFrame({"Close": closes}, index=pd.bdate_range(end=FIXED_END, periods=len(closes)))
+    vix = MagicMock(); vix.history.return_value = bars([17.0] * 5)
+    tnx = MagicMock()
+    if tnx_raises:
+        tnx.history.side_effect = ConnectionError("simulated ^TNX outage")
+    else:
+        tnx.history.return_value = bars([4.0] * 30)
+    nasdaq = MagicMock(); nasdaq.history.return_value = bars([100.0] * 19 + [102.0])
+    spx    = MagicMock(); spx.history.return_value = bars([100.0] * 20)
+    return {"^VIX": vix, "^TNX": tnx, "^IXIC": nasdaq, "^GSPC": spx}
+
+
+def test_failed_macro_fetch_is_missing_not_a_default():
+    """A failed macro fetch is None, named in data_missing — never a made-up
+    number. The old code ran all three fetches in one try: a ^TNX failure
+    left yield_10y_change at the hardcoded 0.0 and discarded the NASDAQ/S&P
+    signal that would have come after it (also 0.0)."""
+    tickers = _macro_tickers(tnx_raises=True)
+    with patch("fetch_market.yf.Ticker", side_effect=lambda sym: tickers[sym]):
+        macro = fetch_market.fetch_macro()
+    assert macro["yield_10y_change"] is None, f"failed fetch became {macro['yield_10y_change']!r}, not None"
+    assert macro.get("data_missing") == ["yield_10y_change"], f"data_missing: {macro.get('data_missing')}"
+    assert macro["vix"] == 17.0, "a later failure must not blank out VIX"
+    assert macro["nasdaq_vs_spx_20d"] == 0.02, (
+        f"NASDAQ/S&P was fetchable and must not be discarded: {macro['nasdaq_vs_spx_20d']!r}")
+    print("PASS: a failed macro fetch is None + data_missing; the other signals survive")
+
+
+def test_missing_macro_input_is_left_out_of_the_multiplier():
+    """A missing macro input is excluded from the regime vote and named —
+    not a neutral default. With the old `.get("vix", 20.0)` a present-but-
+    None VIX crashed on `None > 30`, which process_sector caught as a
+    scoring error: every ticker scored 0, Green."""
+    from score_engine import ScoreEngine
+    missing = []
+    engine = ScoreEngine({"vix": None, "yield_10y_change": 120.0, "nasdaq_vs_spx_20d": -0.07})
+    assert engine.get_macro_multiplier(missing) == (0.65, "Risk-Off")
+    assert missing == ["macro_vix"], f"expected VIX named as missing, got {missing}"
+
+    none = ScoreEngine({"vix": None, "yield_10y_change": None, "nasdaq_vs_spx_20d": None})
+    assert none.get_macro_multiplier() == (1.0, "Unknown (macro data unavailable)")
+
+    r = engine.process_sector("memory_MU", {
+        "growth_curr": 1.11, "growth_prev": 0.47, "gm_delta": 0.06, "news_velocity": 8.0,
+        "capex_div": 0.5, "vol_spike": 1.4, "price_act": 0.02, "analyst_upgrades": 2,
+        "short_int_change": -0.03, "price_30d_return": 0.79, "price_momentum": 1.8,
+        "peer_outperformance": 0.35,
+    })
+    assert "Scoring error" not in r["status"], f"a missing macro input broke scoring: {r['status']}"
+    assert r["score"] > 0 and "macro_vix" in r["data_status"], (r["score"], r["data_status"])
+    print("PASS: a missing macro input is left out of the vote and named; scoring still works")
+
+
 if __name__ == "__main__":
     test_trailing_nan_row_is_dropped_and_does_not_propagate()
     test_mid_series_nan_is_marked_missing_not_nan()
     test_assert_no_nan_is_the_final_backstop()
+    test_failed_macro_fetch_is_missing_not_a_default()
+    test_missing_macro_input_is_left_out_of_the_multiplier()
     print("\nAll NaN-handling tests passed.")
