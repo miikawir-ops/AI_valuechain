@@ -21,6 +21,7 @@ v3 scoring:
   - Extreme signal override: score > 80 allows instant Red without confirmation
 """
  
+import sys
 import json
 import logging
 import argparse
@@ -493,6 +494,12 @@ def scheduled_job():
  
  
 if __name__ == "__main__":
+    # On Windows, redirected output uses the locale code page (cp1252), which
+    # can't encode the emoji in Gemini's analysis: print() raised after the
+    # dashboard was already saved, failing local runs. UTF-8 for both streams.
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(description="AI Investment Agent")
     parser.add_argument("--now",   action="store_true", help="Run immediately")
     parser.add_argument("--score", action="store_true", help="Fetch + score only")
