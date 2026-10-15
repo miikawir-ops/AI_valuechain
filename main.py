@@ -468,16 +468,6 @@ def run_full_pipeline(score_only: bool = False):
     analysis = stage_analyze(scored_data, market_data)
     stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data)
  
-    # Auto-publish to GitHub Pages
-    try:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("publish_mod", "publish.py")
-        mod  = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        mod.publish()
-    except Exception as e:
-        log.warning(f"  Publish skipped: {e}")
- 
     elapsed = (datetime.datetime.now() - start).seconds
     log.info(f"\n✅ Pipeline complete in {elapsed}s")
  
