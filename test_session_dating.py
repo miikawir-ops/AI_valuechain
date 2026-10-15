@@ -170,6 +170,25 @@ def test_confirmation_window_comes_from_the_calendar():
     print("PASS: confirmation window comes from the calendar; missing sessions named, weekend entry ignored")
 
 
+def test_delta_is_labelled_with_the_previous_session():
+    """The card delta compares against the previous stored session, so its
+    label must name that session — not the current one ("close of Mon Oct
+    12 ... vs Mon Oct 12" was on the live page)."""
+    history = [
+        {"date": "2026-10-09", "scores": {"energy": {"score": 40.0, "color": "Green"}}},
+        {"date": "2026-10-12", "scores": {"energy": {"score": 44.0, "color": "Green"}}},
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        hist_path = str(Path(tmp) / "scores_history.json")
+        Path(hist_path).write_text(json.dumps(history))
+        with patch("render.SCORES_HISTORY_FILE", hist_path):
+            prev_date, prev_scores = render.get_yesterday_scores({}, datetime.date(2026, 10, 12))
+
+    assert prev_date == "2026-10-09", f"expected the previous session 2026-10-09, got {prev_date!r}"
+    assert prev_scores["energy"]["score"] == 40.0
+    print("PASS: the delta is labelled with the previous session, not the current one")
+
+
 if __name__ == "__main__":
     test_trading_sessions_raises_on_empty_fetch()
     test_mid_session_run_uses_previous_session()
@@ -179,4 +198,5 @@ if __name__ == "__main__":
     test_history_keyed_by_session_not_run_date()
     test_rerun_same_session_overwrites_not_duplicates()
     test_confirmation_window_comes_from_the_calendar()
+    test_delta_is_labelled_with_the_previous_session()
     print("\nAll session-dating tests passed.")

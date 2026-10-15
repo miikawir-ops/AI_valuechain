@@ -215,14 +215,17 @@ def save_scores_history(scored_data: dict, session_date, action_ticker: str = ""
     log.info(f"  Scores history saved ({len(history)} days)")
  
  
-def get_yesterday_scores(scored_data: dict, session_date) -> dict:
-    """Returns {layer_id: {score, color}} for the most recent previous session."""
+def get_yesterday_scores(scored_data: dict, session_date) -> tuple:
+    """Returns (date, {layer_id: {score, color}}) for the most recent session
+    stored before this one, or (None, {}). The card labels the score delta
+    with that date — the session being compared against, not the current
+    one (ported from RayDar-DataCenter, ledger R42)."""
     history = load_scores_history()
     session_key = _date_key(session_date)
-    prev = [e for e in history if e.get("date") != session_key]
+    prev = [e for e in history if e.get("date") and e["date"] < session_key]
     if not prev:
-        return {}
-    return prev[-1].get("scores", {})
+        return None, {}
+    return prev[-1]["date"], prev[-1].get("scores", {})
  
  
 # ── Ticker lookup ─────────────────────────────────────────────────────────────
@@ -560,17 +563,18 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
         pass
     save_scores_history(scored_data, session_date, action_ticker)
 
-    yesterday    = get_yesterday_scores(scored_data, session_date)
+    prev_date, yesterday = get_yesterday_scores(scored_data, session_date)
     full_history = load_scores_history()
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
     datetime_str = f"{date_str} · {time_str} UTC"
-    # %-d (no leading zero) is a glibc/Linux strftime extension, not
-    # available on Windows — build the no-leading-zero day manually so
-    # this works identically on the GitHub Actions runner and locally.
-    session_date_long  = session_date.strftime("%A, %B %d") if hasattr(session_date, "strftime") else str(session_date)
-    session_date_short = f"{session_date.strftime('%a %b')} {session_date.day}" if hasattr(session_date, "strftime") else str(session_date)
+    session_date_long = session_date.strftime("%A, %B %d")
+    # The delta is labelled with the session it's compared against, not the
+    # current one. %-d (no leading zero) is glibc-only — the day is built
+    # manually so this renders the same on the Linux runner and on Windows.
+    prev_session  = datetime.date.fromisoformat(prev_date) if prev_date else None
+    prev_label    = f"{prev_session.strftime('%a %b')} {prev_session.day}" if prev_session else ""
     fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials may be up to 90 days old"
  
     vix      = macro_data.get("vix", 0)
@@ -1327,7 +1331,7 @@ function buildChain() {{
       <div class="lyr-score" style="color:${{c.border}}">${{l.score.toFixed(0)}}</div>
       <div class="lyr-delta">
         ${{HAS_YESTERDAY && l.delta_score !== null
-          ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs {session_date_short}</span>"
+          ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs {prev_label}</span>"
           : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
