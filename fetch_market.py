@@ -30,8 +30,64 @@ import feedparser
 import pandas as pd
 import yfinance as yf
 from pathlib import Path
- 
+from zoneinfo import ZoneInfo
+
 log = logging.getLogger(__name__)
+
+# ── Session dating (ported from RayDar-DataCenter, ledger R33b/R40/R41) ───────
+# Every daily-bar fetch drops a bar dated today (US/Eastern) until the
+# session has closed, so a run during US trading hours scores the last
+# completed session, not a partial one. Early-close days (13:00 ET) are
+# treated as closing at 16:00: a run between 13:00 and 16:00 on those days
+# uses the previous session, which is conservative rather than wrong.
+US_EASTERN           = ZoneInfo("America/New_York")
+SESSION_CLOSE_ET     = datetime.time(16, 0)
+SESSION_REFERENCE    = "^GSPC"   # trading calendar: one daily bar per US session
+MAX_SESSION_AGE_DAYS = 7
+
+
+def drop_unfinished_bar(hist, now: datetime.datetime = None, label: str = ""):
+    """Return the daily bars without trailing bars that aren't a completed
+    session: today's bar while today's US session hasn't closed, and any
+    trailing row whose Close is NaN, whatever its date (the 00:00 UTC
+    empty bar that put NaN on every ticker of the live page). `now` is for
+    tests; default is the current time."""
+    if hist is None or hist.empty:
+        return hist
+    now_et = (now or datetime.datetime.now(datetime.timezone.utc)).astimezone(US_EASTERN)
+    while not hist.empty:
+        unfinished = hist.index[-1].date() == now_et.date() and now_et.time() < SESSION_CLOSE_ET
+        if unfinished or pd.isna(hist["Close"].iloc[-1]):
+            log.info(f"  {label or 'bars'}: dropped {'unfinished' if unfinished else 'empty (NaN close)'} "
+                     f"bar dated {hist.index[-1].date()}")
+            hist = hist.iloc[:-1]
+        else:
+            break
+    return hist
+
+
+def fetch_trading_sessions(now: datetime.datetime = None) -> list:
+    """Completed US trading sessions (datetime.date, oldest first) from
+    ^GSPC's daily bars. sessions[-1] is the session the run's data is "as
+    of"; colour confirmation takes its expected sessions from here, so a
+    market holiday is never reported as a missing day.
+
+    Raises instead of returning an empty or stale calendar — every
+    date-keyed output depends on it, so the run fails loudly rather than
+    silently falling back to the UTC run date."""
+    try:
+        bars = yf.Ticker(SESSION_REFERENCE).history(period="1mo")
+        hist = drop_unfinished_bar(bars, now, SESSION_REFERENCE)
+    except Exception as e:
+        raise RuntimeError(f"Trading-session calendar unavailable ({SESSION_REFERENCE} daily bars): {e}") from e
+    if hist is None or hist.empty:
+        raise RuntimeError(f"Trading-session calendar unavailable: {SESSION_REFERENCE} returned no completed daily bars")
+    sessions = [ts.date() for ts in hist.index]
+    today_et = (now or datetime.datetime.now(datetime.timezone.utc)).astimezone(US_EASTERN).date()
+    if (today_et - sessions[-1]).days > MAX_SESSION_AGE_DAYS:
+        raise RuntimeError(f"Trading-session calendar is stale: latest {SESSION_REFERENCE} session is "
+                           f"{sessions[-1]}, more than {MAX_SESSION_AGE_DAYS} days before {today_et}")
+    return sessions
  
 AI_CHAIN_LAYERS = {
     "energy": {
@@ -305,13 +361,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
  
         data_missing: list = []
 
-        hist = t.history(period="6mo")
-        # Drop a trailing unfinished/not-yet-traded bar: yfinance can append
-        # "today" with a NaN Close right after 00:00 UTC, before the market
-        # this ticker trades on has actually opened. Computing off that row
-        # poisons every derived return/momentum value with NaN.
-        while not hist.empty and math.isnan(hist["Close"].iloc[-1]):
-            hist = hist.iloc[:-1]
+        hist = drop_unfinished_bar(t.history(period="6mo"), label=ticker)
 
         closes  = hist["Close"].tolist() if not hist.empty else []
         if closes:
@@ -552,24 +602,6 @@ def assert_no_nan(market_data: dict) -> None:
         raise ValueError(f"NaN in fetched market data at: {shown}{more} — refusing to render/publish.")
 
 
-def get_last_session_date() -> datetime.date:
-    """The date of the last completed US trading session, from ^GSPC's own
-    daily-bar calendar — not the UTC run date, which can be a day ahead of
-    the session right after midnight UTC, or land on a weekend with no
-    session at all.
-
-    Deliberately has no try/except: every date-keyed piece of output
-    (history entries, "vs <date>" labels, the header) depends on this
-    being right, so a failed fetch must fail the run, not silently fall
-    back to run-date or a stale value.
-    """
-    hist = yf.Ticker("^GSPC").history(period="5d")
-    if hist.empty:
-        raise RuntimeError("get_last_session_date: ^GSPC history fetch returned no data")
-    last_ts = hist.index[-1]
-    return last_ts.date() if hasattr(last_ts, "date") else last_ts
-
-
 def fetch_macro() -> dict:
     log.info("  Fetching macro signals...")
     result = {"vix": 20.0, "yield_10y_change": 0.0, "nasdaq_vs_spx_20d": 0.0}
@@ -578,13 +610,13 @@ def fetch_macro() -> dict:
         result["vix"] = round(
             vix_info.get("regularMarketPrice") or vix_info.get("previousClose", 20.0), 2
         )
-        tnx = yf.Ticker("^TNX").history(period="35d")
+        tnx = drop_unfinished_bar(yf.Ticker("^TNX").history(period="35d"), label="^TNX")
         if not tnx.empty and len(tnx) >= 21:
             result["yield_10y_change"] = round(
                 (tnx["Close"].iloc[-1] - tnx["Close"].iloc[-21]) * 100, 2
             )
-        nasdaq = yf.Ticker("^IXIC").history(period="25d")
-        spx    = yf.Ticker("^GSPC").history(period="25d")
+        nasdaq = drop_unfinished_bar(yf.Ticker("^IXIC").history(period="25d"), label="^IXIC")
+        spx    = drop_unfinished_bar(yf.Ticker("^GSPC").history(period="25d"), label="^GSPC")
         if len(nasdaq) >= 20 and len(spx) >= 20:
             nasdaq_ret = nasdaq["Close"].iloc[-1] / nasdaq["Close"].iloc[-20] - 1
             spx_ret    = spx["Close"].iloc[-1]    / spx["Close"].iloc[-20]    - 1

@@ -56,38 +56,49 @@ def _date_key(session_date) -> str:
     return session_date.strftime("%Y-%m-%d") if hasattr(session_date, "strftime") else str(session_date)
 
 
-def _load_recent_layer_scores(layer_id: str, session_date, days: int = 3) -> list[float]:
-    """
-    Load the last N sessions' weighted scores for a specific layer
-    from scores_history.json. Used for color confirmation.
-    Returns list of scores, most recent last. Empty list if no history.
+# Confirmation looks at the CONFIRM_WINDOW sessions before the current one,
+# taken from the trading calendar (fetch_trading_sessions), not from whatever
+# entries happen to be stored — so a legacy weekend-dated entry never counts,
+# and a session missing from history is named instead of silently replaced
+# by an older entry. Sessions before the first stored entry aren't "missing"
+# (history hadn't started); sessions more than MAX_ENTRY_AGE_DAYS calendar
+# days before the current one don't count at all. Ported from
+# RayDar-DataCenter's _confirmation_window (ledger R40); this repo's own
+# thresholds in _confirmed_color are unchanged.
+CONFIRM_WINDOW     = 3
+MAX_ENTRY_AGE_DAYS = 7
 
-    A session entry that exists but has no recorded score for this layer
-    (e.g. a partial-failure run) is skipped and named in the log — never
-    silently read as 0, which would look like a real bearish reading.
+
+def _confirmation_window(layer_id: str, sessions: list, current) -> tuple[list, list]:
+    """
+    Returns (stored, missing) for the CONFIRM_WINDOW sessions before
+    `current`: stored is [(session, score, color)], oldest first; missing is
+    [session] for window sessions with no score stored for this layer —
+    skipped and named, never read as 0.
     """
     p = Path(SCORES_HISTORY_FILE)
-    if not p.exists():
-        return []
     try:
-        history = json.loads(p.read_text())
-        if not isinstance(history, list):
-            return []
-        session_key = _date_key(session_date)
-        # Exclude the current session (not yet saved) — previous sessions only
-        prev_sessions = [e for e in history if e.get("date") != session_key]
-        recent = prev_sessions[-days:]
-        scores = []
-        for e in recent:
-            layer_entry = e.get("scores", {}).get(layer_id)
-            if not layer_entry or "score" not in layer_entry:
-                log.info(f"  {layer_id}: session {e.get('date', '?')} has no recorded "
-                         f"score — skipped, not read as 0")
-                continue
-            scores.append(layer_entry["score"])
-        return scores
+        history = json.loads(p.read_text()) if p.exists() else []
     except Exception:
-        return []
+        history = []
+    if not isinstance(history, list):
+        history = []
+    cutoff  = current - datetime.timedelta(days=MAX_ENTRY_AGE_DAYS)
+    window  = [s for s in sessions if cutoff <= s < current][-CONFIRM_WINDOW:]
+    dates   = sorted(e.get("date") for e in history if e.get("date"))
+    first   = datetime.date.fromisoformat(dates[0]) if dates else None
+    by_date = {e.get("date"): e for e in history}
+    stored, missing = [], []
+    for s in window:
+        layer = ((by_date.get(_date_key(s)) or {}).get("scores") or {}).get(layer_id) or {}
+        if layer.get("score") is not None:
+            stored.append((s, layer["score"], layer.get("color")))
+        elif first is not None and s >= first:
+            missing.append(s)
+    if missing:
+        log.info(f"  {layer_id}: no stored score for session(s) "
+                 f"{', '.join(_date_key(s) for s in missing)} — skipped, not read as 0")
+    return stored, missing
  
  
 def _confirmed_color(
@@ -95,7 +106,7 @@ def _confirmed_color(
     today_color: str,
     layer_id: str,
     top_fund_delta: float | None,
-    session_date,
+    sessions: list,
 ) -> tuple[str, str]:
     """
     3-day color confirmation system.
@@ -116,7 +127,8 @@ def _confirmed_color(
  
     Returns (confirmed_color, confirmation_note)
     """
-    recent = _load_recent_layer_scores(layer_id, session_date, days=3)
+    stored, _missing = _confirmation_window(layer_id, sessions, sessions[-1])
+    recent = [score for _, score, _ in stored]
  
     # No history yet — trust today's score directly (first days of running)
     if len(recent) < 2:
@@ -150,19 +162,7 @@ def _confirmed_color(
     # ── No confirmation — hold previous confirmed color if available ───────────
     # This prevents oscillation: if yesterday was Red but today dipped to 60,
     # we don't immediately drop to Orange — we hold Red until confirmed otherwise
-    prev_colors = []
-    try:
-        p = Path(SCORES_HISTORY_FILE)
-        if p.exists():
-            history = json.loads(p.read_text())
-            prev = [e for e in history if e.get("date") != _date_key(session_date)]
-            prev_colors = [
-                e.get("scores", {}).get(layer_id, {}).get("color", "")
-                for e in prev[-3:]
-                if e.get("scores", {}).get(layer_id, {}).get("color")
-            ]
-    except Exception:
-        prev_colors = []
+    prev_colors = [color for _, _, color in stored if color]
  
     if prev_colors:
         # Most common color in last 3 days — hold it if borderline today
@@ -272,7 +272,7 @@ def stage_fetch() -> tuple[dict, dict]:
         return {}, MACRO_DEFAULTS
  
  
-def stage_score(market_data: dict, macro_data: dict, session_date) -> dict:
+def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
     """
     Score every ticker, then build a market-cap weighted layer score.
  
@@ -358,7 +358,7 @@ def stage_score(market_data: dict, macro_data: dict, session_date) -> dict:
         # Colors must be sustained across multiple runs to be confirmed.
         # Extreme signals (score > 80 or fund_delta > 0.60) bypass confirmation.
         layer_color, confirm_note = _confirmed_color(
-            weighted_score, layer_color, layer_id, top_fund_delta, session_date
+            weighted_score, layer_color, layer_id, top_fund_delta, sessions
         )
         if confirm_note:
             layer_status = confirm_note
@@ -431,12 +431,13 @@ def run_full_pipeline(score_only: bool = False):
     # Deliberately outside stage_fetch()'s own try/except, which swallows
     # exceptions into an empty-data fallback — this needs to crash the run
     # instead, so a bad fetch never reaches render/publish.
-    from fetch_market import assert_no_nan, get_last_session_date
+    from fetch_market import assert_no_nan, fetch_trading_sessions
     assert_no_nan(market_data)
-    session_date = get_last_session_date()
+    sessions = fetch_trading_sessions()
+    session_date = sessions[-1]
     log.info(f"  Last completed session: {session_date}")
 
-    scored_data = stage_score(market_data, macro_data, session_date)
+    scored_data = stage_score(market_data, macro_data, sessions)
  
     if score_only:
         log.info("--score flag: stopping after scoring")

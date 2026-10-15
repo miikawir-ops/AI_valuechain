@@ -22,6 +22,8 @@ import pandas as pd
 
 import fetch_market
 
+FIXED_END = "2026-10-09"   # a past session, so no bar is ever "today's"
+
 
 def _mock_ticker(hist: pd.DataFrame, **info_overrides) -> MagicMock:
     info = {
@@ -54,10 +56,12 @@ def test_trailing_nan_row_is_dropped_and_does_not_propagate():
     and price_momentum come from the real, complete history underneath it
     — not from the polluted series."""
     n_days = 70
-    dates  = pd.date_range(end=pd.Timestamp.today(), periods=n_days, freq="D")
+    # Fixed past dates, not today(): drop_unfinished_bar also drops a bar
+    # dated today until 16:00 ET, which would make this time-of-day dependent.
+    dates  = pd.date_range(end=FIXED_END, periods=n_days, freq="D")
     closes = [100.0 + i * 0.5 for i in range(n_days)]
     volumes = [1_000_000.0 for _ in range(n_days)]
-    closes[-1]  = float("nan")   # the unfinished "today" bar
+    closes[-1]  = float("nan")   # the empty bar yfinance appends after 00:00 UTC
     volumes[-1] = float("nan")
     hist = pd.DataFrame({"Close": closes, "Volume": volumes}, index=dates)
 
@@ -105,7 +109,7 @@ def test_mid_series_nan_is_marked_missing_not_nan():
     by) must still never reach the output as NaN — it must become None,
     named in data_missing."""
     n_days = 70
-    dates  = pd.date_range(end=pd.Timestamp.today(), periods=n_days, freq="D")
+    dates  = pd.date_range(end=FIXED_END, periods=n_days, freq="D")
     closes = [100.0 + i * 0.5 for i in range(n_days)]
     volumes = [1_000_000.0 for _ in range(n_days)]
     closes[-21] = float("nan")   # exactly the index price_30d divides by
