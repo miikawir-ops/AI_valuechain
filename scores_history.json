@@ -2296,12 +2296,12 @@
   },
   {
     "date": "2026-10-14",
-    "time": "10:46",
-    "action_ticker": "MU",
+    "time": "12:14",
+    "action_ticker": "AVGO",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 32.05,
+        "score": 34.83,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2312,7 +2312,7 @@
         }
       },
       "compute": {
-        "score": 37.36,
+        "score": 37.8,
         "color": "Orange",
         "ratings": {
           "NVDA": "C",
@@ -2325,7 +2325,7 @@
         }
       },
       "memory": {
-        "score": 56.56,
+        "score": 55.76,
         "color": "Red",
         "ratings": {
           "MU": "A",
@@ -2335,7 +2335,7 @@
         }
       },
       "infra": {
-        "score": 34.29,
+        "score": 34.74,
         "color": "Green",
         "ratings": {
           "VRT": "B",
@@ -2347,7 +2347,7 @@
         }
       },
       "cloud": {
-        "score": 27.85,
+        "score": 28.36,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
