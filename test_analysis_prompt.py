@@ -50,8 +50,39 @@ def test_prompt_states_the_real_data():
     print("PASS: prompt states session date, engine regime, macro (missing named), YoY + quarter, acceleration")
 
 
+def test_prompt_framing_matches_the_code():
+    """Weights 65/20/15 (old prompt: "50/25/25"); Orange is not hype; no
+    "Next Nvidia" section until the radar measures acceleration (item 9);
+    the signal section allows only Watch or Monitor (old: Buy/Watch/Avoid)."""
+    prompt, _ = _prompt()
+    assert "65% revenue acceleration signal + 20% constraint signal" in prompt and "15% smart money" in prompt
+    assert "50% fundamentals" not in prompt and "Orange=emerging/hype" not in prompt
+    assert "Orange does not mean hype" in prompt
+    assert "NEXT NVIDIA" not in prompt.upper()
+    assert "### 💡 ONE SIGNAL TO WATCH" in prompt and "Use only Watch or Monitor" in prompt
+    assert "Buy/Watch/Avoid" not in prompt
+    print("PASS: prompt framing — 65/20/15, Orange ≠ hype, no Next Nvidia, Watch/Monitor only")
+
+
+def test_signal_section_gets_fixed_disclaimer_and_still_parses():
+    reply = ("### 🌍 MACRO REGIME\nRisk-On.\n\n### 💡 ONE SIGNAL TO WATCH\n"
+             "Company: MU (Micron Technology), Watch. Revenue YoY +379%. A slowdown would weaken it.\n")
+    out = analyze.finalize(reply, {})
+    assert out.rstrip().endswith("A slowdown would weaken it. Not financial advice."), out
+    assert analyze.finalize(out, {}).count("Not financial advice.") == 1, "suffix added twice"
+    import re
+    m = re.search(r'Company[:\s]+\*?\*?([A-Z]{1,5})', out)   # render.generate_dashboard's track-record parser
+    assert m and m.group(1) == "MU"
+    import json
+    action = json.loads(render._analysis_sections(out)[1])
+    assert action and "SIGNAL TO WATCH" in action["title"].upper() and action["body"].endswith("Not financial advice.")
+    print("PASS: signal section ends with a fixed 'Not financial advice.'; ticker and action card still parse")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
     test_prompt_states_the_real_data()
+    test_prompt_framing_matches_the_code()
+    test_signal_section_gets_fixed_disclaimer_and_still_parses()
     print("\nAll analysis-prompt tests passed.")

@@ -1681,7 +1681,7 @@ function buildAnalysis() {{
     </div>`).join("");
   if (ACTION) {{
     document.getElementById("action").innerHTML = `
-      <div class="action-lbl">ONE ACTION TODAY</div>
+      <div class="action-lbl">ONE SIGNAL TO WATCH</div>
       <div class="action-title">${{ACTION.title}}</div>
       <div class="action-body">${{ACTION.body}}</div>`;
   }}

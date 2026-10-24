@@ -7,6 +7,7 @@ Fallback: Ollama local (llama3 or mistral)
  
 import os
 import json
+import re
 import logging
 import datetime
 from dotenv import load_dotenv
@@ -97,10 +98,15 @@ def build_prompt(scored_data: dict, market_data: dict, macro_data: dict = None, 
     session_txt = f"{session:%A, %B} {session.day}, {session.year}" if session else "unknown"
     method = (f"\nMETHODOLOGY NOTE (since the {f['method_boundary']:%b} {f['method_boundary'].day} close): {f['method_note']}\n"
               if f["method_note"] else "")
-    prompt = f"""You are a senior AI investment analyst. Data: close of {session_txt}.
+    prompt = f"""You are a senior AI investment analyst writing a short daily note for the RayDar dashboard. Data: close of {session_txt}.
+Use only the figures given below. Do not add, estimate or round differently any number that is not in this data. Not financial advice.
 
-Scoring: 50% fundamentals (revenue growth acceleration) / 25% constraints / 25% smart money.
-Colors: Red=current bottleneck, Orange=emerging/hype, Green=neutral, Blue=cooling.
+HOW THE SCORES WORK
+Company score = 65% revenue acceleration signal + 20% constraint signal (news headline velocity, capex vs operating cash flow) + 15% smart money (volume, analyst buy ratings, short interest level, price momentum), times the macro multiplier.
+Revenue YoY = the latest reported quarter vs the same quarter a year earlier. Acceleration = the change in that YoY between the latest two quarters, in percentage points (pp). "Not measured" means fewer than 6 quarters of revenue exist: say so, never treat it as zero or as stable.
+Layer score = market-cap weighted average of its companies' scores. Colours: Red above 65 (bottleneck), Orange 45 to 65 (emerging), Green 25 to 45 (neutral), Blue below 25 or revenue growth down more than 5 pp at every company (cooling). A layer keeps its colour until its score moves 10 points past the threshold.
+Hype flag (company only): price up more than 15% in 30 days while revenue grows under 10%, or more than 20 points ahead of its layer peers while growth slows. It lowers the company's rating. It never changes a colour: Orange does not mean hype.
+The 30d price return is not a fundamental. Keep "the revenue signal is real" and "the price moved" separate; never present one as the other.
 {method}
 MACRO REGIME (applied by the scoring engine): {f['regime']}
   VIX {_fmt(f['vix'], '', 1, False)} · 10Y yield change over 20 sessions {_fmt(f['yield_bps'], ' bps')} · NASDAQ vs S&P 500 over 20 sessions {_fmt(f['nasdaq_pp'], ' pp')}
@@ -111,20 +117,17 @@ SCORED LAYERS (companies largest market cap first):
 OUTPUT INSTRUCTIONS — follow this EXACT format. No markdown bold (**). No bullet points inside sections. Plain sentences only. Each section starts with the emoji header shown.
  
 ### 🌍 MACRO REGIME
-Write 2-3 plain sentences. State the current regime (Risk-On / Neutral / Risk-Off) and what it means for AI investments today. No bullet points.
- 
+Write 2-3 plain sentences. State the regime exactly as given above, with its multiplier, and name the inputs behind it. If an input is missing, say it is missing. No bullet points.
+
 ### 🔩 AI CHAIN BOTTLENECK
-Write 3-4 plain sentences. Name the dominant constraint layer and its score. Name the emerging next constraint. Identify the 1-2 most critical companies with specific delta and growth figures. No bullet points.
- 
-### 🚀 NEXT NVIDIA SIGNAL
-Write 3-4 plain sentences. Name one company with the strongest Nvidia-like growth acceleration. State the bull case in one sentence. State what would invalidate it in one sentence. No bullet points.
- 
+Write 3-4 plain sentences. Name the highest-scoring layer with its layer score and colour. If no layer is Red, say there is no bottleneck layer today. Name the next layer by score. Cite 1-2 companies with their revenue YoY (and quarter end) and acceleration exactly as given. No bullet points.
+
 ### ⚠️ HYPE WARNINGS
-Write 2-3 plain sentences. Name any Orange signals or hype=True tickers with cooling fundamentals. Be specific with scores and deltas. No bullet points.
- 
-### 💡 ONE ACTION
-Write exactly 3 plain sentences. Sentence 1: Company name and action (Buy/Watch/Avoid). Sentence 2: Thesis with specific data. Sentence 3: Primary risk. No bullet points. Format: "Company: TICKER (Name)"
- 
+Write 1-3 plain sentences. Name only companies with hype yes, with the stated reason. If no company is flagged, say no company is flagged today. Do not call a layer hype because it is Orange. No bullet points.
+
+### 💡 ONE SIGNAL TO WATCH
+Write exactly 3 plain sentences. Sentence 1: "Company: TICKER (Name), Watch" or "Company: TICKER (Name), Monitor". Use only Watch or Monitor, never buy, sell or avoid. Sentence 2: the signal, with figures exactly as given. Sentence 3: what would weaken it. No bullet points.
+
 RULES: No asterisks. No bold. No bullet points. No dashes. No markdown. Plain professional sentences only.
 """
     return prompt, f
@@ -171,11 +174,33 @@ def run_analysis(scored_data: dict, market_data: dict, macro_data: dict = None, 
     log.info(f"  Prompt built ({len(prompt)} chars) — sending to {GEMINI_MODEL}...")
  
     try:
-        return analyze_with_gemini(prompt)
+        return finalize(analyze_with_gemini(prompt), facts)
     except Exception as gemini_err:
         log.warning(f"  Gemini failed ({gemini_err}) — trying Ollama...")
         try:
-            return analyze_with_ollama(prompt)
+            return finalize(analyze_with_ollama(prompt), facts)
         except Exception as ollama_err:
             log.error(f"  Both engines failed.")
             return f"Analysis unavailable.\nGemini: {gemini_err}\nOllama: {ollama_err}"
+
+
+NFA_SUFFIX = "Not financial advice."
+
+
+def finalize(text: str, facts: dict) -> str:
+    """Code-side guarantees on the model's reply: the signal section ends
+    with a fixed "Not financial advice." (not left to the model)."""
+    out = []
+    for part in _split_sections(text):
+        if "SIGNAL TO WATCH" in part.split("\n", 1)[0].upper():
+            part = part.rstrip()
+            if not part.endswith(NFA_SUFFIX):
+                part += " " + NFA_SUFFIX
+            part += "\n\n"
+        out.append(part)
+    return "".join(out).rstrip() + "\n"
+
+
+def _split_sections(text: str) -> list:
+    """The reply split at each "## "/"### " header line, headers kept."""
+    return [p for p in re.split(r"(?m)^(?=\s*#{2,3}\s)", text.strip()) if p.strip()]
