@@ -25,6 +25,9 @@ jobs:
       - name: Run agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # SEC requires a contact in the User-Agent ("Name email"); unset, EDGAR
+          # is refused and revenue acceleration shows as "not measured".
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: python main.py --now
  
       - name: Commit and push dashboard

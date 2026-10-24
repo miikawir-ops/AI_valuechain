@@ -29,6 +29,7 @@ import statistics
 import feedparser
 import pandas as pd
 import yfinance as yf
+import edgar
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -436,6 +437,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         growth_curr       = None
         growth_prev       = None
         growth_quarter    = None   # quarter-end of growth_curr
+        revenue_source    = "none"
         gm_delta          = 0.0
         revenue_quarterly = 0
         financials        = None
@@ -450,6 +452,18 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
                         break
                 if rev_row is not None:
                     revenue = {pd.Timestamp(k).date(): float(v) for k, v in rev_row.dropna().items()}
+                    # EDGAR fills the quarters yfinance lacks (older ones for
+                    # acceleration, and a newest one yfinance leaves blank),
+                    # only from a concept that matches yfinance where both exist.
+                    edgar_rev, edgar_note = edgar.quarterly_revenue(ticker, revenue)
+                    revenue_source = "yfinance"
+                    if edgar_rev:
+                        for d, v in edgar_rev.items():
+                            if not any(abs((d - y).days) <= edgar.DATE_TOL_DAYS for y in revenue):
+                                revenue[d] = v
+                        revenue_source = f"yfinance + EDGAR {edgar_note}"
+                    else:
+                        revenue_source = f"yfinance only (EDGAR: {edgar_note})"
                     growth_curr, growth_prev, growth_quarter = quarterly_yoy(revenue)
  
                 gm_row   = None
@@ -574,6 +588,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             "growth_curr":       growth_curr,
             "growth_prev":       growth_prev,
             "growth_quarter":    growth_quarter.isoformat() if growth_quarter else None,
+            "revenue_source":    revenue_source,
             "gm_delta":          gm_delta,
             "gross_margin":      gross_margin,
             "news_velocity":     news_velocity,

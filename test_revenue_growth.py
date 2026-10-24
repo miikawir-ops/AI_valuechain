@@ -29,13 +29,18 @@ def _hist():
     return pd.DataFrame({"Close": [100.0 + i for i in range(n)], "Volume": [1_000_000.0] * n}, index=dates)
 
 
-def _fetch(revenue: dict, **info):
-    """revenue: {quarter_end: value in $bn}, newest first, as yfinance orders it."""
+def _fetch(revenue: dict, _edgar: bool = False, **info):
+    """revenue: {quarter_end: value in $bn}, newest first, as yfinance orders it.
+    EDGAR is switched off (no network) unless _edgar=True, for tests that
+    patch edgar._get themselves."""
     mock = _mock_ticker(_hist(), **info)
     mock.quarterly_financials = pd.DataFrame(
         {pd.Timestamp(k): [v * 1e9] for k, v in revenue.items()}, index=["Total Revenue"])
     with patch("fetch_market.yf.Ticker", return_value=mock):
-        return fetch_market.fetch_ticker_data("TST", headlines=[], layer_keywords=["x"], layer_tickers=["TST"])
+        if _edgar:
+            return fetch_market.fetch_ticker_data("TST", headlines=[], layer_keywords=["x"], layer_tickers=["TST"])
+        with patch("edgar.quarterly_revenue", return_value=(None, "off in this test")):
+            return fetch_market.fetch_ticker_data("TST", headlines=[], layer_keywords=["x"], layer_tickers=["TST"])
 
 
 def test_growth_is_date_matched_yoy_not_two_quarters_back():
