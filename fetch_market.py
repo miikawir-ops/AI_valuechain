@@ -344,6 +344,40 @@ BUY_GRADES = ("Buy", "Strong Buy", "Overweight", "Outperform", "Positive")
 ANALYST_WINDOW_DAYS = 30
 
 
+def merged_revenue(ticker: str, yf_revenue: dict) -> tuple:
+    """({quarter_end: revenue}, source). EDGAR fills the quarters yfinance
+    lacks (older ones for acceleration, and a newest one yfinance leaves
+    blank), only from a concept that matches yfinance where both exist.
+    Shared by the dashboard and the radar, so both read the same quarters."""
+    revenue = dict(yf_revenue)
+    edgar_rev, edgar_note = edgar.quarterly_revenue(ticker, revenue)
+    if not edgar_rev:
+        return revenue, f"yfinance only (EDGAR: {edgar_note})"
+    for d, v in edgar_rev.items():
+        if not any(abs((d - y).days) <= edgar.DATE_TOL_DAYS for y in revenue):
+            revenue[d] = v
+    return revenue, f"yfinance + EDGAR {edgar_note}"
+
+
+def yoy_series(revenue: dict, n: int = 4) -> list:
+    """[(quarter_end, yoy)] for up to n consecutive quarters, newest first,
+    each date-matched to the quarter ending 350-380 days earlier. Stops at the
+    first quarter without its year-earlier quarter or with a gap — no stand-ins."""
+    ends = sorted(revenue, reverse=True)
+    out, prev = [], None
+    for e in ends:
+        if prev is not None and not 75 <= (prev - e).days <= 105:
+            break
+        base = next((p for p in ends if 350 <= (e - p).days <= 380), None)
+        if base is None or not revenue[base]:
+            break
+        out.append((e, round((revenue[e] - revenue[base]) / abs(revenue[base]), 4)))
+        prev = e
+        if len(out) == n:
+            break
+    return out
+
+
 def quarterly_yoy(revenue: dict) -> tuple:
     """(growth_curr, growth_prev, latest_quarter_end) from {quarter_end: revenue}.
 
@@ -451,19 +485,8 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
                         rev_row = financials.loc[label]
                         break
                 if rev_row is not None:
-                    revenue = {pd.Timestamp(k).date(): float(v) for k, v in rev_row.dropna().items()}
-                    # EDGAR fills the quarters yfinance lacks (older ones for
-                    # acceleration, and a newest one yfinance leaves blank),
-                    # only from a concept that matches yfinance where both exist.
-                    edgar_rev, edgar_note = edgar.quarterly_revenue(ticker, revenue)
-                    revenue_source = "yfinance"
-                    if edgar_rev:
-                        for d, v in edgar_rev.items():
-                            if not any(abs((d - y).days) <= edgar.DATE_TOL_DAYS for y in revenue):
-                                revenue[d] = v
-                        revenue_source = f"yfinance + EDGAR {edgar_note}"
-                    else:
-                        revenue_source = f"yfinance only (EDGAR: {edgar_note})"
+                    yf_rev = {pd.Timestamp(k).date(): float(v) for k, v in rev_row.dropna().items()}
+                    revenue, revenue_source = merged_revenue(ticker, yf_rev)
                     growth_curr, growth_prev, growth_quarter = quarterly_yoy(revenue)
  
                 gm_row   = None
