@@ -9,6 +9,8 @@ Running record of in-progress work and a queue of known issues deliberately not 
 
 ## Queue
 
+- **Review the divergence-flag thresholds around 2027-01-24 (Ray, 2026-10-24).** From scores_detail.jsonl: do flagged companies' returns over the next 1–3 months differ from unflagged ones? Adjust DIV_ACCEL_PP / DIV_DROP_PCT / DIV_REL_PTS then. Starting set fired on 3.0% of company-sessions (46% of sessions had at least one) over 2026-04-24 → 10-23.
+- **Mirror case counted, not built (2026-10-24).** Acceleration < −5 pp with 30d ≥ +15% and ≥ 10 pts above NASDAQ: 93 company-sessions (2.2%) over the same 6 months, 6 companies; hype missed 48 of them (52%): ARM 20 sessions, VRT 11, META 9, SMCI 7, LRCX 1 — fast growers that are slowing (YoY 22–93%, so hype rule 1's < 10% growth doesn't apply). Decide later whether a mirror flag is needed.
 - **Data check: corporate actions in the EDGAR revenue series (Ray, 2026-10-24, not yet checked).** WDC spun off its flash business (Sandisk) on 2025-02-21. Verify no YoY compares HDD-only quarters with pre-split HDD+flash quarters. Today's figures are unaffected, but history and the 2021–26 distribution behind the A threshold and the removed instant Red may be. Check other corporate actions in the universe too, e.g. GEV's April 2024 spin-off from GE (no pre-spin 10-Q quarters).
 - **Open question: WDC in the "HBM memory" layer (Ray, 2026-10-24).** WDC has no HBM business; it sits in the layer as storage. Layer naming or composition, for later.
 - **Known post-check limit: it checks figures, not reasoning (2026-10-24).** Gemini's "an increase in constraint signals would weaken this" (backwards) passed, because no figure was wrong. The prompt's sentence-3 rule now points at the data (bdc9822), but reasoning isn't verified.
