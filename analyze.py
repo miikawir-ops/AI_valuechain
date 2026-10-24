@@ -187,12 +187,88 @@ def run_analysis(scored_data: dict, market_data: dict, macro_data: dict = None, 
 NFA_SUFFIX = "Not financial advice."
 
 
+WITHHELD = "Section withheld: figures didn't match the data."
+
+# Numbers the method itself states, allowed anywhere: weights, colour and
+# hype thresholds, the 10-point hold, "6 quarters", "14 days", "20 sessions",
+# "30 days", "S&P 500".
+METHOD_CONSTANTS = {65, 20, 15, 45, 25, 10, 5, 6, 14, 30, 500, 100}
+REGIMES = ("Risk-On", "Risk-Off", "Neutral", "Unknown")
+_MONTHS = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?"
+_NUM = re.compile(r"(?<![A-Za-z0-9.])[+\-−]?(\d+(?:\.\d+)?)(?![A-Za-z0-9])")
+
+
+def _entities(facts: dict) -> dict:
+    """{name or ticker (lower case): [numbers it may be cited with]}."""
+    ents = {}
+    for l in facts.get("layers", []):
+        vals = [l.get("score")] + ([l["unmeasured"]["share"] * 100] if l.get("unmeasured") else [])
+        for key in {l["name"].lower(), l["id"].lower()}:
+            ents.setdefault(key, []).extend(vals)
+        for c in l.get("companies", []):
+            ents[c["ticker"].lower()] = [c.get(k) for k in ("score", "yoy_pct", "accel_pp", "ret30_pct")]
+    return ents
+
+
+def check_section(title: str, body: str, facts: dict) -> list:
+    """Mismatches between one section of the reply and the facts the prompt
+    stated. Empty list = the section may be published."""
+    bad = []
+    regime = (facts.get("regime") or "").split(" ·")[0]
+    named = [r for r in REGIMES if re.search(rf"\b{re.escape(r)}\b", body) and r != "Neutral"]
+    for r in named:
+        if not regime.startswith(r):
+            bad.append(f"regime '{r}' (engine: {regime})")
+    if "MACRO" in title.upper() and regime and regime.split(" (")[0] not in body:
+        bad.append(f"regime not stated as '{regime}'")
+    if "SIGNAL TO WATCH" in title.upper():
+        if not re.search(r"\b(Watch|Monitor)\b", body):
+            bad.append("no Watch/Monitor")
+        for w in re.findall(r"\b(buy|sell|avoid|short)\b", body, re.I):
+            bad.append(f"action word '{w}'")
+        m = re.search(r"Company[:\s]+([A-Z]{1,5})\b", body)
+        if not m or m.group(1).lower() not in _entities(facts):
+            bad.append(f"signal company {m.group(1) if m else 'missing'} not in the data")
+
+    ents = _entities(facts)
+    macro = [abs(v) for v in (facts.get("vix"), facts.get("yield_bps"), facts.get("nasdaq_pp")) if v is not None]
+    mult = re.search(r"× ([\d.]+)", facts.get("regime") or "")
+    macro += [float(mult.group(1))] if mult else []
+    clean = re.sub(r"\d{4}-\d{2}-\d{2}", " ", body)                       # ISO dates
+    clean = re.sub(rf"\b{_MONTHS}\s+\d{{1,2}}(?:,\s*\d{{4}})?", " ", clean)  # "Sep 3, 2026"
+    clean = re.sub(r"\b(?:19|20)\d{2}\b", " ", clean)                      # years
+    context = []
+    for sentence in re.split(r"(?<=[.!?])\s+", clean):
+        low = sentence.lower()
+        here = [k for k in ents if re.search(rf"(?<![a-z]){re.escape(k)}(?![a-z])", low)]
+        context = here or context
+        allowed = [abs(v) for k in context for v in ents[k] if v is not None] + macro
+        for m in _NUM.finditer(sentence):
+            x = float(m.group(1))
+            if x in METHOD_CONSTANTS or x <= 3 and x == int(x):
+                continue
+            tol = 0.6 if "." in m.group(1) else 1.0
+            if not any(abs(x - v) <= tol for v in allowed):
+                bad.append(f"{m.group(0).strip()} in \"{sentence.strip()[:90]}\"")
+    return bad
+
+
 def finalize(text: str, facts: dict) -> str:
-    """Code-side guarantees on the model's reply: the signal section ends
-    with a fixed "Not financial advice." (not left to the model)."""
+    """Code-side guarantees on the model's reply. Each section is checked
+    against the facts the prompt stated (check_section); one that doesn't
+    match is withheld, with a visible note, and logged. The signal section
+    ends with a fixed "Not financial advice." (not left to the model)."""
     out = []
     for part in _split_sections(text):
-        if "SIGNAL TO WATCH" in part.split("\n", 1)[0].upper():
+        title, _, body = part.partition("\n")
+        if not title.lstrip().startswith("#"):
+            out.append(part)
+            continue
+        bad = check_section(title, body, facts)
+        if bad:
+            log.warning(f"  Analysis section withheld — {title.strip('# ').strip()}: " + " | ".join(bad))
+            part = f"{title}\n{WITHHELD}\n\n"
+        elif "SIGNAL TO WATCH" in title.upper():
             part = part.rstrip()
             if not part.endswith(NFA_SUFFIX):
                 part += " " + NFA_SUFFIX

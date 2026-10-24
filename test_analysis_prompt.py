@@ -65,23 +65,70 @@ def test_prompt_framing_matches_the_code():
 
 
 def test_signal_section_gets_fixed_disclaimer_and_still_parses():
-    reply = ("### 🌍 MACRO REGIME\nRisk-On.\n\n### 💡 ONE SIGNAL TO WATCH\n"
-             "Company: MU (Micron Technology), Watch. Revenue YoY +379%. A slowdown would weaken it.\n")
-    out = analyze.finalize(reply, {})
+    _, facts = _prompt()
+    reply = ("### 🌍 MACRO REGIME\nThe regime is Neutral · scores × 0.85.\n\n### 💡 ONE SIGNAL TO WATCH\n"
+             "Company: MUX (Micron X), Watch. Revenue YoY +379%. A slowdown would weaken it.\n")
+    out = analyze.finalize(reply, facts)
     assert out.rstrip().endswith("A slowdown would weaken it. Not financial advice."), out
-    assert analyze.finalize(out, {}).count("Not financial advice.") == 1, "suffix added twice"
+    assert analyze.finalize(out, facts).count("Not financial advice.") == 1, "suffix added twice"
     import re
     m = re.search(r'Company[:\s]+\*?\*?([A-Z]{1,5})', out)   # render.generate_dashboard's track-record parser
-    assert m and m.group(1) == "MU"
+    assert m and m.group(1) == "MUX"
     import json
     action = json.loads(render._analysis_sections(out)[1])
     assert action and "SIGNAL TO WATCH" in action["title"].upper() and action["body"].endswith("Not financial advice.")
     print("PASS: signal section ends with a fixed 'Not financial advice.'; ticker and action card still parse")
 
 
+GOOD = """### 🌍 MACRO REGIME
+The market regime is Neutral · scores × 0.85, driven by VIX 35.0, while NASDAQ trails the S&P 500 by 3.1 pp over 20 sessions and the 10Y yield change is missing.
+
+### 🔩 AI CHAIN BOTTLENECK
+No layer is Red today. Scores weight revenue acceleration 65%, constraints 20% and smart money 15%. MUX reported revenue YoY of +379% for the quarter ended Sep 3, 2026 (2026-09-03), accelerating by 33.6 pp, though its price fell 18.9% over 30 days. NOM needs 6 quarters before acceleration can be measured; earnings within 14 days matter here.
+
+### ⚠️ HYPE WARNINGS
+No company is flagged for hype today.
+
+### 💡 ONE SIGNAL TO WATCH
+Company: MUX (Micron X), Watch. Revenue YoY of +379% with acceleration of 33.6 pp is the strongest revenue signal in the data. A slowdown below the 5 pp band would weaken it.
+"""
+
+
+def test_post_check_passes_legitimate_numbers():
+    """Weights, thresholds, dates, "14 days", "6 quarters", "S&P 500" and
+    the data's own figures must not trip the check (Ray: no false positives)."""
+    _, facts = _prompt()
+    for part in analyze._split_sections(GOOD):
+        title, _, body = part.partition("\n")
+        assert analyze.check_section(title, body, facts) == [], (title, analyze.check_section(title, body, facts))
+    out = analyze.finalize(GOOD, facts)
+    assert analyze.WITHHELD not in out
+    print("PASS: post-check passes a reply whose figures all come from the data (weights, dates, 14 days, 6 quarters)")
+
+
+def test_post_check_withholds_a_section_with_a_wrong_figure():
+    _, facts = _prompt()
+    cases = {
+        "wrong YoY":     GOOD.replace("YoY of +379% for", "YoY of +150% for"),
+        "wrong regime":  GOOD.replace("Neutral · scores × 0.85", "Risk-Off · scores × 0.65"),
+        "buy":           GOOD.replace("(Micron X), Watch.", "(Micron X), Buy."),
+        "unknown co":    GOOD.replace("Company: MUX (Micron X)", "Company: ZZZZ (Nothing Inc)"),
+    }
+    for name, reply in cases.items():
+        out = analyze.finalize(reply, facts)
+        assert out.count(analyze.WITHHELD) == 1, f"{name}: {out.count(analyze.WITHHELD)} sections withheld"
+    wrong = analyze.finalize(cases["wrong YoY"], facts)
+    assert "+150%" not in wrong and "No company is flagged" in wrong, "withheld the wrong section"
+    signal = analyze.finalize(cases["buy"], facts)
+    assert "Company: MUX" not in signal, "a withheld signal still names a company for the track record"
+    print("PASS: a wrong figure, regime, action word or company withholds exactly its section")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_post_check_passes_legitimate_numbers()
+    test_post_check_withholds_a_section_with_a_wrong_figure()
     test_prompt_states_the_real_data()
     test_prompt_framing_matches_the_code()
     test_signal_section_gets_fixed_disclaimer_and_still_parses()
