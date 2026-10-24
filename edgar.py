@@ -29,7 +29,7 @@ import requests
 
 log = logging.getLogger(__name__)
 
-SEC_USER_AGENT = os.getenv("SEC_USER_AGENT", "RayDar research")
+SEC_USER_AGENT = os.getenv("SEC_USER_AGENT") or "RayDar research"   # an unset Actions secret arrives as ""
 TICKERS_URL    = "https://www.sec.gov/files/company_tickers.json"
 FACTS_URL      = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 
