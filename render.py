@@ -999,7 +999,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔴 Hot / Bottleneck</div>
-        <div style="font-size:11px">Strongest bottleneck signal: layer score above 65, held over recent sessions.</div>
+        <div style="font-size:11px">Strongest bottleneck signal: layer score above 65. Colours hold until the score moves 10 points past the threshold.</div>
       </div>
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟠 Emerging</div>
@@ -1103,6 +1103,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="mc" style="background:#E6F1FB;border-color:#378ADD">
     <div class="mc-name" style="color:#0C447C">Blue — cooling</div>
     <div class="mc-desc" style="color:#185FA5">Layer score below 25, or revenue growth slowing at every company in the layer.</div>
+  </div>
+  <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin:4px 0 8px">
+    Colours are held: a layer keeps its colour from recent sessions until its score moves more than
+    10 points past that colour's threshold (Red holds down to 55, Orange down to 35), so a layer can
+    show a colour outside its score band.
   </div>
   <div style="background:#F8F8F7;border-left:2px solid #378ADD;border-radius:0 6px 6px 0;
               padding:8px 10px;font-size:10px;color:#5F5E5A;line-height:1.6;margin-top:4px">
