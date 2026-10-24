@@ -4,6 +4,7 @@ Running record of in-progress work and a queue of known issues deliberately not 
 
 ## Next (agreed order, 2026-10-24)
 
+- **Scoring-method freeze until the January review (Ray, 2026-10-24).** After item 8: bug fixes only, no changes to scoring logic, weights, thresholds or what feeds the scores, so scores_detail.jsonl history from 2026-10-24 stays comparable for the ~2027-01-24 review. Anything else goes to this queue.
 - **After item 3: save every run's per-company inputs and scores to a tracked file** (e.g. `scores_detail.json`, with history; Ray, 2026-10-24). It makes discrepancies traceable (compute 55.5 live vs 54.0 in the replay on the same prices, cause unverified), proves acceleration for companies the page doesn't show (ETN, CSCO, CIEN, DDOG), and gives a backtest point-in-time data. Needs the workflow's `git add` too (own line, like growth_history.json).
 - **Item 7 (two-sided divergence flag): add it to the Gemini prompt too**, as a fact in analyze.build_facts with both readings stated, so the post-check covers it. Don't forget: the prompt was rebuilt in item 3 without it.
 
