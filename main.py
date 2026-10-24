@@ -344,11 +344,11 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
     return results
  
  
-def stage_analyze(scored_data: dict, market_data: dict) -> str:
+def stage_analyze(scored_data: dict, market_data: dict, macro_data: dict = None, session_date=None) -> str:
     log.info("[3/4] Running AI analysis...")
     try:
         from analyze import run_analysis
-        analysis = run_analysis(scored_data, market_data)
+        analysis = run_analysis(scored_data, market_data, macro_data or {}, session_date)
         log.info("  Analysis complete")
         return analysis
     except Exception as e:
@@ -420,7 +420,7 @@ def run_full_pipeline(score_only: bool = False):
         log.warning(f"  Radar failed: {e}")
         radar_data = []
  
-    analysis = stage_analyze(scored_data, market_data)
+    analysis = stage_analyze(scored_data, market_data, macro_data, session_date)
     stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data)
  
     elapsed = (datetime.datetime.now() - start).seconds

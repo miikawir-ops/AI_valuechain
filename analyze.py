@@ -25,51 +25,89 @@ def _pct(v) -> str:
     return f"{v*100:+.1f}%" if v is not None else "N/A"
 
  
-def build_prompt(scored_data: dict, market_data: dict) -> str:
-    layer_lines = []
-    for layer_id, layer_result in scored_data.items():
-        best        = layer_result.get("best", {})
-        all_tickers = layer_result.get("all_tickers", [])
-        ticker_lines = []
-        for t in all_tickers:
-            delta     = t.get("fund_delta")
-            delta_str = f"{delta*100:+.1f}%" if delta is not None else "N/A"
-            growth    = t.get("growth_curr", 0) or 0
-            ticker_lines.append(
-                f"    {t.get('ticker','?')}: score={t.get('score',0):.0f} "
-                f"color={t.get('color','?')} delta={delta_str} "
-                f"growth={growth*100:.0f}% hype={t.get('is_hype',False)}"
-            )
-        layer_lines.append(
-            f"\n  {layer_id.upper()} — best={best.get('score',0):.0f} "
-            f"color={best.get('color','?')}\n"
-            + "\n".join(ticker_lines)
-        )
- 
-    top_tickers = []
-    for layer_id, tickers in market_data.items():
-        for t in (tickers or []):
-            g = t.get("growth_curr")
-            if g and g > 0.15:
-                top_tickers.append(
-                    f"  {t['ticker']} ({layer_id}): growth={g*100:.0f}% "
-                    f"vol_spike={t.get('vol_spike',0):.2f} "
-                    f"price_30d={_pct(t.get('price_30d_return'))}"
-                )
- 
-    today = datetime.datetime.now().strftime("%A, %B %d %Y")
- 
-    return f"""You are a senior AI investment analyst. Today: {today}.
- 
+def _fmt(v, unit="%", digits=1, sign=True) -> str:
+    """A number for the prompt; missing is "missing", never 0."""
+    if v is None:
+        return "missing"
+    return f"{v:+.{digits}f}{unit}" if sign else f"{v:.{digits}f}{unit}"
+
+
+def build_facts(scored_data: dict, market_data: dict, macro_data: dict, session_date) -> dict:
+    """Everything the prompt states, as data — the post-check reads the same
+    dict, so the analysis is checked against exactly what Gemini was given.
+    Growth comes from market_data (scored results don't carry it)."""
+    import render
+    lookup = render.build_ticker_lookup(market_data)
+    macro = macro_data or {}
+    layers = []
+    for lid, res in scored_data.items():
+        best = res.get("best", {})
+        n1, n2 = render.LAYER_NAMES.get(lid, (lid, ""))
+        unm = render._unmeasured_acceleration(res.get("all_tickers", []))
+        earn = render._upcoming_earnings(market_data.get(lid), session_date) if session_date else []
+        companies = []
+        for t in sorted(res.get("all_tickers", []), key=lambda x: -(x.get("market_cap") or 0)):
+            raw = lookup.get(t.get("ticker"), {})
+            d = t.get("fund_delta")
+            companies.append({
+                "ticker": t.get("ticker"), "name": t.get("name") or raw.get("name"),
+                "score": t.get("score"), "color": t.get("color"),
+                "rating": render.company_rating(t.get("score", 0), (d or 0) * 100, t.get("color", "Green"), t.get("is_hype", False)),
+                "yoy_pct": raw["growth_curr"] * 100 if raw.get("growth_curr") is not None else None,
+                "quarter": raw.get("growth_quarter"),
+                "accel_pp": d * 100 if d is not None else None,
+                "ret30_pct": t["price_30d_return"] * 100 if t.get("price_30d_return") is not None else None,
+                "hype": bool(t.get("is_hype")), "hype_reasons": t.get("hype_reasons") or [],
+            })
+        layers.append({"id": lid, "name": n1, "desc": n2, "score": best.get("score"), "color": best.get("color"),
+                       "status": best.get("status", ""), "unmeasured": unm, "earnings": earn, "companies": companies})
+    boundary = render.method_boundary(render.load_scores_history())
+    session = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
+    note = (render.METHOD_NOTE if boundary and session and 0 <= (session - boundary).days <= render.METHOD_NOTE_DAYS
+            else None)
+    nas = macro.get("nasdaq_vs_spx_20d")
+    return {
+        "session": session, "regime": render.regime_label(scored_data, macro).replace("Market regime: ", ""),
+        "vix": macro.get("vix"), "yield_bps": macro.get("yield_10y_change"),
+        "nasdaq_pp": nas * 100 if nas is not None else None,
+        "method_boundary": boundary if note else None, "method_note": note, "layers": layers,
+    }
+
+
+def build_prompt(scored_data: dict, market_data: dict, macro_data: dict = None, session_date=None) -> tuple:
+    """(prompt, facts). The prompt states only what facts holds."""
+    f = build_facts(scored_data, market_data, macro_data or {}, session_date)
+    lines = []
+    for l in f["layers"]:
+        extra = ""
+        if l["unmeasured"]:
+            extra = (f"; acceleration not measured for {', '.join(l['unmeasured']['syms'])} "
+                     f"({l['unmeasured']['share']*100:.0f}% of layer market cap)")
+        lines.append(f"\n  {l['name']} ({l['desc']}): layer score {l['score']:.1f}, {l['color']} — {l['status']}{extra}")
+        if l["earnings"]:
+            lines.append("    earnings within 14 days: " + ", ".join(f"{e['sym']} {e['date']}" for e in l["earnings"]))
+        for c in l["companies"]:
+            accel = f"{c['accel_pp']:+.1f} pp" if c["accel_pp"] is not None else "not measured"
+            q = f" (quarter ended {c['quarter']})" if c["quarter"] else ""
+            hype = ("yes — " + "; ".join(c["hype_reasons"])) if c["hype"] else "no"
+            lines.append(f"    {c['ticker']} ({c['name']}): score {c['score']:.0f}, {c['color']}, rating {c['rating']}, "
+                         f"revenue YoY {_fmt(c['yoy_pct'], '%', 0)}{q}, acceleration {accel}, "
+                         f"30d price return {_fmt(c['ret30_pct'])}, hype {hype}")
+    session = f["session"]
+    session_txt = f"{session:%A, %B} {session.day}, {session.year}" if session else "unknown"
+    method = (f"\nMETHODOLOGY NOTE (since the {f['method_boundary']:%b} {f['method_boundary'].day} close): {f['method_note']}\n"
+              if f["method_note"] else "")
+    prompt = f"""You are a senior AI investment analyst. Data: close of {session_txt}.
+
 Scoring: 50% fundamentals (revenue growth acceleration) / 25% constraints / 25% smart money.
 Colors: Red=current bottleneck, Orange=emerging/hype, Green=neutral, Blue=cooling.
- 
-SCORED LAYERS:
-{"".join(layer_lines)}
- 
-HIGH-GROWTH TICKERS (>15% revenue growth):
-{chr(10).join(top_tickers[:10]) if top_tickers else "  None today"}
- 
+{method}
+MACRO REGIME (applied by the scoring engine): {f['regime']}
+  VIX {_fmt(f['vix'], '', 1, False)} · 10Y yield change over 20 sessions {_fmt(f['yield_bps'], ' bps')} · NASDAQ vs S&P 500 over 20 sessions {_fmt(f['nasdaq_pp'], ' pp')}
+
+SCORED LAYERS (companies largest market cap first):
+{chr(10).join(lines)}
+
 OUTPUT INSTRUCTIONS — follow this EXACT format. No markdown bold (**). No bullet points inside sections. Plain sentences only. Each section starts with the emoji header shown.
  
 ### 🌍 MACRO REGIME
@@ -89,8 +127,9 @@ Write exactly 3 plain sentences. Sentence 1: Company name and action (Buy/Watch/
  
 RULES: No asterisks. No bold. No bullet points. No dashes. No markdown. Plain professional sentences only.
 """
- 
- 
+    return prompt, f
+
+
 def analyze_with_gemini(prompt: str) -> str:
     import time
     from google import genai
@@ -123,12 +162,12 @@ def analyze_with_ollama(prompt: str) -> str:
     return resp.json().get("response", "")
  
  
-def run_analysis(scored_data: dict, market_data: dict) -> str:
+def run_analysis(scored_data: dict, market_data: dict, macro_data: dict = None, session_date=None) -> str:
     if not GEMINI_API_KEY:
         log.error("GEMINI_API_KEY not set in .env")
         return "Analysis unavailable — GEMINI_API_KEY missing from .env file."
  
-    prompt = build_prompt(scored_data, market_data)
+    prompt, facts = build_prompt(scored_data, market_data, macro_data, session_date)
     log.info(f"  Prompt built ({len(prompt)} chars) — sending to {GEMINI_MODEL}...")
  
     try:

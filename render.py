@@ -633,6 +633,12 @@ def _radar_js_data(radar_data: list) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
 
+def method_boundary(history: list):
+    """The last session stored under an older METHOD_VERSION (date), or None."""
+    old = [e["date"] for e in history if e.get("date") and e.get("method") != METHOD_VERSION]
+    return datetime.date.fromisoformat(max(old)) if old else None
+
+
 def regime_label(scored_data: dict, macro_data: dict) -> str:
     """The market regime and multiplier the scores actually used.
 
@@ -683,8 +689,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     if method_break:
         prev_date, yesterday = None, {}
     # The last session stored under an older method marks the change.
-    old_dates = [e["date"] for e in full_history if e.get("date") and e.get("method") != METHOD_VERSION]
-    boundary  = datetime.date.fromisoformat(max(old_dates)) if old_dates else None
+    boundary  = method_boundary(full_history)
     today_s   = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
     method_note_html = ""
     if boundary and 0 <= (today_s - boundary).days <= METHOD_NOTE_DAYS:
