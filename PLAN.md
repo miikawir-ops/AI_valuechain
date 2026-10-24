@@ -9,6 +9,8 @@ Running record of in-progress work and a queue of known issues deliberately not 
 
 ## Queue
 
+- **Gemini post-check can't catch a figure swapped between two companies in one sentence (found 2026-10-24, logged by Ray's request).** analyze.check_section accepts any figure belonging to any company or layer named in the sentence (or the previous one), so "MU +54% and LRCX +379%" passes. Possible fix: match each figure to the nearest preceding company name.
+
 Items here are reported, not yet diagnosed via decomposition against real data (per CLAUDE.md's diagnosis methodology) unless noted otherwise. Don't fix without confirming root cause first — that's the whole point of logging rather than fixing.
 
 - **Leader boost has the same base-effect weakness as the removed instant Red (found 2026-10-24, no change by decision).** main.stage_score floors a layer at 45 (Orange) when one company's fund_delta > 0.40. On true YoY that fired in 17 of 600 company-quarters 2021-07 → 2026-10 (2.8%), many of them recoveries off a trough (WDC, VST, SMCI) rather than bottlenecks (tools/accel_distribution.py). Milder than instant Red (Orange floor, still confirmed), so left as is.
