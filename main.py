@@ -48,7 +48,8 @@ MACRO_DEFAULTS = {
     "vix":               None,
     "yield_10y_change":  None,
     "nasdaq_vs_spx_20d": None,
-    "data_missing":      ["vix", "yield_10y_change", "nasdaq_vs_spx_20d"],
+    "nasdaq_30d_return": None,
+    "data_missing":      ["vix", "yield_10y_change", "nasdaq_vs_spx_20d", "nasdaq_30d_return"],
 }
  
  
@@ -428,6 +429,7 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
                 "fund_delta": d, "accel_measured": d is not None,
                 "is_hype": t.get("is_hype", False), "hype_reasons": t.get("hype_reasons", []),
                 "data_status": t.get("data_status"),
+                "divergence": t.get("divergence"),
             })
     withheld = [p.split("\n", 1)[0].strip("# ").strip() for p in _split_sections(analysis or "")
                 if p.partition("\n")[2].strip() == WITHHELD]
@@ -442,7 +444,7 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
         "session": session.isoformat(),
         "run_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "method": METHOD_VERSION, "code_commit": _code_commit(), "versions": _library_versions(),
-        "macro": {k: macro_data.get(k) for k in ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "data_missing")}
+        "macro": {k: macro_data.get(k) for k in ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "nasdaq_30d_return", "data_missing")}
                  | {"regime": regime[0] if regime else None, "multiplier": regime[1] if regime else None},
         "layers": layers, "companies": companies, "radar": radar,
         "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None},

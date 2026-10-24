@@ -366,6 +366,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
                 "delta_band": delta_band,
                 "accel_pp":   round(raw_delta, 1) if t_scored.get("fund_delta") is not None else None,
                 "gross_margin_pct": round(raw["gross_margin"] * 100, 1) if raw.get("gross_margin") is not None else None,
+                "price_div":  t_scored.get("divergence") if (t_scored.get("divergence") or {}).get("flag") else None,
                 "hype":       t_hype,
                 "color":      t_color,
                 "sparkline":  sparkline,
@@ -411,12 +412,6 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
                 "The investment narrative exists but has not yet shown up in quarterly earnings. "
                 "Watch for confirmation in next results before positioning."
             )
-        elif news_vel == 0 and color == "Green" and fund_delta < 0:
-            divergence     = True
-            divergence_msg = (
-                "Revenue growth is decelerating with no supporting news signal. "
-                "Fundamentals are weakening — monitor for further deterioration."
-            )
  
         layers.append({
             "id":             layer_id,
@@ -435,6 +430,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             "deep_dive":      LAYER_DEEP_DIVE_URLS.get(layer_id),
             "earnings":       _upcoming_earnings(market_data.get(layer_id), session_date),
             "unmeasured":     _unmeasured_acceleration(all_scores),
+            "price_div":      [t.get("ticker") for t in all_scores if (t.get("divergence") or {}).get("flag")],
         })
  
     return json.dumps(layers)
@@ -1104,6 +1100,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Warning flags</div>
     <p style="margin-bottom:4px"><strong>⚡ Narrative ahead of fundamentals</strong> — The layer's top-scoring company is in the news, but its revenue growth is slowing or barely accelerating.</p>
     <p style="margin-bottom:10px"><strong>hype</strong> badge on a company — Price up more than 15% in 30 days while revenue grows under 10%, or more than 20 points ahead of its layer peers while revenue growth slows. Lowers that company's rating to C. It doesn't change the layer's colour.</p>
+    <p style="margin-bottom:10px"><strong>revenue up, price down</strong> badge on a company — Revenue YoY accelerated more than 5 percentage points last quarter while the price fell 15% or more in 30 days and at least 10 points more than the NASDAQ. Two readings: the market may be pricing a risk that reported revenue doesn't show yet, or the price may have fallen further than the revenue trend implies. Not a recommendation. It changes no score, colour or rating.</p>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
     <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — CNBC, MarketWatch, Yahoo Finance company headlines · AI analysis — Google Gemini 2.5</p>
     <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials are each company's latest reported quarter, up to about 5 months old · Not financial advice · Always do your own research</p>
@@ -1485,6 +1482,7 @@ function buildChain() {{
       <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
         ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'B by default: acceleration not measured':t.rating==='A'?'A: accelerating more than 20 pp in an Orange/Red layer':t.rating==='C'?'C: hype flag, or YoY down more than 5 pp':'B: neither A nor C'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
       </div>
+      ${{l.price_div && l.price_div.length ? `<div class="lyr-meta" style="margin-top:-6px;color:#3C3489">Price down sharply while revenue accelerates: ${{l.price_div.join(", ")}}</div>` : ""}}
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}
       <div class="lyr-tickers">${{tkHtml}}</div>
@@ -1514,6 +1512,7 @@ function buildExpand() {{
   const cards = l.tickers.map(t => {{
     const rc    = t.ret30 == null ? "#888780" : t.ret30 >= 0 ? "#27500A" : "#A32D2D";
     const hyp   = t.hype ? `<span style="font-size:9px;background:#FAEEDA;color:#854F0B;padding:1px 5px;border-radius:4px;margin-left:4px">hype</span>` : "";
+    const pdv   = t.price_div ? `<span style="font-size:9px;background:#EEEDFE;color:#3C3489;padding:1px 5px;border-radius:4px;margin-left:4px" title="Revenue YoY accelerated ${{fmt(t.price_div.accel_pp)}} pp while the price moved ${{fmt(t.price_div.ret30_pct)}}% in 30 days (NASDAQ ${{fmt(t.price_div.nasdaq_30d_pct)}}%). Two readings: the market may be pricing a risk that reported revenue doesn't show yet, or the price may have fallen further than the revenue trend implies. Not a recommendation.">revenue up, price down</span>` : "";
     const tIcon = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : "—";
     const tCol  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
     const cardId = `tk-detail-${{l.id}}-${{t.sym}}`;
@@ -1528,7 +1527,7 @@ function buildExpand() {{
           >${{t.rating}}</span>
           ${{t.rating_up ? `<span style="font-size:10px;color:#27500A;font-weight:600">↑ was ${{t.prev_rating}}</span>` : ""}}
           ${{t.rating_down ? `<span style="font-size:10px;color:#A32D2D;font-weight:600">↓ was ${{t.prev_rating}}</span>` : ""}}
-          ${{hyp}}
+          ${{hyp}}${{pdv}}
         </div>
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>

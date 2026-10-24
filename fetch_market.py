@@ -669,7 +669,7 @@ def fetch_macro() -> dict:
     zeros), per CLAUDE.md's fetch-failure rule. Ported from RayDar-DataCenter.
     """
     log.info("  Fetching macro signals...")
-    result = {"vix": None, "yield_10y_change": None, "nasdaq_vs_spx_20d": None}
+    result = {"vix": None, "yield_10y_change": None, "nasdaq_vs_spx_20d": None, "nasdaq_30d_return": None}
     data_missing = []
 
     try:
@@ -699,6 +699,15 @@ def fetch_macro() -> dict:
             result["nasdaq_vs_spx_20d"] = round(nasdaq_ret - spx_ret, 4)
     except Exception as e:
         log.warning(f"  Nasdaq/SPX fetch error: {e}")
+
+    # NASDAQ over the same 21 closes as each company's price_30d_return —
+    # the benchmark for the price-revenue divergence flag. Not a regime input.
+    try:
+        nq = drop_unfinished_bar(yf.Ticker("^IXIC").history(period="45d"), label="^IXIC")["Close"].dropna()
+        if len(nq) >= 21 and nq.iloc[-21]:
+            result["nasdaq_30d_return"] = round(float(nq.iloc[-1] / nq.iloc[-21] - 1), 4)
+    except Exception as e:
+        log.warning(f"  Nasdaq 30d fetch error: {e}")
 
     # Anything not fetched, or not a finite number, is missing — not a default.
     for key, value in result.items():

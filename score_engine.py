@@ -63,6 +63,12 @@ DECEL_THRESHOLD = -0.05
 # not comparable: not overwritten, not compared with, not used as colour-
 # confirmation history (render.save_scores_history, main._confirmation_window).
 METHOD_VERSION = "2026-10-yoy-edgar"
+
+# Price-revenue divergence flag thresholds (starting set, Ray 2026-10-24;
+# review against next-1-3-month returns from scores_detail.jsonl).
+DIV_ACCEL_PP = 5.0     # acceleration above +5 pp (measured only)
+DIV_DROP_PCT = -15.0   # 30d return at or below -15%
+DIV_REL_PTS  = -10.0   # and at least 10 points below NASDAQ's 30d return
  
 # Layer-type metadata — used for context-aware scoring
 # Energy/Infra are physical constraint layers: lower baseline margins, higher capex weight
@@ -277,6 +283,20 @@ class ScoreEngine:
  
     # ── Stage 4: Hype detection ───────────────────────────────────────────────
  
+    def calculate_divergence(self, data: dict, delta: float | None) -> dict:
+        """Price-revenue divergence (item 7): revenue YoY accelerated more than
+        DIV_ACCEL_PP while the 30d price return is at most DIV_DROP_PCT and at
+        least DIV_REL_PTS below NASDAQ over the same 21 closes. A flag with two
+        readings, never a score, colour or rating input. Not evaluated when
+        acceleration is unmeasured or a return is missing (Ray, 2026-10-24)."""
+        r30 = data.get("price_30d_return")
+        nq  = self.macro_data.get("nasdaq_30d_return")
+        if delta is None or r30 is None or nq is None:
+            return {"evaluated": False, "flag": False}
+        a, r, n = delta * 100, r30 * 100, nq * 100
+        return {"evaluated": True, "flag": a > DIV_ACCEL_PP and r <= DIV_DROP_PCT and r - n <= DIV_REL_PTS,
+                "accel_pp": round(a, 1), "ret30_pct": round(r, 1), "nasdaq_30d_pct": round(n, 1)}
+
     def calculate_hype(self, data: dict, delta: float | None, missing: list) -> tuple[bool, list[str]]:
         """
         Hype warning: price running ahead of revenue fundamentals.
@@ -458,6 +478,7 @@ class ScoreEngine:
                 "accel_measured": delta is not None,
                 "is_hype":      is_hype,
                 "hype_reasons": hype_reasons,
+                "divergence":   self.calculate_divergence(data, delta),
                 "data_status":  "Full" if not missing_fields else f"Partial — missing: {', '.join(missing_fields)}",
                 "timestamp":    datetime.datetime.now().isoformat(),
             }

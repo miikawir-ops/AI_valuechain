@@ -199,7 +199,7 @@ def _macro_tickers(tnx_raises: bool = False):
         tnx.history.side_effect = ConnectionError("simulated ^TNX outage")
     else:
         tnx.history.return_value = bars([4.0] * 30)
-    nasdaq = MagicMock(); nasdaq.history.return_value = bars([100.0] * 19 + [102.0])
+    nasdaq = MagicMock(); nasdaq.history.return_value = bars([100.0] * 23 + [102.0])   # >= 21 closes: 20-session and 30d returns both computable
     spx    = MagicMock(); spx.history.return_value = bars([100.0] * 20)
     return {"^VIX": vix, "^TNX": tnx, "^IXIC": nasdaq, "^GSPC": spx}
 
