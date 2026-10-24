@@ -55,7 +55,8 @@ def test_detail_line_is_appended_complete_and_replays():
     assert line["session"] == "2026-10-23" and datetime.date.fromisoformat(line["session"]).weekday() < 5
     assert line["run_utc"].endswith("Z") and line["method"] and "python" in line["versions"] and "yfinance" in line["versions"]
     assert line["macro"]["regime"] == "Risk-On" and line["macro"]["multiplier"] == 1.0
-    assert line["signal"] == {"ticker": "MUX", "close": 877.55}, line["signal"]
+    assert line["signal"] == {"ticker": "MUX", "close": 877.55, "rule": "signal-v1", "tier": "A",
+                              "explanation_withheld": False}, line["signal"]
     assert line["withheld_sections"] == ["🔩 AI CHAIN BOTTLENECK"], line["withheld_sections"]
     assert line["withheld_detail"] == [{"section": "🔩 AI CHAIN BOTTLENECK", "mismatches": ['+350 in "MUX +350% ..."']}]
     assert line["analysis_raw"].startswith("### 🔩") and line["analysis_engine"] == "gemini-2.5-flash"

@@ -59,7 +59,7 @@ def test_prompt_framing_matches_the_code():
     assert "50% fundamentals" not in prompt and "Orange=emerging/hype" not in prompt
     assert "Orange does not mean hype" in prompt
     assert "NEXT NVIDIA" not in prompt.upper()
-    assert "### 💡 ONE SIGNAL TO WATCH" in prompt and "Use only Watch or Monitor" in prompt
+    assert "### 💡 ONE SIGNAL TO WATCH" in prompt and "fixed by the dashboard's rule (signal-v1)" in prompt and "Never use buy, sell or avoid" in prompt
     assert "Buy/Watch/Avoid" not in prompt
     print("PASS: prompt framing — 65/20/15, Orange ≠ hype, no Next Nvidia, Watch/Monitor only")
 
@@ -116,14 +116,17 @@ def test_post_check_withholds_a_section_with_a_wrong_figure():
     }
     for name, reply in cases.items():
         out = analyze.finalize(reply, facts)
-        assert out.count(analyze.WITHHELD) == 1, f"{name}: {out.count(analyze.WITHHELD)} sections withheld"
+        # signal-v1: a withheld signal still shows the rule's pick, only the explanation is withheld
+        n = out.count(analyze.WITHHELD) + out.count("Explanation withheld: figures didn't match the data.")
+        assert n == 1, f"{name}: {n} sections withheld"
     analyze.LAST_RUN.update(withheld=[])
     wrong = analyze.finalize(cases["wrong YoY"], facts)
     w = analyze.LAST_RUN["withheld"]
     assert len(w) == 1 and w[0]["section"] == "🔩 AI CHAIN BOTTLENECK" and any(m.startswith("+150 in \"") for m in w[0]["mismatches"]), w
     assert "+150%" not in wrong and "No company is flagged" in wrong, "withheld the wrong section"
     signal = analyze.finalize(cases["buy"], facts)
-    assert "Company: MUX" not in signal, "a withheld signal still names a company for the track record"
+    # signal-v1: the pick is the rule's (MUX here), so it stays; the model's "Buy" text doesn't.
+    assert "Company: MUX (Micron X), Watch. Explanation withheld" in signal and "Buy" not in signal, signal
     print("PASS: a wrong figure, regime, action word or company withholds exactly its section")
 
 

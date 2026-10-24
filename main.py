@@ -435,8 +435,9 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
             })
     withheld = [p.split("\n", 1)[0].strip("# ").strip() for p in _split_sections(analysis or "")
                 if p.partition("\n")[2].strip() == WITHHELD]
-    m = re.search(r"Company[:\s]+\*?\*?([A-Z]{1,5})", analysis or "")
-    pick = m.group(1) if m else None
+    from score_engine import signal_pick
+    rule = signal_pick(companies)   # companies carry score, fund_delta, is_hype, rating
+    pick = rule["ticker"]
     radar, rank = [], 0
     for r in radar_data or []:
         a = r.get("accel") or {}
@@ -456,7 +457,9 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
         "macro": {k: macro_data.get(k) for k in ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "nasdaq_30d_return", "data_missing")}
                  | {"regime": regime[0] if regime else None, "multiplier": regime[1] if regime else None},
         "layers": layers, "companies": companies, "radar": radar,
-        "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None},
+        "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None,
+                   "rule": rule["rule"], "tier": rule["tier"],
+                   "explanation_withheld": any("SIGNAL TO WATCH" in w.upper() for w in withheld)},
         "withheld_sections": withheld,
         # Why each was withheld (value + sentence snippet) and the raw reply,
         # so a withheld section can be judged without the Actions log.

@@ -1879,6 +1879,7 @@ function buildTrackRecord() {{
   }};
   rows.innerHTML = cur.map(row).join("") + (old.length
     ? `<div style="font-size:10px;font-weight:500;color:#888780;margin:10px 0 2px">Old method (before Oct 24) — entry reconstructed from historical close; these picks were published with Buy/Watch/Avoid wording</div>` + old.map(row).join("")
+      + `<div style="font-size:10px;color:#B4B2A9;margin-top:4px">AVGO was shown on the evening of Sep 29 and replaced before the next open.</div>`
     : "");
 }}
 

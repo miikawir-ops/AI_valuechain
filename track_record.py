@@ -26,6 +26,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 CROSS_CHECK_TOL = 0.01   # stored vs fetched close; a bigger gap is logged (e.g. a later split)
+END = "__END__"          # "no company qualifies" under a signal rule: ends the current pick
 
 
 def _per_session(runs: list) -> list:
@@ -40,13 +41,18 @@ def _per_session(runs: list) -> list:
 def _episodes(runs: list) -> list:
     """runs: [(session_date, ticker or None)] in run order → [{ticker, first, last}]."""
     eps = []
+    open_ep = True
     for session, tk in runs:
+        if tk == END:
+            open_ep = False                            # exit stays at the last qualifying session
+            continue
         if not tk:
             continue                                   # withheld / unparsed: doesn't end the pick
-        if eps and eps[-1]["ticker"] == tk:
+        if eps and open_ep and eps[-1]["ticker"] == tk:
             eps[-1]["last"] = session
         else:
             eps.append({"ticker": tk, "first": session, "last": session})
+        open_ep = True
     return eps
 
 
@@ -62,7 +68,11 @@ def current_method_runs(detail_path: str) -> list:
         except ValueError:
             continue
         sig = d.get("signal") or {}
-        out.append((datetime.date.fromisoformat(d["session"]), sig.get("ticker"), sig.get("close"), d.get("run_utc", "")))
+        # Under a signal rule, no ticker means no company qualified: that ends
+        # the pick. Before the rule (no "rule" key), it meant a withheld or
+        # unparsed reply, which doesn't (Ray, 2026-10-24).
+        tk = sig.get("ticker") or (END if sig.get("rule") else None)
+        out.append((datetime.date.fromisoformat(d["session"]), tk, sig.get("close"), d.get("run_utc", "")))
     out.sort(key=lambda x: x[3])
     return [(s, t, c) for s, t, c, _ in out]
 
@@ -123,8 +133,9 @@ def build(history: list, detail_path: str, latest_session: datetime.date, method
     cur_runs = current_method_runs(detail_path)
     cur = _episodes(_per_session([(s, t) for s, t, _ in cur_runs]))
     rows_cur = []
+    ended = bool(cur_runs) and _per_session([(s, t) for s, t, _ in cur_runs])[-1][1] == END
     for i, ep in enumerate(cur):
-        row = _evaluate(ep, latest_session, active=(i == len(cur) - 1), closes_for=closes_for)
+        row = _evaluate(ep, latest_session, active=(i == len(cur) - 1 and not ended), closes_for=closes_for)
         stored = next((c for s, t, c in cur_runs if s == ep["first"] and t == ep["ticker"] and c), None)
         if stored and row["entry"] and abs(row["entry"] / stored - 1) > CROSS_CHECK_TOL:
             log.warning(f"  track record: {ep['ticker']} entry {row['entry']} vs stored close {stored} "

@@ -69,6 +69,28 @@ METHOD_VERSION = "2026-10-yoy-edgar"
 DIV_ACCEL_PP = 5.0     # acceleration above +5 pp (measured only)
 DIV_DROP_PCT = -15.0   # 30d return at or below -15%
 DIV_REL_PTS  = -10.0   # and at least 10 points below NASDAQ's 30d return
+
+# The "One signal to watch" pick, fixed by rule from the scored data so it
+# doesn't depend on the language model (Ray, 2026-10-24). Bump the version
+# whenever signal_pick changes; scores_detail.jsonl records it.
+SIGNAL_RULE_VERSION = "signal-v1"
+
+
+def signal_pick(companies: list) -> dict:
+    """signal-v1. companies: dicts with ticker, score, fund_delta (fraction or
+    None), is_hype, rating. A-rated without hype, by score, then acceleration,
+    then ticker → "Watch". Else B-rated with measured acceleration above
+    +5 pp, without hype, same order → "Monitor". Else no signal.
+    Divergence-flagged companies stay eligible (the card shows the flag)."""
+    order = lambda c: (-(c.get("score") or 0), -(c.get("fund_delta") or 0), c.get("ticker") or "")
+    a = sorted((c for c in companies if c.get("rating") == "A" and not c.get("is_hype")), key=order)
+    if a:
+        return {"ticker": a[0]["ticker"], "tier": "A", "word": "Watch", "rule": SIGNAL_RULE_VERSION}
+    b = sorted((c for c in companies if c.get("rating") == "B" and not c.get("is_hype")
+                and c.get("fund_delta") is not None and c["fund_delta"] * 100 > DIV_ACCEL_PP), key=order)
+    if b:
+        return {"ticker": b[0]["ticker"], "tier": "B", "word": "Monitor", "rule": SIGNAL_RULE_VERSION}
+    return {"ticker": None, "tier": None, "word": None, "rule": SIGNAL_RULE_VERSION}
  
 # Layer-type metadata — used for context-aware scoring
 # Energy/Infra are physical constraint layers: lower baseline margins, higher capex weight

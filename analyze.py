@@ -74,7 +74,20 @@ def build_facts(scored_data: dict, market_data: dict, macro_data: dict, session_
         "nasdaq_pp": nas * 100 if nas is not None else None,
         "nasdaq_30d_pct": macro["nasdaq_30d_return"] * 100 if macro.get("nasdaq_30d_return") is not None else None,
         "method_boundary": boundary if note else None, "method_note": note, "layers": layers,
+        "signal": _signal(layers),
     }
+
+
+def _signal(layers: list) -> dict:
+    """score_engine.signal_pick over the facts' companies, plus what the card
+    needs: the name and, if flagged, the divergence figures."""
+    from score_engine import signal_pick
+    cos = [dict(c, fund_delta=(c["accel_pp"] / 100 if c["accel_pp"] is not None else None), is_hype=c["hype"])
+           for l in layers for c in l["companies"]]
+    pick = signal_pick(cos)
+    c = next((x for x in cos if x["ticker"] == pick["ticker"]), None)
+    return dict(pick, name=c["name"] if c else None,
+                divergence=c["divergence"] if c and (c.get("divergence") or {}).get("flag") else None)
 
 
 def build_prompt(scored_data: dict, market_data: dict, macro_data: dict = None, session_date=None) -> tuple:
@@ -104,6 +117,7 @@ def build_prompt(scored_data: dict, market_data: dict, macro_data: dict = None, 
     session_txt = f"{session:%A, %B} {session.day}, {session.year}" if session else "unknown"
     method = (f"\nMETHODOLOGY NOTE (since the {f['method_boundary']:%b} {f['method_boundary'].day} close): {f['method_note']}\n"
               if f["method_note"] else "")
+    signal_instr = _signal_instructions(f["signal"])
     prompt = f"""You are a senior AI investment analyst writing a short daily note for the RayDar dashboard. Data: close of {session_txt}.
 Use only the figures given below. Do not add, estimate or round differently any number that is not in this data. Not financial advice.
 
@@ -133,11 +147,25 @@ Write 3-4 plain sentences. Name the highest-scoring layer with its layer score a
 Write 2-4 plain sentences. Name only companies with hype yes, with the stated reason, or say no company is flagged for hype. Then name companies with price-revenue divergence yes, with their acceleration and 30d price figures exactly as given, and state both readings; never recommend an action. If none, say so. Do not call a layer hype because it is Orange. No bullet points.
 
 ### 💡 ONE SIGNAL TO WATCH
-Write exactly 3 plain sentences. Sentence 1: "Company: TICKER (Name), Watch" or "Company: TICKER (Name), Monitor". Use only Watch or Monitor, never buy, sell or avoid. Sentence 2: the signal, with figures exactly as given. Sentence 3: what in the data would weaken it, e.g. acceleration falling below +5 pp or a lower layer score. No bullet points.
+{signal_instr}
 
 RULES: No asterisks. No bold. No bullet points. No dashes. No markdown. Plain professional sentences only.
 """
     return prompt, f
+
+
+NO_SIGNAL = 'No signal today: no company meets the rule (an A rating, or a B rating with acceleration above +5 pp, without a hype flag).'
+
+
+def _signal_instructions(sig: dict) -> str:
+    if not sig.get("ticker"):
+        return f'Write exactly this one sentence: "{NO_SIGNAL}"'
+    first = f'Company: {sig["ticker"]} ({sig["name"]}), {sig["word"]}.'
+    return (f'The company is fixed by the dashboard\'s rule ({sig["rule"]}): do not choose another. '
+            f'Write exactly 3 plain sentences. Sentence 1, exactly: "{first}" '
+            'Sentence 2: why it meets the rule, with figures exactly as given. '
+            'Sentence 3: what in the data would weaken it, e.g. acceleration falling below +5 pp or a lower layer score. '
+            'Never use buy, sell or avoid. No bullet points.')
 
 
 def analyze_with_gemini(prompt: str) -> str:
@@ -238,12 +266,21 @@ def check_section(title: str, body: str, facts: dict) -> list:
     if "MACRO" in title.upper() and regime and regime.split(" (")[0] not in body:
         bad.append(f"regime not stated as '{regime}'")
     if "SIGNAL TO WATCH" in title.upper():
-        if not re.search(r"\b(Watch|Monitor)\b", body):
+        if (facts.get("signal") or {}).get("ticker", "x") and not re.search(r"\b(Watch|Monitor)\b", body):
             bad.append("no Watch/Monitor")
         for w in re.findall(r"\b(buy|sell|avoid|short)\b", body, re.I):
             bad.append(f"action word '{w}'")
+        sig = facts.get("signal") or {}
         m = re.search(r"Company[:\s]+([A-Z]{1,5})\b", body)
-        if not m or m.group(1).lower() not in _entities(facts):
+        if sig.get("rule") and not sig.get("ticker"):
+            if m:
+                bad.append(f"named {m.group(1)} though no company meets the rule")
+        elif sig.get("ticker"):
+            if not m or m.group(1) != sig["ticker"]:
+                bad.append(f"signal company {m.group(1) if m else 'missing'}, rule picks {sig['ticker']}")
+            if sig.get("word") and not re.search(rf"\b{sig['word']}\b", body):
+                bad.append(f"not worded '{sig['word']}' ({sig['tier']} tier)")
+        elif not m or m.group(1).lower() not in _entities(facts):
             bad.append(f"signal company {m.group(1) if m else 'missing'} not in the data")
 
     ents = _entities(facts)
@@ -284,12 +321,24 @@ def finalize(text: str, facts: dict) -> str:
         if bad:
             log.warning(f"  Analysis section withheld — {title.strip('# ').strip()}: " + " | ".join(bad))
             LAST_RUN["withheld"].append({"section": title.strip("# ").strip(), "mismatches": bad})
-            part = f"{title}\n{WITHHELD}\n\n"
-        elif "SIGNAL TO WATCH" in title.upper():
+            sig = facts.get("signal") or {}
+            if "SIGNAL TO WATCH" in title.upper() and sig.get("ticker"):
+                # The pick is the rule's, not the model's: still shown, only
+                # the explanation is withheld.
+                part = (f"{title}\nCompany: {sig['ticker']} ({sig['name']}), {sig['word']}. "
+                        f"Explanation withheld: figures didn't match the data.\n\n")
+            else:
+                part = f"{title}\n{WITHHELD}\n\n"
+        if "SIGNAL TO WATCH" in title.upper() and (not bad or (facts.get("signal") or {}).get("ticker")):
             # "Company: X (Name), Watch" on its own line: end it as a sentence,
             # since the page joins the section's lines with spaces.
             part = re.sub(r"(?m)^(\s*Company:[^\n]*?[A-Za-z)])\s*$", r"\1.", part)
             part = part.rstrip()
+            dv = (facts.get("signal") or {}).get("divergence")
+            note = (f"Note: price {dv['ret30_pct']:+.1f}% in 30 days (NASDAQ {dv['nasdaq_30d_pct']:+.1f}%) while revenue "
+                    f"accelerates {dv['accel_pp']:+.1f} pp (divergence flag).") if dv else ""
+            if note and note not in part:
+                part += " " + note
             if not part.endswith(NFA_SUFFIX):
                 part += " " + NFA_SUFFIX
             part += "\n\n"
