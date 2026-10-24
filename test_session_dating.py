@@ -28,6 +28,7 @@ import pandas as pd
 import fetch_market
 import render
 import main
+from score_engine import METHOD_VERSION as M
 
 UTC = datetime.timezone.utc
 MID_SESSION_RUN = datetime.datetime(2026, 10, 12, 14, 13, tzinfo=UTC)  # Mon 10:13 ET, market open (run #273)
@@ -148,10 +149,10 @@ def test_confirmation_window_comes_from_the_calendar():
     by an older entry), and a legacy weekend-dated entry never counts."""
     sessions = list(pd.bdate_range("2026-10-05", "2026-10-14").date)   # Mon 10-05 .. Wed 10-14
     history = [
-        {"date": "2026-10-08", "scores": {"energy": {"score": 40.0, "color": "Green"}}},
-        {"date": "2026-10-09", "scores": {}},                                             # layer missing
-        {"date": "2026-10-10", "scores": {"energy": {"score": 99.0, "color": "Red"}}},     # legacy Saturday entry
-        {"date": "2026-10-12", "scores": {"energy": {"score": 44.0, "color": "Green"}}},
+        {"date": "2026-10-08", "method": M, "scores": {"energy": {"score": 40.0, "color": "Green"}}},
+        {"date": "2026-10-09", "method": M, "scores": {}},                                             # layer missing
+        {"date": "2026-10-10", "method": M, "scores": {"energy": {"score": 99.0, "color": "Red"}}},     # legacy Saturday entry
+        {"date": "2026-10-12", "method": M, "scores": {"energy": {"score": 44.0, "color": "Green"}}},
         # 2026-10-13: no entry at all (e.g. a failed run)
     ]
     with tempfile.TemporaryDirectory() as tmp:
@@ -175,8 +176,8 @@ def test_delta_is_labelled_with_the_previous_session():
     label must name that session — not the current one ("close of Mon Oct
     12 ... vs Mon Oct 12" was on the live page)."""
     history = [
-        {"date": "2026-10-09", "scores": {"energy": {"score": 40.0, "color": "Green"}}},
-        {"date": "2026-10-12", "scores": {"energy": {"score": 44.0, "color": "Green"}}},
+        {"date": "2026-10-09", "method": M, "scores": {"energy": {"score": 40.0, "color": "Green"}}},
+        {"date": "2026-10-12", "method": M, "scores": {"energy": {"score": 44.0, "color": "Green"}}},
     ]
     with tempfile.TemporaryDirectory() as tmp:
         hist_path = str(Path(tmp) / "scores_history.json")

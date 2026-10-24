@@ -22,6 +22,8 @@ from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
+
+from score_engine import METHOD_VERSION
  
 load_dotenv()
 log = logging.getLogger(__name__)
@@ -40,15 +42,13 @@ MAX_HISTORY_DAYS    = 30
 EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
 UNMEASURED_NOTE_SHARE = 0.25   # layer card names unmeasured acceleration above this market-cap share
 
-# Bump METHOD_VERSION when a change alters what the scores mean, not just
-# their values. Every history entry records it; the first entry under a new
-# version is flagged methodology_change, so the heat trail, colour-change
-# badges and backtests don't read the jump as a market signal, and the page
-# shows METHOD_NOTE, dated, for METHOD_NOTE_DAYS calendar days.
-METHOD_VERSION   = "2026-10-yoy-edgar"
+# score_engine.METHOD_VERSION: the first history entry under a new version is
+# flagged methodology_change (for backtests). The page compares nothing across
+# versions, marks the last old-method day in the heat trail, and shows
+# METHOD_NOTE, dated, for METHOD_NOTE_DAYS calendar days after it.
 METHOD_NOTE      = ("Revenue growth is now true year-over-year (each quarter vs the same quarter a year "
                     "earlier), with SEC filings filling quarters Yahoo Finance lacks. HBM memory's earlier "
-                    "Red rested on a 2-quarter calculation; colour changes on this date reflect the fix, "
+                    "Red rested on a 2-quarter calculation; colour changes since then reflect the fix, "
                     "not a market move.")
 METHOD_NOTE_DAYS = 7
  
@@ -197,9 +197,18 @@ def _date_key(session_date) -> str:
 def save_scores_history(scored_data: dict, session_date, action_ticker: str = "", action_price: float = None):
     history = load_scores_history()
     session_key = _date_key(session_date)
-    # Remove existing entry for this SESSION if re-running — the last run
-    # per session overwrites, so a run just after midnight UTC updates the
-    # prior session's entry instead of creating a spurious new-day column.
+    # An entry stored under another method is kept as published: it's what
+    # the site showed for that session. This method's first entry is written
+    # when the data date advances (e.g. a Saturday run of Friday's close
+    # leaves Friday's old-method record alone).
+    existing = next((e for e in history if e.get("date") == session_key), None)
+    if existing and existing.get("method") != METHOD_VERSION:
+        log.info(f"  {session_key} is stored under method {existing.get('method') or 'pre-2026-10'}; "
+                 f"kept as published, not overwritten")
+        return
+    # Same method: the last run per session overwrites, so a run just after
+    # midnight UTC updates the prior session's entry instead of creating a
+    # spurious new-day column.
     history = [e for e in history if e.get("date") != session_key]
     earlier = [e for e in history if e.get("date", "") < session_key]
     changed = bool(earlier) and earlier[-1].get("method") != METHOD_VERSION
@@ -518,7 +527,8 @@ def _track_record_js_data(history: list, market_data: dict) -> str:
 def _history_js_data(history: list, scored_data: dict) -> str:
     layer_ids = list(scored_data.keys())
     date_map  = {e["date"]: e.get("scores", {}) for e in history}
-    changed   = {e["date"] for e in history if e.get("methodology_change")}
+    old_dates = [e["date"] for e in history if e.get("date") and e.get("method") != METHOD_VERSION]
+    boundary  = max(old_dates) if old_dates else None   # last session under an older method
     today     = datetime.datetime.now().date()
     days_out  = []
     for i in range(89, -1, -1):
@@ -529,7 +539,7 @@ def _history_js_data(history: list, scored_data: dict) -> str:
             "label": d.strftime("%b %d"),
             "short": d.strftime("%d"),
             "layers": {},
-            "method_change": d_str in changed,
+            "method_boundary": d_str == boundary,
         }
         scores = date_map.get(d_str, {})
         for lid in layer_ids:
@@ -666,17 +676,20 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
 
     prev_date, yesterday = get_yesterday_scores(scored_data, session_date)
     full_history = load_scores_history()
-    # Methodology change: on its first session there is no like-for-like
-    # previous session, so no "was Red" badges, score deltas or rating arrows.
-    change = next((e for e in reversed(full_history)
-                   if e.get("methodology_change") and e.get("method") == METHOD_VERSION), None)
-    change_day = datetime.date.fromisoformat(change["date"]) if change else None
-    if change_day == (session_date.date() if isinstance(session_date, datetime.datetime) else session_date):
+    # No comparison across methods: if the previous stored session was scored
+    # under another method, no "was Red" badges, score deltas or rating arrows.
+    by_date      = {e.get("date"): e for e in full_history}
+    method_break = bool(prev_date) and (by_date.get(prev_date) or {}).get("method") != METHOD_VERSION
+    if method_break:
         prev_date, yesterday = None, {}
+    # The last session stored under an older method marks the change.
+    old_dates = [e["date"] for e in full_history if e.get("date") and e.get("method") != METHOD_VERSION]
+    boundary  = datetime.date.fromisoformat(max(old_dates)) if old_dates else None
+    today_s   = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
     method_note_html = ""
-    if change_day and 0 <= ((session_date.date() if isinstance(session_date, datetime.datetime) else session_date) - change_day).days <= METHOD_NOTE_DAYS:
+    if boundary and 0 <= (today_s - boundary).days <= METHOD_NOTE_DAYS:
         method_note_html = (f'<div class="fetch-note" style="margin-bottom:8px;color:#5F5E5A">'
-                            f'<strong>Methodology change, {change_day:%b} {change_day.day}:</strong> {METHOD_NOTE}</div>')
+                            f'<strong>Methodology change after the {boundary:%b} {boundary.day} close:</strong> {METHOD_NOTE}</div>')
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
@@ -715,6 +728,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     track_js               = _track_record_js_data(full_history, market_data)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday          = "true" if yesterday else "false"
+    method_break_js        = "true" if method_break else "false"
  
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1226,6 +1240,7 @@ const LAYERS       = {layers_js};
 const MAIN_SECTIONS= {main_sections_js};
 const ACTION       = {action_js};
 const HAS_YESTERDAY= {has_yesterday};
+const METHOD_BREAK = {method_break_js};
 const RADAR        = {radar_js};
 const HISTORY      = {history_js};
 const TRACK_RECORD = {track_js};
@@ -1452,7 +1467,9 @@ function buildChain() {{
       <div class="lyr-delta">
         ${{HAS_YESTERDAY && l.delta_score !== null
           ? deltaArrow(l.delta_score) + "<span style='font-size:10px;color:#888780;margin-left:2px'>vs {prev_label}</span>"
-          : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
+          : METHOD_BREAK
+            ? "<span style='font-size:10px;color:#B4B2A9'>no comparison: method changed</span>"
+            : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
       <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
@@ -1636,9 +1653,9 @@ function buildHeat() {{
         cell.style.opacity = days === 7 ? "0.4" : "1";
         cell.title = `${{l.n1}} · ${{day.label}} · ${{days===7?"estimated":"no data yet"}}`;
       }}
-      if (day.method_change) {{
-        cell.style.borderLeft = "2px dashed #888780";
-        cell.title += " · scoring method changed this day — not a market move";
+      if (day.method_boundary) {{
+        cell.style.borderRight = "2px dashed #888780";
+        cell.title += " · scoring method changed after this day — later colours aren't comparable";
       }}
       cell.style.background = displayColor;
       g.appendChild(cell);

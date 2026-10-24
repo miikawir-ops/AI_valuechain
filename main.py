@@ -29,7 +29,7 @@ import schedule
 import time
 from pathlib import Path
 
-from score_engine import DECEL_THRESHOLD
+from score_engine import DECEL_THRESHOLD, METHOD_VERSION
 
 SCORES_HISTORY_FILE = "scores_history.json"
  
@@ -93,7 +93,10 @@ def _confirmation_window(layer_id: str, sessions: list, current) -> tuple[list, 
     by_date = {e.get("date"): e for e in history}
     stored, missing = [], []
     for s in window:
-        layer = ((by_date.get(_date_key(s)) or {}).get("scores") or {}).get(layer_id) or {}
+        entry = by_date.get(_date_key(s)) or {}
+        if entry and entry.get("method") != METHOD_VERSION:
+            continue   # scored under an older method: not comparable history
+        layer = (entry.get("scores") or {}).get(layer_id) or {}
         if layer.get("score") is not None:
             stored.append((s, layer["score"], layer.get("color")))
         elif first is not None and s >= first:

@@ -57,6 +57,12 @@ AUDIT_LOG_FILE = "audit_log.json"
 # latest two quarters — the card's own "stable" band (±5 pp). A smaller dip is
 # noise on true YoY (S −0.2 pp, MSFT −0.5 pp went Blue/C at < 0; Ray, 2026-10-24).
 DECEL_THRESHOLD = -0.05
+
+# Bump when a change alters what scores mean, not just their values. Every
+# scores_history.json entry records it; entries under another version are
+# not comparable: not overwritten, not compared with, not used as colour-
+# confirmation history (render.save_scores_history, main._confirmation_window).
+METHOD_VERSION = "2026-10-yoy-edgar"
  
 # Layer-type metadata — used for context-aware scoring
 # Energy/Infra are physical constraint layers: lower baseline margins, higher capex weight
