@@ -1404,13 +1404,14 @@ function buildBottleneckStrip() {{
   // than naming the lowest-scoring layer, which may be Neutral or worse.
   const easing    = sorted.find(l => l.color === "Blue");
  
-  let html = "";
+  let html = `<span style="color:#888780">Bottleneck${{hotLayers.length > 1 ? "s" : ""}}:</span>`;
   if (hotLayers.length > 0) {{
-    html += `<span style="color:#888780">Bottleneck${{hotLayers.length > 1 ? "s" : ""}}:</span>`;
     hotLayers.forEach((l, i) => {{
       html += `<strong style="color:#E24B4A">${{l.n1}}</strong>`;
       if (i < hotLayers.length - 1) html += `<span style="color:#E24B4A;margin:0 2px">+</span>`;
     }});
+  }} else {{
+    html += `<strong style="color:#888780">none</strong>`;
   }}
   if (emerging) {{
     html += `<span style="color:#B4B2A9;margin:0 4px">→</span>`;
@@ -1687,7 +1688,6 @@ function buildRadar() {{
   const count = document.getElementById("radar-count");
   if (!RADAR || !RADAR.top5 || RADAR.top5.length === 0) {{ card.style.display="none"; return; }}
   card.style.display = "block";
-  if (count) count.textContent = `Multi-quarter acceleration · ${{RADAR.top5.length}} of 45 companies scored`;
  
   const LAYER_SHORT = {{energy:"⚡",compute:"💻",memory:"🧠",infra:"🏗️",cloud:"☁️",software:"📱",security:"🔐",edge:"📡"}};
  

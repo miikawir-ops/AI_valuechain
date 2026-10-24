@@ -121,6 +121,13 @@ def test_easing_names_only_a_blue_layer():
     assert no_blue.endswith("Easing: none"), f"no Blue layer, strip reads: {no_blue!r}"
     assert blue.endswith("Easing: Energy"), f"with a Blue layer, strip reads: {blue!r}"
     print("PASS: Easing names only a Blue layer, otherwise 'none'")
+    no_red = strip_text([lay("HBM memory", 59, "Orange"), lay("Cloud", 37, "Green")])
+    assert no_red == "Bottleneck: none → Emerging: HBM memory → Easing: none", f"no Red layer: {no_red!r}"
+    print("PASS: no Red layer reads 'Bottleneck: none', no stray arrow")
+    assert "of 45 companies" not in page and "count.textContent" not in page, \
+        "buildRadar still overwrites the radar header"
+    assert 'id="radar-count">Latest revenue growth</span>' in page
+    print("PASS: radar header stays 'Latest revenue growth'")
 
 
 def test_earnings_badge_shows_real_dates_within_14_days():
