@@ -29,7 +29,9 @@ import datetime
 import schedule
 import time
 from pathlib import Path
- 
+
+from score_engine import DECEL_THRESHOLD
+
 SCORES_HISTORY_FILE = "scores_history.json"
  
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -199,7 +201,7 @@ def _layer_color_from_score(score: float, top_delta: float | None) -> tuple[str,
     Derive layer color from the market-cap weighted composite score.
     Mirrors the thresholds in score_engine.determine_color().
     """
-    if top_delta is not None and top_delta < 0:
+    if top_delta is not None and top_delta < DECEL_THRESHOLD:
         return "Blue", f"Cooling — dominant ticker decelerating ({top_delta*100:.1f}%)"
     if score > 65:
         return "Red", "Confirmed bottleneck — weighted layer score"

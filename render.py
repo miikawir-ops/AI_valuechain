@@ -52,9 +52,7 @@ def company_rating(score: float, delta: float, color: str, is_hype: bool) -> str
         return "A"
     elif color in ("Red", "Orange", "Green") and delta > 0 and not is_hype:
         return "B"
-    elif is_hype or delta < -5:
-        return "C"
-    elif delta < 0:
+    elif is_hype or delta < -5:   # decelerating: score_engine.DECEL_THRESHOLD in pp
         return "C"
     else:
         return "B"
@@ -1023,7 +1021,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </div>
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔵 Cooling</div>
-        <div style="font-size:11px">Layer score below 25, or revenue growth slowing at every company in the layer.</div>
+        <div style="font-size:11px">Layer score below 25, or year-over-year revenue growth down more than 5 points at every company in the layer.</div>
       </div>
     </div>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Warning flags</div>
@@ -1114,7 +1112,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
   <div class="mc" style="background:#E6F1FB;border-color:#378ADD">
     <div class="mc-name" style="color:#0C447C">Blue — cooling</div>
-    <div class="mc-desc" style="color:#185FA5">Layer score below 25, or revenue growth slowing at every company in the layer.</div>
+    <div class="mc-desc" style="color:#185FA5">Layer score below 25, or year-over-year revenue growth down more than 5 points at every company in the layer.</div>
   </div>
   <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin:4px 0 8px">
     Colours are held: a layer keeps its colour from recent sessions until its score moves more than
@@ -1145,7 +1143,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div class="sig-items">Volume vs average<br>Analyst buy ratings (30 days)<br>Short interest level<br>Price momentum</div>
     </div>
   </div>
-  <div class="override"><strong>Fundamental override:</strong> A company whose revenue growth is slowing has its growth score capped, so it can't score Red on its own. A layer turns Blue when revenue growth is slowing at every company in it.</div>
+  <div class="override"><strong>Fundamental override:</strong> A company whose year-over-year revenue growth fell more than 5 points between its last two quarters has its growth score capped, so it can't score Red on its own. A layer turns Blue when that holds for every company in it.</div>
   <div class="ip-note">This summary describes methodology categories only. Not financial advice.</div>
 </div>
  

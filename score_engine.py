@@ -52,6 +52,11 @@ from pathlib import Path
 log = logging.getLogger(__name__)
  
 AUDIT_LOG_FILE = "audit_log.json"
+
+# Decelerating = YoY growth fell by more than 5 percentage points between the
+# latest two quarters — the card's own "stable" band (±5 pp). A smaller dip is
+# noise on true YoY (S −0.2 pp, MSFT −0.5 pp went Blue/C at < 0; Ray, 2026-10-24).
+DECEL_THRESHOLD = -0.05
  
 # Layer-type metadata — used for context-aware scoring
 # Energy/Infra are physical constraint layers: lower baseline margins, higher capex weight
@@ -175,8 +180,8 @@ class ScoreEngine:
             raw = min(raw * 1.08, 100.0)
  
         # ── Fundamental override ──────────────────────────────────────────────
-        # Negative delta = decelerating revenue = CANNOT be a bottleneck
-        if delta is not None and delta < 0:
+        # Decelerating revenue = CANNOT be a bottleneck
+        if delta is not None and delta < DECEL_THRESHOLD:
             raw = min(raw, 40.0)
  
         return self._clamp(raw), delta
@@ -375,7 +380,7 @@ class ScoreEngine:
         Hype remains a WARNING FLAG only — never changes the color.
         """
         # Fundamental override always takes priority
-        if delta is not None and delta < 0:
+        if delta is not None and delta < DECEL_THRESHOLD:
             return "Blue", f"Cooling — negative growth delta ({delta*100:.1f}%)"
  
         # Bottleneck confirmation: Red requires positive acceleration
