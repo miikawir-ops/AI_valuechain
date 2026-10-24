@@ -38,6 +38,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 SCORES_HISTORY_FILE = "scores_history.json"
 MAX_HISTORY_DAYS    = 30
 EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
+UNMEASURED_NOTE_SHARE = 0.25   # layer card names unmeasured acceleration above this market-cap share
  
 CC = {
     "Red":    {"bg":"#FCEBEB","border":"#E24B4A","pill":"#E24B4A","pft":"#FCEBEB","lbl":"Hot",      "tc":"#791F1F"},
@@ -259,6 +260,20 @@ def _upcoming_earnings(layer_tickers: list, session_date) -> list:
     return [{"sym": sym, "date": f"{d:%b} {d.day}"} for d, sym in sorted(out)]
 
 
+def _unmeasured_acceleration(all_scores: list) -> dict | None:
+    """Companies whose revenue acceleration isn't measured (fund_delta None)
+    and their share of the layer's market cap — for the layer card when the
+    share is material (> UNMEASURED_NOTE_SHARE), e.g. ASML + TSM in compute."""
+    total = sum(t.get("market_cap") or 0 for t in all_scores)
+    gaps  = [t for t in all_scores if t.get("fund_delta") is None]
+    if not gaps or not total:
+        return None
+    share = sum(t.get("market_cap") or 0 for t in gaps) / total
+    if share <= UNMEASURED_NOTE_SHARE:
+        return None
+    return {"syms": [t.get("ticker", "?") for t in gaps], "share": round(share, 3)}
+
+
 def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, session_date) -> str:
     """Build the LAYERS JS array with real data from market_data."""
     ticker_lookup = build_ticker_lookup(market_data)
@@ -382,6 +397,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             "divergence_msg": divergence_msg,
             "deep_dive":      LAYER_DEEP_DIVE_URLS.get(layer_id),
             "earnings":       _upcoming_earnings(market_data.get(layer_id), session_date),
+            "unmeasured":     _unmeasured_acceleration(all_scores),
         })
  
     return json.dumps(layers)
@@ -1397,8 +1413,9 @@ function buildChain() {{
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
       <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
+      ${{l.unmeasured ? `<div class="lyr-meta" style="margin-top:-6px">Acceleration not measured: ${{l.unmeasured.syms.join(", ")}} (${{Math.round(l.unmeasured.share * 100)}}% of layer)</div>` : ""}}
       <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
-        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.rating==='A'?'Accelerating':t.rating==='B'?'Stable':t.rating==='C'?'Caution':'Deteriorating'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
+        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'acceleration not measured':t.rating==='A'?'Accelerating':t.rating==='B'?'Stable':t.rating==='C'?'Caution':'Deteriorating'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
       </div>
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}

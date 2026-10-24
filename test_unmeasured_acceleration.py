@@ -92,9 +92,28 @@ def test_two_company_red_layer_is_not_downgraded_by_ratings():
     print("PASS: a 2-company layer above 65 with measured acceleration is Red (no rating downgrade)")
 
 
+def test_layer_card_names_material_unmeasured_acceleration():
+    """Above 25% of a layer's market cap unmeasured, the layer card says so
+    ("Acceleration not measured: ASML, TSM (26% of layer)", approved by Ray
+    2026-10-24); at or below 25% it doesn't."""
+    md = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
+    md["compute"] = [dict(_ticker("NV"), market_cap=7.0e11),
+                     dict(_ticker("AS"), growth_prev=None, market_cap=1.6e11),
+                     dict(_ticker("TS"), growth_prev=None, market_cap=1.0e11)]
+    md["cloud"]   = [dict(_ticker("MS"), market_cap=9.0e11),
+                     dict(_ticker("XX"), growth_prev=None, market_cap=1.0e11)]
+    _, layers = _render(md)
+    by = {l["id"]: l for l in layers}
+    u = by["compute"]["unmeasured"]
+    assert u and u["syms"] == ["AS", "TS"] and abs(u["share"] - 0.271) < 0.001, u
+    assert by["cloud"]["unmeasured"] is None, f"10% share shown: {by['cloud']['unmeasured']}"
+    print("PASS: layer card names unmeasured acceleration above 25% of market cap (27%), not at 10%")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_layer_card_names_material_unmeasured_acceleration()
     test_two_company_red_layer_is_not_downgraded_by_ratings()
     test_engine_unmeasured_is_not_red_and_gets_no_margin_bonus()
     test_layer_unmeasured_is_not_red_and_does_not_mask_deceleration()
