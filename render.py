@@ -39,6 +39,18 @@ SCORES_HISTORY_FILE = "scores_history.json"
 MAX_HISTORY_DAYS    = 30
 EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
 UNMEASURED_NOTE_SHARE = 0.25   # layer card names unmeasured acceleration above this market-cap share
+
+# Bump METHOD_VERSION when a change alters what the scores mean, not just
+# their values. Every history entry records it; the first entry under a new
+# version is flagged methodology_change, so the heat trail, colour-change
+# badges and backtests don't read the jump as a market signal, and the page
+# shows METHOD_NOTE, dated, for METHOD_NOTE_DAYS calendar days.
+METHOD_VERSION   = "2026-10-yoy-edgar"
+METHOD_NOTE      = ("Revenue growth is now true year-over-year (each quarter vs the same quarter a year "
+                    "earlier), with SEC filings filling quarters Yahoo Finance lacks. HBM memory's earlier "
+                    "Red rested on a 2-quarter calculation; colour changes on this date reflect the fix, "
+                    "not a market move.")
+METHOD_NOTE_DAYS = 7
  
 CC = {
     "Red":    {"bg":"#FCEBEB","border":"#E24B4A","pill":"#E24B4A","pft":"#FCEBEB","lbl":"Hot",      "tc":"#791F1F"},
@@ -189,8 +201,12 @@ def save_scores_history(scored_data: dict, session_date, action_ticker: str = ""
     # per session overwrites, so a run just after midnight UTC updates the
     # prior session's entry instead of creating a spurious new-day column.
     history = [e for e in history if e.get("date") != session_key]
+    earlier = [e for e in history if e.get("date", "") < session_key]
+    changed = bool(earlier) and earlier[-1].get("method") != METHOD_VERSION
     history.append({
         "date":          session_key,
+        "method":        METHOD_VERSION,
+        **({"methodology_change": True, "methodology_note": METHOD_NOTE} if changed else {}),
         "time":          datetime.datetime.now().strftime("%H:%M"),
         "action_ticker": action_ticker,
         "action_price":  action_price,
@@ -502,6 +518,7 @@ def _track_record_js_data(history: list, market_data: dict) -> str:
 def _history_js_data(history: list, scored_data: dict) -> str:
     layer_ids = list(scored_data.keys())
     date_map  = {e["date"]: e.get("scores", {}) for e in history}
+    changed   = {e["date"] for e in history if e.get("methodology_change")}
     today     = datetime.datetime.now().date()
     days_out  = []
     for i in range(89, -1, -1):
@@ -512,6 +529,7 @@ def _history_js_data(history: list, scored_data: dict) -> str:
             "label": d.strftime("%b %d"),
             "short": d.strftime("%d"),
             "layers": {},
+            "method_change": d_str in changed,
         }
         scores = date_map.get(d_str, {})
         for lid in layer_ids:
@@ -648,6 +666,17 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
 
     prev_date, yesterday = get_yesterday_scores(scored_data, session_date)
     full_history = load_scores_history()
+    # Methodology change: on its first session there is no like-for-like
+    # previous session, so no "was Red" badges, score deltas or rating arrows.
+    change = next((e for e in reversed(full_history)
+                   if e.get("methodology_change") and e.get("method") == METHOD_VERSION), None)
+    change_day = datetime.date.fromisoformat(change["date"]) if change else None
+    if change_day == (session_date.date() if isinstance(session_date, datetime.datetime) else session_date):
+        prev_date, yesterday = None, {}
+    method_note_html = ""
+    if change_day and 0 <= ((session_date.date() if isinstance(session_date, datetime.datetime) else session_date) - change_day).days <= METHOD_NOTE_DAYS:
+        method_note_html = (f'<div class="fetch-note" style="margin-bottom:8px;color:#5F5E5A">'
+                            f'<strong>Methodology change, {change_day:%b} {change_day.day}:</strong> {METHOD_NOTE}</div>')
     now          = datetime.datetime.now()
     date_str     = now.strftime("%A, %B %d %Y")
     time_str     = now.strftime("%H:%M")
@@ -1021,6 +1050,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
   </div>
   <div class="fetch-note" style="margin-bottom:8px;color:#6A7A9A">{fetch_note}</div>
+  {method_note_html}
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
     <div id="bottleneck-strip" style="display:flex;align-items:center;gap:8px;padding:8px 12px;
          border-radius:6px;background:#F8F8F7;border:0.5px solid #E0DFDC;
@@ -1605,6 +1635,10 @@ function buildHeat() {{
         displayColor = days === 7 ? colorFromName(l.color) : "#EDEAE0";
         cell.style.opacity = days === 7 ? "0.4" : "1";
         cell.title = `${{l.n1}} · ${{day.label}} · ${{days===7?"estimated":"no data yet"}}`;
+      }}
+      if (day.method_change) {{
+        cell.style.borderLeft = "2px dashed #888780";
+        cell.title += " · scoring method changed this day — not a market move";
       }}
       cell.style.background = displayColor;
       g.appendChild(cell);
