@@ -96,7 +96,7 @@ def test_requests_stay_under_sec_rate_limit():
     from unittest.mock import MagicMock
     stamps = []
     def instant(url, **kw):
-        stamps.append(time.monotonic())
+        stamps.append(time.perf_counter())
         return MagicMock(json=lambda: {}, raise_for_status=lambda: None)
     with patch("edgar.requests.get", instant):
         for _ in range(12):

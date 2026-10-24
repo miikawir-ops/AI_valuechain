@@ -54,10 +54,10 @@ _last_request = 0.0
 
 def _get(url: str) -> dict:
     global _last_request
-    wait = MIN_INTERVAL_S - (time.monotonic() - _last_request)
+    wait = MIN_INTERVAL_S - (time.perf_counter() - _last_request)
     if wait > 0:
         time.sleep(wait)
-    _last_request = time.monotonic()
+    _last_request = time.perf_counter()
     r = requests.get(url, headers={"User-Agent": SEC_USER_AGENT}, timeout=30)
     r.raise_for_status()
     return r.json()
