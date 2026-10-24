@@ -2,7 +2,7 @@
 
 ## 2026-10-24 — revenue growth was not year-over-year; card price, earnings badge, page explanations
 
-**Methodology change.** Scores from the deploy date on are not like-for-like with earlier ones. The first `scores_history.json` entry under `METHOD_VERSION = "2026-10-yoy-edgar"` carries `methodology_change: true`. Backtests and the heat trail must treat that day as a break, not a signal.
+**Methodology change.** Scores from the deploy date on are not like-for-like with earlier ones. Entries stored under the old method are kept exactly as published (a weekend run re-scoring Friday's close does not overwrite Friday). The first entry written under `score_engine.METHOD_VERSION = "2026-10-yoy-edgar"` (the next session) carries `methodology_change: true`. Every entry records its `method`. Backtests must not compare across it. The page doesn't either ("no comparison: method changed"), colour confirmation ignores old-method entries, and the heat trail marks the last old-method day.
 
 ### What was wrong
 
@@ -19,7 +19,7 @@
 - Growth is date-matched YoY: each quarter against the one ending 350–380 days earlier. Acceleration is the change in that YoY between the latest two quarters, so it needs 6 quarters. yfinance has 5–6, so `edgar.py` reads SEC XBRL companyfacts. A revenue concept is used only if it matches yfinance within 1% on every overlapping quarter (CEG's contract-only concept, ~22% short, is rejected). EDGAR also supplies newer quarters yfinance leaves blank (MU 2026-09-03), and the card now names the quarter-end. No EPS fallback.
 - Unmeasured acceleration (ASML, TSM: no quarterly XBRL) shows as "not measured". It never reaches Red and never gets the high-margin bonus; a layer card names it above 25% of market cap. YoY is persisted per quarter-end in `growth_history.json`, as a fallback and cross-check.
 - Decelerating now means YoY down more than 5 points, matching the card's ±5 pp "stable" band. A −0.2 pp dip no longer makes a company Blue/C.
-- One-company "Instant Red" (delta above 60 pp) removed. *Proposal, pending approval.* On true YoY it fired in 1.7% of 2021–26 company-quarters, about half of them recoveries off a trough.
+- One-company "Instant Red" (delta above 60 pp) removed (approved by Ray, 2026-10-24). On true YoY it fired in 1.7% of 2021–26 company-quarters, about half of them recoveries off a trough.
 - Red reality check removed. Card price and day change come from the last completed close. Easing names only a Blue layer. The earnings badge uses `.calendar` dates within 14 days. A missing 30d return is `None`/"—". The page text matches the code.
 - SEC access: the workflow passes `secrets.SEC_USER_AGENT`. Requests are spaced ≥0.15 s apart, under SEC's 10/s limit. A failed fetch means "not measured", never an estimate.
 
@@ -31,7 +31,7 @@
 
 ### Commits
 
-`dbc2812` (price), `a28f6fa` (Easing), `1a8c169` (earnings badge), `0cfec3a` `d004bfd` `0750aaf` (PLAN queue), `b73a5da` `cfb6e7f` (page text), `2b035bc` (30d return), `96f7514` (unmeasured acceleration), `5623745` (true YoY), `d9f97d2` (EDGAR), `392af77` (growth history), `7340ffb` `c78087f` `e7d146e` (SEC User-Agent and rate limit), `61005bf` (test runner), `651b065` (−5 pp threshold), `a8c0ac3` (reality check removed), `7adbb7f` (layer note), `4e87c36` (quarter-end on card), `70ca060` (instant Red, proposal), plus the methodology-flag commit.
+`dbc2812` (price), `a28f6fa` (Easing), `1a8c169` (earnings badge), `0cfec3a` `d004bfd` `0750aaf` (PLAN queue), `b73a5da` `cfb6e7f` (page text), `2b035bc` (30d return), `96f7514` (unmeasured acceleration), `5623745` (true YoY), `d9f97d2` (EDGAR), `392af77` (growth history), `7340ffb` `c78087f` `e7d146e` (SEC User-Agent and rate limit), `61005bf` (test runner), `651b065` (−5 pp threshold), `a8c0ac3` (reality check removed), `7adbb7f` (layer note), `4e87c36` (quarter-end on card), `70ca060` (instant Red, approved), `11abe27` (methodology flag), `f0a4d68` (old-method history kept, no cross-method comparison), `b23d649` ("Bottleneck: none", radar header), plus the tools/, .gitignore and docs commit.
 
 ## 2026-10-10 → 10-15 — live-dashboard batch: NaN, session dating, pinned deps, display, momentum and analyst scoring
 
