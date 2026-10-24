@@ -260,6 +260,15 @@ def _upcoming_earnings(layer_tickers: list, session_date) -> list:
     return [{"sym": sym, "date": f"{d:%b} {d.day}"} for d, sym in sorted(out)]
 
 
+def _quarter_label(iso: str | None) -> str | None:
+    """"2026-09-03" → "Sep 3, 2026"; None or unparseable → None."""
+    try:
+        d = datetime.date.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return None
+    return f"{d:%b} {d.day}, {d.year}"
+
+
 def _unmeasured_acceleration(all_scores: list) -> dict | None:
     """Companies whose revenue acceleration isn't measured (fund_delta None)
     and their share of the layer's market cap — for the layer card when the
@@ -345,6 +354,10 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
                 "pct_of_high":  round((raw["price"] / raw["week52_high"]) * 100) if raw.get("week52_high") and raw.get("price") is not None else None,
                 "week52_high":  raw.get("week52_high"),
                 "week52_low":   raw.get("week52_low"),
+                # Revenue YoY and the quarter-end it describes (EDGAR can supply a
+                # newer quarter than yfinance; the card must say which).
+                "growth_yoy":   round(raw["growth_curr"] * 100, 1) if raw.get("growth_curr") is not None else None,
+                "growth_q":     _quarter_label(raw.get("growth_quarter")),
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
@@ -1470,6 +1483,7 @@ function buildExpand() {{
         Run rate $${{t.run_rate}}B/yr</div>` : ""}}
       <div class="ex-row"><span class="ex-lbl">Price</span><span>${{t.price != null ? "$" + t.price.toLocaleString() : "—"}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{t.ret30 != null ? fmt(t.ret30) + "%" : "—"}}</span></div>
+      <div class="ex-row"><span class="ex-lbl">Revenue YoY</span><span>${{t.growth_yoy != null ? fmt(t.growth_yoy, 0) + "%" + (t.growth_q ? " · qtr ended " + t.growth_q : "") : "—"}}</span></div>
       ${{t.delta_band === "unmeasured"
         ? `<div class="ex-row"><span class="ex-lbl">Acceleration</span><span style="color:#888780">not measured</span></div>`
         : `<div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>`}}

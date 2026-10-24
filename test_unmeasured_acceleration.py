@@ -110,9 +110,53 @@ def test_layer_card_names_material_unmeasured_acceleration():
     print("PASS: layer card names unmeasured acceleration above 25% of market cap (27%), not at 10%")
 
 
+def _eval_template_line(page: str, marker: str, scope: dict) -> str:
+    """Evaluate the rendered page's own template line containing `marker`
+    in Node, with `scope` as its variables, and return the visible text."""
+    import shutil, subprocess
+    if not shutil.which("node"):
+        raise AssertionError("node is required for this check and wasn't found")
+    line = next(l.strip() for l in page.splitlines() if marker in l)
+    fmt = re.search(r"function fmt\(.*?\n\}", page, re.S).group(0)
+    js = (fmt + "\n" + "".join(f"const {k} = {json.dumps(v)};\n" for k, v in scope.items())
+          + f"const html = `{line}`;\n"
+          + r"console.log(html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());")
+    out = subprocess.run(["node", "-e", js], capture_output=True, text=True, encoding="utf-8")
+    assert out.returncode == 0, out.stderr
+    return out.stdout.strip()
+
+
+def test_card_shows_revenue_yoy_with_its_quarter_end():
+    """Growth can come from a newer EDGAR quarter than yfinance's, so the
+    card shows which quarter-end it describes (Ray's condition, 2026-10-24)."""
+    md = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
+    md["memory"] = [dict(_ticker("MUX"), growth_curr=3.793, growth_prev=3.457, growth_quarter="2026-09-03"),
+                    dict(_ticker("NOQ"), growth_curr=None, growth_prev=None, growth_quarter=None)]
+    md["compute"] = [dict(_ticker("NV"), market_cap=7.0e11), dict(_ticker("AS"), growth_prev=None, market_cap=3.0e11)]
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            scored = main.stage_score(md, MACRO, SESSIONS)
+            render.generate_dashboard(scored, "Stub.", MACRO, SESSIONS[-1], md, [])
+            page = open("index.html", encoding="utf-8").read()
+        finally:
+            os.chdir(cwd)
+    layers = json.loads(re.search(r"const LAYERS\s*= (\[.*?\]);\n", page).group(1))
+    t = {x["sym"]: x for l in layers for x in l["tickers"]}
+    row = lambda sym: _eval_template_line(page, '<span class="ex-lbl">Revenue YoY</span>', {"t": t[sym]})
+    assert row("MUX") == "Revenue YoY +379% · qtr ended Sep 3, 2026", row("MUX")
+    assert row("NOQ") == "Revenue YoY —", row("NOQ")
+    comp = next(l for l in layers if l["id"] == "compute")
+    note = _eval_template_line(page, "Acceleration not measured: ${l.unmeasured", {"l": comp})
+    assert note == "Acceleration not measured: AS (30% of layer)", note
+    print("PASS: card shows 'Revenue YoY +379% · qtr ended Sep 3, 2026'; layer note renders")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_card_shows_revenue_yoy_with_its_quarter_end()
     test_layer_card_names_material_unmeasured_acceleration()
     test_two_company_red_layer_is_not_downgraded_by_ratings()
     test_engine_unmeasured_is_not_red_and_gets_no_margin_bonus()
