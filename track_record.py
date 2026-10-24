@@ -28,6 +28,15 @@ log = logging.getLogger(__name__)
 CROSS_CHECK_TOL = 0.01   # stored vs fetched close; a bigger gap is logged (e.g. a later split)
 
 
+def _per_session(runs: list) -> list:
+    """One signal per session: the last run's, i.e. the last run before the
+    next open (the backtest rule, Ray 2026-10-24). runs are in run order."""
+    last = {}
+    for session, tk in runs:
+        last[session] = tk
+    return sorted(last.items())
+
+
 def _episodes(runs: list) -> list:
     """runs: [(session_date, ticker or None)] in run order → [{ticker, first, last}]."""
     eps = []
@@ -74,7 +83,11 @@ def _effective_session(entry: dict) -> datetime.date:
 
 def old_method_runs(history: list, method_version: str) -> list:
     """[(session, ticker)] from scores_history.json entries under an older method."""
-    rows = sorted((e for e in history if e.get("date") and e.get("method") != method_version), key=lambda e: e["date"])
+    # Run order is date + time (scores_history keeps one entry per date: its
+    # last run); a pre-open entry maps to the previous session, so it can be
+    # the later run for that session (2026-09-30 11:49 after 09-29 23:50).
+    rows = sorted((e for e in history if e.get("date") and e.get("method") != method_version),
+                  key=lambda e: (e["date"], e.get("time") or ""))
     return [(_effective_session(e), (e.get("action_ticker") or "").strip() or None) for e in rows]
 
 
@@ -108,7 +121,7 @@ def build(history: list, detail_path: str, latest_session: datetime.date, method
     """{"current": [...], "old": [...]}, newest first. A return that can't be
     computed (fetch failure, session missing) is None, shown as "—"."""
     cur_runs = current_method_runs(detail_path)
-    cur = _episodes([(s, t) for s, t, _ in cur_runs])
+    cur = _episodes(_per_session([(s, t) for s, t, _ in cur_runs]))
     rows_cur = []
     for i, ep in enumerate(cur):
         row = _evaluate(ep, latest_session, active=(i == len(cur) - 1), closes_for=closes_for)
@@ -117,6 +130,6 @@ def build(history: list, detail_path: str, latest_session: datetime.date, method
             log.warning(f"  track record: {ep['ticker']} entry {row['entry']} vs stored close {stored} "
                         f"on {ep['first']} differ > {CROSS_CHECK_TOL:.0%} (a split since?) — using the adjusted close")
         rows_cur.append(row)
-    old = _episodes(old_method_runs(history, method_version))
+    old = _episodes(_per_session(old_method_runs(history, method_version)))
     rows_old = [_evaluate(ep, latest_session, active=False, closes_for=closes_for) for ep in old]
     return {"current": rows_cur[::-1][:keep], "old": rows_old[::-1][:keep]}

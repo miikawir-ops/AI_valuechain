@@ -39,9 +39,11 @@ def test_episodes_exits_benchmark_split_and_old_method():
         "^IXIC":{D(2026, 9, 14): 100.0, D(2026, 9, 28): 101.0, D(2026, 9, 30): 102.0, D(2026, 10, 23): 104.0,
                  D(2026, 10, 26): 105.0, D(2026, 10, 27): 106.0, D(2026, 10, 28): 106.0},
     }
-    runs = [("2026-10-23", "AVGO", 321.68, "2026-10-24T17:49:46Z"),
-            ("2026-10-23", None,   None,   "2026-10-24T18:00:00Z"),      # withheld: doesn't end the pick
-            ("2026-10-26", "AVGO", 330.0,  "2026-10-26T20:31:00Z"),
+    runs = [("2026-10-23", None,   None,   "2026-10-24T17:00:00Z"),      # withheld, then a later run picks:
+            ("2026-10-23", "AVGO", 321.68, "2026-10-24T17:49:46Z"),      # the session's last run counts
+            ("2026-10-24", None,   None,   "2026-10-25T06:00:00Z"),      # a session with no signal doesn't end the pick
+            ("2026-10-26", "MU",   877.55, "2026-10-26T18:00:00Z"),      # flip within one session:
+            ("2026-10-26", "AVGO", 330.0,  "2026-10-26T20:31:00Z"),      # only the last run (AVGO) counts
             ("2026-10-27", "SPL",  400.0,  "2026-10-27T20:31:00Z"),      # stored pre-split close
             ("2026-10-28", "SPL",  110.0,  "2026-10-28T20:31:00Z")]
     history = ([{"date": f"2026-09-{d}", "action_ticker": "MU"} for d in (14, 28)]
@@ -57,7 +59,7 @@ def test_episodes_exits_benchmark_split_and_old_method():
                 fh.write(json.dumps({"session": s, "run_utc": r, "signal": {"ticker": t, "close": c}}) + "\n")
         tr = track_record.build(history, path, D(2026, 10, 28), METHOD, closes_for=_closes(prices))
     cur = {r["ticker"]: r for r in tr["current"]}
-    assert [r["ticker"] for r in tr["current"]] == ["SPL", "AVGO"], tr["current"]
+    assert [r["ticker"] for r in tr["current"]] == ["SPL", "AVGO"], tr["current"]   # no zero-length MU
     avgo, spl = cur["AVGO"], cur["SPL"]
     assert (avgo["first"], avgo["end"], avgo["active"]) == ("2026-10-23", "2026-10-26", False), avgo
     assert avgo["ret_pct"] == round((330.0 / 321.68 - 1) * 100, 1) and avgo["nasdaq_pct"] == round((105 / 104 - 1) * 100, 1), avgo
