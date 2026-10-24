@@ -126,7 +126,7 @@ Write 3-4 plain sentences. Name the highest-scoring layer with its layer score a
 Write 1-3 plain sentences. Name only companies with hype yes, with the stated reason. If no company is flagged, say no company is flagged today. Do not call a layer hype because it is Orange. No bullet points.
 
 ### 💡 ONE SIGNAL TO WATCH
-Write exactly 3 plain sentences. Sentence 1: "Company: TICKER (Name), Watch" or "Company: TICKER (Name), Monitor". Use only Watch or Monitor, never buy, sell or avoid. Sentence 2: the signal, with figures exactly as given. Sentence 3: what would weaken it. No bullet points.
+Write exactly 3 plain sentences. Sentence 1: "Company: TICKER (Name), Watch" or "Company: TICKER (Name), Monitor". Use only Watch or Monitor, never buy, sell or avoid. Sentence 2: the signal, with figures exactly as given. Sentence 3: what in the data would weaken it, e.g. acceleration falling below +5 pp or a lower layer score. No bullet points.
 
 RULES: No asterisks. No bold. No bullet points. No dashes. No markdown. Plain professional sentences only.
 """
@@ -269,6 +269,9 @@ def finalize(text: str, facts: dict) -> str:
             log.warning(f"  Analysis section withheld — {title.strip('# ').strip()}: " + " | ".join(bad))
             part = f"{title}\n{WITHHELD}\n\n"
         elif "SIGNAL TO WATCH" in title.upper():
+            # "Company: X (Name), Watch" on its own line: end it as a sentence,
+            # since the page joins the section's lines with spaces.
+            part = re.sub(r"(?m)^(\s*Company:[^\n]*?[A-Za-z)])\s*$", r"\1.", part)
             part = part.rstrip()
             if not part.endswith(NFA_SUFFIX):
                 part += " " + NFA_SUFFIX

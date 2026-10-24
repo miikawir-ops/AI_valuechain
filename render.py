@@ -94,8 +94,8 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
                     "color": "#27500A", "reason": "Sustained acceleration"}
     elif current_rating == "B":
         if accelerating and hot_layer:
-            return {"direction": "↑", "target": "A", "label": "Upgrade likely",
-                    "color": "#27500A", "reason": "Accelerating into bottleneck layer"}
+            return {"direction": "↑", "target": "A", "label": "Accelerating in an Orange/Red layer",
+                    "color": "#27500A", "reason": "Accelerating more than 5 pp in an Orange or Red layer"}
         elif real_hype_risk or (decelerating and delta < -10):
             return {"direction": "↓", "target": "C", "label": "Downgrade risk",
                     "color": "#E24B4A", "reason": "Growth slowing with hype or sharp delta drop"}
@@ -107,20 +107,17 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
                     "color": "#378ADD", "reason": "Fundamentals holding steady"}
     elif current_rating == "C":
         if accelerating and not real_hype_risk:
-            return {"direction": "↑", "target": "B", "label": "Recovery signal",
-                    "color": "#EF9F27", "reason": "Momentum improving — watch for confirmation"}
+            return {"direction": "↑", "target": "B", "label": "Accelerating from C",
+                    "color": "#EF9F27", "reason": "YoY up more than 5 pp from a C rating"}
         elif real_hype_risk and decelerating:
-            return {"direction": "↓", "target": "D", "label": "Avoid",
-                    "color": "#E24B4A", "reason": "Hype unwinding with deteriorating fundamentals"}
+            # No D rating exists (company_rating returns A, B or C), so nothing
+            # forecasts one (Ray, 2026-10-24).
+            return {"direction": "→", "target": "C", "label": "Deteriorating",
+                    "color": "#E24B4A", "reason": "Hype flag with YoY down more than 5 pp"}
         else:
             return {"direction": "→", "target": "C", "label": "Still cautious",
                     "color": "#EF9F27", "reason": "No clear recovery signal yet"}
-    else:  # D
-        if accelerating:
-            return {"direction": "↑", "target": "C", "label": "Early recovery",
-                    "color": "#EF9F27", "reason": "Momentum turning — confirm next quarter"}
-        return {"direction": "→", "target": "D", "label": "Avoid",
-                "color": "#E24B4A", "reason": "No recovery signals yet"}
+    # A, B and C are the only ratings company_rating returns.
  
  
 LAYER_NAMES = {
@@ -368,6 +365,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
                 "ret30":      round(r30 * 100, 1) if r30 is not None else None,   # missing → "—", not 0%
                 "delta_band": delta_band,
                 "accel_pp":   round(raw_delta, 1) if t_scored.get("fund_delta") is not None else None,
+                "gross_margin_pct": round(raw["gross_margin"] * 100, 1) if raw.get("gross_margin") is not None else None,
                 "hype":       t_hype,
                 "color":      t_color,
                 "sparkline":  sparkline,
@@ -1247,6 +1245,7 @@ const MAIN_SECTIONS= {main_sections_js};
 const ACTION       = {action_js};
 const HAS_YESTERDAY= {has_yesterday};
 const METHOD_BREAK = {method_break_js};
+const PREV_SESSION = {json.dumps(prev_label)};
 const RADAR        = {radar_js};
 const HISTORY      = {history_js};
 const TRACK_RECORD = {track_js};
@@ -1352,42 +1351,44 @@ function toggleTickerDetail(id) {{
 }}
  
 function getCompanyContext(sym, layerId) {{
+  // Role only: no unsourced figures or superlatives (Ray, 2026-10-24). Figures
+  // the pipeline has (e.g. gross margin) are shown from data on the card.
   const ctx = {{
-    "CEG":"Constellation Energy is the largest US nuclear operator. Signing AI-specific Power Purchase Agreements with hyperscalers — directly powering data centers with 24/7 carbon-free power.",
-    "VST":"Vistra operates natural gas and nuclear plants. Benefits from surging electricity demand driven by AI data center buildout in Texas and the Southeast.",
-    "PWR":"Quanta Services builds and maintains power grid infrastructure. As data centers require grid upgrades, Quanta executes the physical construction work.",
-    "GEV":"GE Vernova makes transformers, switchgear and grid equipment. These components connect data centers to the power grid — currently on 2-3 year backlog.",
-    "ETN":"Eaton makes power distribution and management systems inside data centers. Every rack of servers needs Eaton's PDUs and UPS systems.",
-    "NVDA":"Nvidia's H100/H200/B200 GPUs are the primary compute engine for AI training and inference. Near-monopoly on AI accelerators with 70-80% gross margins.",
-    "AMD":"AMD's MI300X competes with Nvidia for AI training workloads. Gaining share with hyperscalers looking to diversify away from single-vendor dependency.",
-    "AVGO":"Broadcom designs custom AI chips (ASICs) for Google, Meta and others. Also makes the networking silicon connecting GPU clusters — two AI revenue streams.",
-    "ASML":"ASML makes EUV lithography machines — the only company in the world that can. Every advanced AI chip requires ASML equipment to manufacture.",
-    "TSM":"TSMC manufactures chips for Nvidia, AMD, Apple and ARM. The world's most advanced semiconductor foundry — 90%+ of leading-edge AI chips are made here.",
-    "ARM":"ARM licenses chip architectures used in virtually every mobile and edge AI device. Royalties from every Apple, Qualcomm and MediaTek chip that ships.",
-    "CDNS":"Cadence Design Systems makes EDA software — the tools used to design every AI chip. Without Cadence, NVDA couldn't design its next GPU.",
-    "MU":"Micron is the only US-listed pure-play HBM supplier. HBM memory is essential for AI training — each H100 GPU uses Micron or SK Hynix HBM stacks.",
-    "WDC":"Western Digital makes NAND flash storage used in AI data centers. Also pivoting toward HBM with recent product announcements.",
-    "AMAT":"Applied Materials makes the deposition and etch equipment used to manufacture memory chips. Picks-and-shovels play on all memory production expansion.",
-    "LRCX":"Lam Research makes etch equipment critical for advanced memory fabrication. Benefits directly when memory fabs expand capacity for HBM production.",
-    "VRT":"Vertiv makes liquid cooling systems for dense GPU clusters. As GPU power density increases, air cooling fails — Vertiv's moment is now.",
-    "ANET":"Arista Networks makes the high-speed ethernet switches connecting GPU clusters. Moving from data center to AI networking with Ultra Ethernet Consortium.",
-    "EQIX":"Equinix operates 260+ data centers globally. AI workloads need colocation space close to fiber interconnects — Equinix's core offering.",
-    "SMCI":"Super Micro Computer builds AI-optimized server racks. Fastest to market with liquid-cooled GPU servers — direct beneficiary of Nvidia GPU demand.",
-    "CSCO":"Cisco provides the networking backbone for enterprise AI deployments. Pivoting AI strategy around its silicon and software for data center switching.",
-    "CIEN":"Ciena makes optical networking equipment — the bandwidth pipes connecting AI data centers across distances. Critical for multi-site AI cluster deployments.",
-    "MSFT":"Microsoft is the primary distribution partner for OpenAI. Azure AI services and Copilot are the monetization vehicle for the largest AI investment in history.",
-    "GOOGL":"Google DeepMind and Gemini models run on Google Cloud. Also designs its own TPU AI chips — vertically integrated from silicon to application.",
-    "AMZN":"AWS is the largest cloud provider. Amazon Bedrock offers access to multiple AI models. Also deploying Trainium and Inferentia custom AI chips.",
-    "META":"Meta open-sources LLaMA models, driving AI adoption at scale. Investing $65B in AI infrastructure in 2026 — one of the largest capex programs ever.",
-    "PLTR":"Palantir's AIP platform brings AI agents to enterprise operations. Unique position with US government and defense — classified AI applications.",
-    "NOW":"ServiceNow automates enterprise workflows with AI. 80%+ gross margins and sticky multi-year contracts across Fortune 500.",
-    "SNOW":"Snowflake provides the data cloud layer AI models need for training and inference. Clean, governed data is the prerequisite for enterprise AI.",
-    "CRM":"Salesforce embeds AI (Einstein) across its CRM platform. 150,000+ enterprise customers provide a massive distribution channel for AI features.",
-    "DDOG":"Datadog monitors AI infrastructure performance and cost. As AI deployments scale, observability becomes critical — Datadog is the market leader.",
-    "CRWD":"CrowdStrike uses AI to detect and stop cyber threats in real time. The Falcon platform protects AI infrastructure from adversarial attacks.",
-    "PANW":"Palo Alto Networks provides AI-powered network security. Platformization strategy bundles AI security across firewall, cloud and endpoint.",
-    "S":"SentinelOne uses autonomous AI agents for threat detection. Fastest growing pure-play AI security company by revenue.",
-    "OKTA":"Okta manages identity and access for AI applications. As AI agents proliferate, controlling who and what can access systems becomes critical.",
+    "CEG":"Constellation Energy operates nuclear and other power plants and sells electricity, including under long-term agreements with data-centre operators.",
+    "VST":"Vistra operates natural gas, nuclear and other power plants and sells electricity; data-centre demand is one driver of power demand in its markets.",
+    "PWR":"Quanta Services builds and maintains electric grid and power infrastructure, including the grid connections data centres need.",
+    "GEV":"GE Vernova makes power generation and grid equipment, including transformers and switchgear that connect data centres to the grid. It was spun off from General Electric in April 2024.",
+    "ETN":"Eaton makes electrical power distribution and backup equipment used inside data centres, such as power distribution units and UPS systems.",
+    "NVDA":"Nvidia designs GPUs used for AI training and inference, plus networking and software for GPU clusters.",
+    "AMD":"AMD designs CPUs and Instinct GPUs that compete with Nvidia in AI accelerators.",
+    "AVGO":"Broadcom designs custom AI chips (ASICs) for large cloud customers and makes networking chips used to connect GPU clusters.",
+    "ASML":"ASML makes lithography machines, including the EUV systems used to manufacture leading-edge chips.",
+    "TSM":"TSMC is a contract chip manufacturer (foundry) making chips for Nvidia, AMD, Apple and others, including leading-edge AI accelerators.",
+    "ARM":"Arm licenses processor designs and earns royalties on chips that use them, across phones, data centres and edge devices.",
+    "CDNS":"Cadence makes electronic design automation (EDA) software and design IP used to design chips, including AI chips.",
+    "MU":"Micron makes memory and storage: DRAM, including the high-bandwidth memory (HBM) used with AI accelerators, and NAND flash.",
+    "WDC":"Western Digital makes hard disk drives (HDDs) for bulk data-centre storage. It spun off its flash business as Sandisk in February 2025.",
+    "AMAT":"Applied Materials makes chip-manufacturing equipment, such as deposition and etch tools, used in memory and logic fabs.",
+    "LRCX":"Lam Research makes wafer fabrication equipment, mainly etch and deposition tools, used heavily in memory production.",
+    "VRT":"Vertiv makes power and thermal management equipment for data centres, including liquid cooling for high-density GPU racks.",
+    "ANET":"Arista Networks makes high-speed Ethernet switches and software used in data centres, including AI cluster networks.",
+    "EQIX":"Equinix operates colocation data centres and interconnection services worldwide.",
+    "SMCI":"Super Micro Computer builds servers and rack-scale systems, including liquid-cooled GPU servers for AI.",
+    "CSCO":"Cisco makes networking equipment, including data-centre switches and networking silicon, plus security and collaboration software.",
+    "CIEN":"Ciena makes optical networking equipment that carries traffic between data centres.",
+    "MSFT":"Microsoft runs the Azure cloud and sells AI services including Copilot, and is a partner and investor in OpenAI.",
+    "GOOGL":"Alphabet runs Google Cloud, develops the Gemini models through Google DeepMind and designs its own TPU AI chips.",
+    "AMZN":"Amazon runs AWS, which offers AI models through Bedrock and its own AI chips (Trainium, Inferentia).",
+    "META":"Meta develops the Llama models and invests in AI data centres for its own products.",
+    "PLTR":"Palantir sells data-analytics and AI platforms, including AIP, to governments and companies.",
+    "NOW":"ServiceNow sells workflow-automation software with AI features to large enterprises.",
+    "SNOW":"Snowflake runs a cloud data platform that companies use to store and prepare data, including for AI.",
+    "CRM":"Salesforce sells CRM software and builds AI features and agents into it.",
+    "DDOG":"Datadog sells monitoring and observability software for cloud infrastructure and applications, including AI workloads.",
+    "CRWD":"CrowdStrike sells endpoint and cloud security software (the Falcon platform) that uses AI to detect threats.",
+    "PANW":"Palo Alto Networks sells network, cloud and endpoint security products.",
+    "S":"SentinelOne sells AI-based endpoint and cloud security software.",
+    "OKTA":"Okta sells identity and access management software.",
   }};
   return ctx[sym] || `${{sym}} is a key player in the ${{layerId}} layer of the AI value chain.`;
 }}
@@ -1482,7 +1483,7 @@ function buildChain() {{
       <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
       ${{l.unmeasured ? `<div class="lyr-meta" style="margin-top:-6px">Acceleration not measured: ${{l.unmeasured.syms.join(", ")}} (${{Math.round(l.unmeasured.share * 100)}}% of layer)</div>` : ""}}
       <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
-        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'acceleration not measured':t.rating==='A'?'Accelerating':t.rating==='B'?'Stable':t.rating==='C'?'Caution':'Deteriorating'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
+        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'B by default: acceleration not measured':t.rating==='A'?'A: accelerating more than 20 pp in an Orange/Red layer':t.rating==='C'?'C: hype flag, or YoY down more than 5 pp':'B: neither A nor C'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
       </div>
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}
@@ -1523,7 +1524,7 @@ function buildExpand() {{
         <div style="display:flex;align-items:center;gap:6px">
           <div class="ex-sym">${{t.sym}}</div>
           <span class="rating-badge rating-${{t.rating}}"
-                title="${{t.rating_up ? 'Upgraded from '+t.prev_rating+' — buy signal' : t.rating_down ? 'Downgraded from '+t.prev_rating+' — warning' : 'Rating: '+t.rating}}"
+                title="${{t.rating_up ? 'Rating up from '+t.prev_rating+' since '+PREV_SESSION : t.rating_down ? 'Rating down from '+t.prev_rating+' since '+PREV_SESSION : 'Rating: '+t.rating}}"
           >${{t.rating}}</span>
           ${{t.rating_up ? `<span style="font-size:10px;color:#27500A;font-weight:600">↑ was ${{t.prev_rating}}</span>` : ""}}
           ${{t.rating_down ? `<span style="font-size:10px;color:#A32D2D;font-weight:600">↓ was ${{t.prev_rating}}</span>` : ""}}
@@ -1568,7 +1569,7 @@ function buildExpand() {{
           <canvas id="spark-${{t.sym}}" style="width:100%;height:100%" role="img" aria-label="${{t.sym}} 6-month price chart"></canvas>
         </div>
         <div style="font-size:10px;color:#888780;margin-bottom:4px;font-weight:500">Strategic role in AI chain</div>
-        <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:8px">${{getCompanyContext(t.sym, l.id)}}</div>
+        <div style="font-size:10px;color:#5F5E5A;line-height:1.6;margin-bottom:8px">${{getCompanyContext(t.sym, l.id)}}${{t.gross_margin_pct != null ? ` Gross margin (Yahoo Finance, latest quarter): ${{t.gross_margin_pct.toFixed(1)}}%.` : ""}}</div>
         <button onclick="sendPrompt('${{deepDive}}')"
                 style="width:100%;padding:7px;border:1px solid #378ADD;border-radius:6px;
                        background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;cursor:pointer">
@@ -1654,9 +1655,8 @@ function buildHeat() {{
         displayColor = colorFromName(realColor);
         cell.title = `${{l.n1}} · ${{day.label}} · ${{realColor}}`;
       }} else {{
-        displayColor = days === 7 ? colorFromName(l.color) : "#EDEAE0";
-        cell.style.opacity = days === 7 ? "0.4" : "1";
-        cell.title = `${{l.n1}} · ${{day.label}} · ${{days===7?"estimated":"no data yet"}}`;
+        displayColor = "#EDEAE0";
+        cell.title = `${{l.n1}} · ${{day.label}} · no data`;
       }}
       if (day.method_boundary) {{
         cell.style.borderRight = "2px dashed #888780";
@@ -1707,17 +1707,8 @@ function buildRadar() {{
     const wgm  = wildcard.gross_margin  ? `GM ${{wildcard.gross_margin}}%` : "";
     const wtraj = (wildcard.trajectory || []).join(" ");
     const wPrompt = `Deep dive on ${{wildcard.ticker}} (${{wildcard.name}}) as a potential under-the-radar AI play. Only ${{wildcard.analyst_count}} analysts cover this company. Analyse: revenue acceleration trend, gross margin, competitive moat in the AI value chain, and what specific catalyst could make this the next Nvidia-like breakout.`;
-    const wcContextMap = {{
-      memory:"memory chips and storage — the fuel every AI model runs on",
-      compute:"chip design and processing — the brain of AI systems",
-      infra:"data center hardware and networking — the physical backbone",
-      energy:"power delivery and grid equipment — the electricity AI needs",
-      cloud:"cloud platforms and hyperscaler infrastructure",
-      software:"AI applications and observability tooling",
-      security:"AI security and governance platforms",
-      edge:"edge computing and on-device AI processing",
-    }};
-    const wcContext = wcContextMap[wildcard.layer] || wildcard.layer;
+    const wcLayer   = LAYERS.find(x => x.id === wildcard.layer);
+    const wcContext = wcLayer ? `the ${{wcLayer.n1}} ${{wcLayer.n2}} layer` : `the ${{wildcard.layer}} layer`;
  
     wcCard.innerHTML = `
       <div style="background:white;border:1px solid #EF9F27;border-radius:10px;overflow:hidden">
@@ -1728,7 +1719,7 @@ function buildRadar() {{
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
             <span style="font-size:10px;padding:2px 8px;background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;border-radius:4px">
-              Only ${{wildcard.analyst_count}} analysts — early discovery signal
+              ${{wildcard.analyst_count}} analysts cover it (low coverage)
             </span>
             <button onclick="sendPrompt('${{wPrompt}}')"
                     style="font-size:11px;font-weight:500;padding:6px 14px;border:1px solid #378ADD;border-radius:6px;background:#E6F1FB;color:#0C447C;cursor:pointer">
@@ -1761,9 +1752,8 @@ function buildRadar() {{
           </div>
         </div>
         <div style="padding:10px 14px;font-size:11px;color:#5F5E5A;line-height:1.6;border-top:0.5px solid #E0DFDC">
-          ${{wildcard.ticker}} operates in ${{wcContext}}. Only ${{wildcard.analyst_count}} Wall Street analysts cover it.
-          When revenue fundamentals accelerate before analyst coverage catches up, that is historically the
-          earliest signal of an outsized opportunity.
+          ${{wildcard.ticker}} is in ${{wcContext}}. Shown for revenue YoY of ${{wildcard.latest_growth != null ? (wildcard.latest_growth >= 0 ? "+" : "") + wildcard.latest_growth.toFixed(0) + "%" : "(missing)"}}
+          with relatively low analyst coverage (${{wildcard.analyst_count}} analysts). This dashboard hasn't tested whether that predicts returns.
         </div>
       </div>`;
  
@@ -1814,13 +1804,11 @@ function buildRadar() {{
   // ── Top 5 grid ────────────────────────────────────────────────────────────
   grid.innerHTML = (RADAR.top5 || []).map((r, i) => {{
     const pct    = Math.min(100, r.score);
-    const conf   = r.confidence || "LOW";
     const traj   = (r.trajectory || []).join(" ");
     const ret1   = r.ret_1mo >= 0 ? `+${{r.ret_1mo}}%` : `${{r.ret_1mo}}%`;
     const retCol = r.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
     const gm     = r.gross_margin ? `GM ${{r.gross_margin}}%` : "";
     const lg     = r.latest_growth ? `Rev ${{r.latest_growth > 0 ? "+" : ""}}${{r.latest_growth?.toFixed(0)}}%` : "";
-    const cons   = r.consecutive > 0 ? `${{r.consecutive}}Q accel` : "No accel";
  
     return `<div class="radar-card">
       <div class="radar-rank">#${{i+1}} ${{LAYER_SHORT[r.layer]||""}} ${{r.layer}}</div>
@@ -1829,8 +1817,7 @@ function buildRadar() {{
       <div class="radar-traj">${{traj}}</div>
       <div class="radar-bar-wrap"><div class="radar-bar" style="width:${{pct}}%"></div></div>
       <div class="radar-meta">
-        <span class="radar-conf-${{conf}}">${{conf}} confidence</span>
-        <span>${{cons}}</span>
+        <span class="radar-conf-LOW">acceleration not measured</span>
       </div>
       <div class="radar-meta">
         <span style="color:${{retCol}}">${{ret1}} (1mo)</span>
