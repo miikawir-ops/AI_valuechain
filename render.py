@@ -37,6 +37,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
  
 SCORES_HISTORY_FILE = "scores_history.json"
 MAX_HISTORY_DAYS    = 30
+EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
  
 CC = {
     "Red":    {"bg":"#FCEBEB","border":"#E24B4A","pill":"#E24B4A","pft":"#FCEBEB","lbl":"Hot",      "tc":"#791F1F"},
@@ -241,7 +242,23 @@ def build_ticker_lookup(market_data: dict) -> dict:
  
 # ── HTML sections ─────────────────────────────────────────────────────────────
  
-def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str:
+def _upcoming_earnings(layer_tickers: list, session_date) -> list:
+    """The layer's real next-earnings dates (fetch_market's next_earnings,
+    from yfinance .calendar) falling 0-EARNINGS_BADGE_DAYS days after the
+    session, soonest first. A ticker with no date (failed fetch) is left out."""
+    session = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
+    out = []
+    for t in (layer_tickers or []):
+        try:
+            d = datetime.date.fromisoformat(t.get("next_earnings") or "")
+        except (AttributeError, ValueError):
+            continue
+        if 0 <= (d - session).days <= EARNINGS_BADGE_DAYS:
+            out.append((d, t["ticker"]))
+    return [{"sym": sym, "date": f"{d:%b} {d.day}"} for d, sym in sorted(out)]
+
+
+def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, session_date) -> str:
     """Build the LAYERS JS array with real data from market_data."""
     ticker_lookup = build_ticker_lookup(market_data)
     # Build yesterday rating lookup: {ticker: rating}
@@ -351,6 +368,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             "divergence":     divergence,
             "divergence_msg": divergence_msg,
             "deep_dive":      LAYER_DEEP_DIVE_URLS.get(layer_id),
+            "earnings":       _upcoming_earnings(market_data.get(layer_id), session_date),
         })
  
     return json.dumps(layers)
@@ -620,7 +638,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     nasdaq_note = ("Tech leading" if nasdaq_r > 0 else "Tech lagging") if nasdaq_r is not None else "No data"
     nasdaq_col  = ("#C0DD97" if nasdaq_r > 0 else "#FAC775") if nasdaq_r is not None else missing_col
  
-    layers_js              = _chain_js_data(scored_data, market_data, yesterday)
+    layers_js              = _chain_js_data(scored_data, market_data, yesterday, session_date)
     radar_js               = _radar_js_data(radar_data)
     history_js             = _history_js_data(full_history, scored_data)
     track_js               = _track_record_js_data(full_history, market_data)
@@ -1163,27 +1181,16 @@ function colorChangeBadge(l) {{
                         border:0.5px solid ${{prev.pill}};margin-left:4px">was ${{prev.lbl}}</span>`;
 }}
  
-const EARNINGS_WATCH = {{
-  "memory":   {{ companies: ["MU","WDC"],            next: "Jun 2026" }},
-  "compute":  {{ companies: ["NVDA","AMD"],           next: "May-Jun 2026" }},
-  "infra":    {{ companies: ["SMCI","VRT"],           next: "May 2026" }},
-  "cloud":    {{ companies: ["MSFT","GOOGL","AMZN","META"], next: "Jul 2026" }},
-  "energy":   {{ companies: ["CEG","GEV"],            next: "Aug 2026" }},
-  "security": {{ companies: ["CRWD","PANW"],          next: "Jun 2026" }},
-  "software": {{ companies: ["PLTR","SNOW"],          next: "May 2026" }},
-}};
- 
-function getEarningsBadge(layerId) {{
-  const watch = EARNINGS_WATCH[layerId];
-  if (!watch) return "";
-  const nearTerm = ["compute","infra","software","security"];
-  if (nearTerm.includes(layerId)) {{
-    return `<span style="font-size:9px;padding:1px 5px;border-radius:4px;
-                         background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;
-                         margin-left:4px" title="Earnings: ${{watch.companies.join(', ')}} — ${{watch.next}}">
-              📅 Earnings soon</span>`;
-  }}
-  return "";
+// l.earnings: the layer's real next-earnings dates within 14 days of the
+// session (yfinance .calendar), soonest first. None known → no badge.
+function getEarningsBadge(l) {{
+  const e = l.earnings || [];
+  if (!e.length) return "";
+  const more = e.length > 1 ? ` +${{e.length - 1}}` : "";
+  return `<span style="font-size:9px;padding:1px 5px;border-radius:4px;
+                       background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;
+                       margin-left:4px" title="Earnings: ${{e.map(x => x.sym + " " + x.date).join(", ")}}">
+            📅 ${{e[0].sym}} earnings ${{e[0].date}}${{more}}</span>`;
 }}
  
 const sparkCharts = {{}};
@@ -1361,7 +1368,7 @@ function buildChain() {{
     div.innerHTML = `
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;margin-bottom:6px">
         <span class="lyr-pill" style="background:${{c.pill}};color:${{c.pft}}">${{c.lbl}}</span>
-        ${{colorChangeBadge(l)}}${{getEarningsBadge(l.id)}}
+        ${{colorChangeBadge(l)}}${{getEarningsBadge(l)}}
       </div>
       <div class="lyr-name">${{l.n1}}<br><span style="color:#888780;font-weight:400">${{l.n2}}</span></div>
       <div class="lyr-score" style="color:${{c.border}}">${{l.score.toFixed(0)}}</div>

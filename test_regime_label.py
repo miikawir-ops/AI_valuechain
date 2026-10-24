@@ -123,9 +123,60 @@ def test_easing_names_only_a_blue_layer():
     print("PASS: Easing names only a Blue layer, otherwise 'none'")
 
 
+def test_earnings_badge_shows_real_dates_within_14_days():
+    """A layer card's earnings badge must come from the tickers' fetched
+    next_earnings dates: shown only 0-14 days after the session, with the
+    date. No date (failed fetch), a past date or one further out shows no
+    badge. The old code read a hardcoded May-Aug 2026 table and showed
+    "Earnings soon" on compute/infra/software/security every day."""
+    import json, shutil, subprocess
+    if not shutil.which("node"):
+        raise AssertionError("node is required for this check and wasn't found")
+    dates = {   # session is 2026-10-20
+        "energy":   [("ENA", "2026-10-23"), ("ENB", "2026-10-21")],   # both inside → soonest + count
+        "compute":  [("CMA", "2026-11-09")],                          # 20 days out → none
+        "memory":   [("MEA", None)],                                  # failed fetch → none
+        "infra":    [("INA", "2026-10-15")],                          # already past → none
+        "cloud":    [("CLA", "2026-11-03")],                          # exactly 14 days → shown
+        "software": [("SWA", "2026-10-20")],                          # session day → shown
+        "security": [("SEA", None)],
+    }
+    market_data = {lid: [dict(_ticker(sym), next_earnings=d) for sym, d in tks] for lid, tks in dates.items()}
+    macro = {"vix": 17.0, "yield_10y_change": 10.0, "nasdaq_vs_spx_20d": 0.0, "data_missing": []}
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            scored = main.stage_score(market_data, macro, SESSIONS)
+            render.generate_dashboard(scored, "Stub analysis.", macro, SESSIONS[-1], market_data, [])
+            page = open("index.html", encoding="utf-8").read()
+        finally:
+            os.chdir(cwd)
+    assert "EARNINGS_WATCH" not in page and "Earnings soon" not in page, "page still carries the hardcoded earnings table"
+    layers = re.search(r"const LAYERS\s*= (\[.*?\]);\n", page).group(1)
+    fn = re.search(r"(const EARNINGS_WATCH = \{.*?\n\};\s*)?(//[^\n]*\n)*function getEarningsBadge\(.*?\n\}", page, re.S).group(0)
+    js = (fn + f"\nconst LAYERS = {layers};\nconst out = {{}};\n"
+          "for (const l of LAYERS) { const h = getEarningsBadge(l);\n"
+          "  out[l.id] = h ? h.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim() + ' | ' + (h.match(/title=\"([^\"]*)\"/) || [, ''])[1] : ''; }\n"
+          "console.log(JSON.stringify(out));")
+    res = subprocess.run(["node", "-e", js], capture_output=True, text=True, encoding="utf-8")
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    want = {
+        "energy":   "📅 ENB earnings Oct 21 +1 | Earnings: ENB Oct 21, ENA Oct 23",
+        "compute":  "", "memory": "", "infra": "", "security": "",
+        "cloud":    "📅 CLA earnings Nov 3 | Earnings: CLA Nov 3",
+        "software": "📅 SWA earnings Oct 20 | Earnings: SWA Oct 20",
+    }
+    bad = {k: (got.get(k), v) for k, v in want.items() if got.get(k) != v}
+    assert not bad, f"earnings badge (got, want): {bad}"
+    print("PASS: earnings badge shows real dates 0-14 days out, none otherwise")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_earnings_badge_shows_real_dates_within_14_days()
     test_easing_names_only_a_blue_layer()
     test_rendered_regime_label_equals_the_engine_regime()
     print("\nAll regime-label tests passed.")

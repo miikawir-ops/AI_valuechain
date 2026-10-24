@@ -492,6 +492,18 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         if analyst_upgrades is None:
             data_missing.append("analyst_upgrades")
 
+        # Next earnings date (ISO) from t.calendar, for the card badge only —
+        # not a score input. A failed fetch or no date is None: the page then
+        # shows no badge rather than a guessed one.
+        next_earnings = None
+        try:
+            cal = t.calendar
+            dates = cal.get("Earnings Date") if isinstance(cal, dict) else None
+            if dates:
+                next_earnings = min(dates).isoformat()
+        except Exception as e:
+            log.debug(f"  {ticker} calendar error: {e}")
+
         short_int_change = 0.0
         try:
             short_info = info.get("shortPercentOfFloat")
@@ -554,6 +566,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             "price_momentum":    price_momentum,
             "peer_outperformance": 0.0,
             "analyst_count":     info.get("numberOfAnalystOpinions", 0),
+            "next_earnings":     next_earnings,
             "sector":            info.get("sector", "N/A"),
             "data_date":         datetime.datetime.now().strftime("%Y-%m-%d"),
             "data_age_note":     "Quarterly financials may be up to 90 days old",
