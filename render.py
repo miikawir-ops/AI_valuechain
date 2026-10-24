@@ -1301,8 +1301,9 @@ function buildBottleneckStrip() {{
   const sorted    = [...LAYERS].sort((a,b) => b.score - a.score);
   const hotLayers = sorted.filter(l => l.color === "Red");
   const emerging  = sorted.find(l => l.color === "Orange");
+  // Only a Blue (cooling) layer is "easing"; without one, say none rather
+  // than naming the lowest-scoring layer, which may be Neutral or worse.
   const easing    = sorted.find(l => l.color === "Blue");
-  const ease      = easing || sorted[sorted.length-1];
  
   let html = "";
   if (hotLayers.length > 0) {{
@@ -1319,7 +1320,9 @@ function buildBottleneckStrip() {{
   }}
   html += `<span style="color:#B4B2A9;margin:0 4px">→</span>`;
   html += `<span style="color:#888780">Easing:</span>`;
-  html += `<strong style="color:${{(CC[ease.color]||CC.Green).border}}">${{ease.n1}}</strong>`;
+  html += easing
+    ? `<strong style="color:${{CC.Blue.border}}">${{easing.n1}}</strong>`
+    : `<strong style="color:#888780">none</strong>`;
   strip.innerHTML = html;
 }}
 

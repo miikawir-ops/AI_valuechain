@@ -83,8 +83,49 @@ def test_rendered_regime_label_equals_the_engine_regime():
     assert not failures, f"regime label disagrees with the engine: {failures}"
 
 
+def _render_page() -> str:
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            _rendered_label({"vix": 17.0, "yield_10y_change": 10.0, "nasdaq_vs_spx_20d": 0.0, "data_missing": []})
+            return open("index.html", encoding="utf-8").read()
+        finally:
+            os.chdir(cwd)
+
+
+def test_easing_names_only_a_blue_layer():
+    """The bottleneck strip's "Easing" must be a Blue (cooling) layer, or
+    "none". The old code fell back to the lowest-scoring layer whatever its
+    colour: every page from 2026-10-15 on said "Easing: Cloud", a Neutral
+    layer. Runs the rendered page's own buildBottleneckStrip() in Node."""
+    import json, shutil, subprocess
+    if not shutil.which("node"):
+        raise AssertionError("node is required for this check and wasn't found")
+    page = _render_page()
+    cc = re.search(r"const CC = \{.*?\n\};", page, re.S).group(0)
+    fn = re.search(r"function buildBottleneckStrip\(\) \{.*?\n\}", page, re.S).group(0)
+
+    def strip_text(layers):
+        js = (cc + "\n" + fn + "\nconst strip = {innerHTML: ''};\n"
+              "const document = {getElementById: () => strip};\n"
+              f"const LAYERS = {json.dumps(layers)};\nbuildBottleneckStrip();\n"
+              r"console.log(strip.innerHTML.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());")
+        out = subprocess.run(["node", "-e", js], capture_output=True, text=True, encoding="utf-8")
+        assert out.returncode == 0, out.stderr
+        return out.stdout.strip()
+
+    lay = lambda n, s, c: {"n1": n, "score": s, "color": c}
+    no_blue = strip_text([lay("HBM memory", 56, "Red"), lay("AI security", 39, "Orange"), lay("Cloud", 25, "Green")])
+    blue    = strip_text([lay("HBM memory", 56, "Red"), lay("Cloud", 25, "Green"), lay("Energy", 22, "Blue")])
+    assert no_blue.endswith("Easing: none"), f"no Blue layer, strip reads: {no_blue!r}"
+    assert blue.endswith("Easing: Energy"), f"with a Blue layer, strip reads: {blue!r}"
+    print("PASS: Easing names only a Blue layer, otherwise 'none'")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_easing_names_only_a_blue_layer()
     test_rendered_regime_label_equals_the_engine_regime()
     print("\nAll regime-label tests passed.")
