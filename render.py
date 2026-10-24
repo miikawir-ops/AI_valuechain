@@ -616,7 +616,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     # manually so this renders the same on the Linux runner and on Windows.
     prev_session  = datetime.date.fromisoformat(prev_date) if prev_date else None
     prev_label    = f"{prev_session.strftime('%a %b')} {prev_session.day}" if prev_session else ""
-    fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials may be up to 90 days old"
+    fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials: latest reported quarter, up to ~5 months old"
  
     # A missing macro input is None (fetch_macro's data_missing), never a
     # default: its card shows "—" / "No data".
@@ -929,9 +929,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <div class="reg-tooltip">
           <b>What is Market Regime?</b><br><br>
           A systemic filter applied to all layer scores. Reflects the overall macro environment for AI investments today.<br><br>
-          <b>Risk-On</b> — VIX low, yields stable, tech leading. All signals at full strength.<br>
-          <b>Neutral</b> — Some uncertainty. Scores dampened. Caution on new positions.<br>
-          <b>Risk-Off</b> — High fear, rising yields, tech selling off. Do not initiate new positions.<br><br>
+          <b>Risk-On</b> — no risk signal and at most one neutral one. Scores at full strength.<br>
+          <b>Neutral</b> — some macro stress. Scores dampened.<br>
+          <b>Risk-Off</b> — broad macro stress. Scores dampened strongly.<br><br>
           Signals used: VIX · 10Y yield change · NASDAQ vs S&amp;P 500<br><br>
           <b>Rule applied:</b> Risk-Off (scores × 0.65) needs two risk signals: VIX above 30, 10Y yield up more than 100 bps over 20 sessions, NASDAQ more than 5 percentage points behind the S&amp;P 500 over its last 20 closes. Neutral (× 0.85) needs one risk signal or two neutral ones: VIX above 20, yield up more than 50 bps, NASDAQ more than 2 percentage points behind. Otherwise Risk-On (× 1.00). A missing signal doesn't vote.
         </div>
@@ -996,27 +996,27 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔴 Hot / Bottleneck</div>
-        <div style="font-size:11px">Current dominant constraint. Supply cannot meet demand. Highest conviction signal.</div>
+        <div style="font-size:11px">Strongest bottleneck signal: layer score above 65, held over recent sessions.</div>
       </div>
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟠 Emerging</div>
-        <div style="font-size:11px">Building momentum. Becoming the next bottleneck, or price running ahead of fundamentals.</div>
+        <div style="font-size:11px">Building momentum toward a bottleneck: layer score 45–65.</div>
       </div>
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🟢 Neutral / Healthy</div>
-        <div style="font-size:11px">Stable. No constraint pressure. Not a concern, not an urgent opportunity.</div>
+        <div style="font-size:11px">Layer score 25–45. Growing, no strong bottleneck signal.</div>
       </div>
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔵 Cooling</div>
-        <div style="font-size:11px">Previously hot layer. Constraint easing, growth decelerating.</div>
+        <div style="font-size:11px">Layer score below 25, or revenue growth slowing at every company in the layer.</div>
       </div>
     </div>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Warning flags</div>
-    <p style="margin-bottom:4px"><strong>⚡ Narrative ahead of fundamentals</strong> — Investment story exists in news but not yet confirmed in quarterly earnings. Wait for financial confirmation.</p>
-    <p style="margin-bottom:10px"><strong>🟠 Orange card</strong> — Stock price has moved significantly more than revenue growth justifies. Market may have already priced in the good news.</p>
+    <p style="margin-bottom:4px"><strong>⚡ Narrative ahead of fundamentals</strong> — The layer's top-scoring company is in the news, but its revenue growth is slowing or barely accelerating.</p>
+    <p style="margin-bottom:10px"><strong>hype</strong> badge on a company — Price up more than 15% in 30 days while revenue grows under 10%, or more than 20 points ahead of its layer peers while revenue growth slows. Lowers that company's rating to C. It doesn't change the layer's colour.</p>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
-    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — Reuters, CNBC, MarketWatch · AI analysis — Google Gemini 2.5</p>
-    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials may be up to 90 days old · Not financial advice · Always do your own research</p>
+    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — CNBC, MarketWatch, Yahoo Finance company headlines · AI analysis — Google Gemini 2.5</p>
+    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials are each company's latest reported quarter, up to about 5 months old · Not financial advice · Always do your own research</p>
   </div>
   <div id="chain-wrap" style="position:relative">
     <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
@@ -1046,12 +1046,12 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <div class="card" id="radar-card" style="display:none">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
     <div class="card-label" style="margin-bottom:0">🚀 <strong>RayDar</strong> — Next Nvidia Top 5 today</div>
-    <span style="font-size:10px;color:#888780" id="radar-count">Multi-quarter acceleration</span>
+    <span style="font-size:10px;color:#888780" id="radar-count">Latest revenue growth</span>
   </div>
   <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">
-    Ranked by sustained revenue acceleration across multiple quarters — not just latest growth.
+    Ranked by latest year-over-year revenue growth, gross margin, analyst coverage and price momentum.
     Low analyst coverage = earlier in discovery cycle.
-    <span style="color:#B4B2A9"> · Confidence improves as quarterly data accumulates over time.</span>
+    <span style="color:#B4B2A9"> · Multi-quarter acceleration isn't measured yet: only one year-over-year figure per company is available.</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
   <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;border-top:0.5px solid #E0DFDC">
@@ -1072,7 +1072,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
   <div id="track-rows"></div>
   <div style="font-size:10px;color:#B4B2A9;margin-top:8px;line-height:1.5">
-    Returns measured from recommendation date to today. Not financial advice.
+    Entry prices aren't recorded yet, so returns show "pending". Not financial advice.
   </div>
 </div>
  
@@ -1087,24 +1087,24 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:8px">What the colors mean</div>
   <div class="mc" style="background:#FCEBEB;border-color:#E24B4A">
     <div class="mc-name" style="color:#791F1F">Red — current bottleneck</div>
-    <div class="mc-desc" style="color:#A32D2D">All three signal categories agree. This layer is the dominant constraint in the AI supply chain right now.</div>
+    <div class="mc-desc" style="color:#A32D2D">Layer score above 65 (market-cap weighted), held above 55 on 2 of the last 3 sessions. Above 80, or a company whose revenue growth accelerates by more than 60 points, turns Red at once. The strongest bottleneck signal in the chain right now.</div>
   </div>
   <div class="mc" style="background:#FAEEDA;border-color:#EF9F27">
-    <div class="mc-name" style="color:#633806">Orange — emerging or hype warning</div>
-    <div class="mc-desc" style="color:#854F0B">Building momentum toward a bottleneck, or price action is outrunning the fundamentals.</div>
+    <div class="mc-name" style="color:#633806">Orange — emerging</div>
+    <div class="mc-desc" style="color:#854F0B">Layer score 45–65: building momentum toward a bottleneck.</div>
   </div>
   <div class="mc" style="background:#EAF3DE;border-color:#639922">
     <div class="mc-name" style="color:#27500A">Green — neutral / healthy</div>
-    <div class="mc-desc" style="color:#3B6D11">Stable activity, no constraint pressure. Functioning normally.</div>
+    <div class="mc-desc" style="color:#3B6D11">Layer score 25–45: growing, no strong bottleneck signal.</div>
   </div>
   <div class="mc" style="background:#E6F1FB;border-color:#378ADD">
     <div class="mc-name" style="color:#0C447C">Blue — cooling</div>
-    <div class="mc-desc" style="color:#185FA5">Growth acceleration declining. A previously hot layer easing off.</div>
+    <div class="mc-desc" style="color:#185FA5">Layer score below 25, or revenue growth slowing at every company in the layer.</div>
   </div>
   <div style="background:#F8F8F7;border-left:2px solid #378ADD;border-radius:0 6px 6px 0;
               padding:8px 10px;font-size:10px;color:#5F5E5A;line-height:1.6;margin-top:4px">
-    <strong>Note on AI Security layer:</strong> Security companies (CRWD, PANW) are steady compounders
-    growing at 10–25% annually — not hardware bottlenecks. A Blue/Green Security layer is normal and
+    <strong>Note on AI Security layer:</strong> Security companies (CRWD, PANW, S, OKTA) are steady
+    compounders, not hardware bottlenecks. A Blue/Green Security layer is normal and
     healthy. Watch for Orange/Red only during major breach cycles or regulatory shifts.
   </div>
   <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin:12px 0 8px">Three signal categories</div>
@@ -1112,21 +1112,21 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="sig">
       <div class="sig-icon" style="background:#EAF3DE">F</div>
       <div class="sig-name">Fundamentals</div>
-      <div class="sig-items">Revenue growth acceleration<br>Gross margin expansion<br>Pricing power trend</div>
+      <div class="sig-items">Revenue growth acceleration<br>Revenue growth level<br>Gross margin expansion</div>
     </div>
     <div class="sig">
       <div class="sig-icon" style="background:#FCEBEB">C</div>
       <div class="sig-name">Constraint signal</div>
-      <div class="sig-items">News narrative velocity<br>Capital expenditure trends<br>Supply/demand pressure</div>
+      <div class="sig-items">News headline velocity<br>Capex vs operating cash flow</div>
     </div>
     <div class="sig">
       <div class="sig-icon" style="background:#E6F1FB">S</div>
       <div class="sig-name">Smart money</div>
-      <div class="sig-items">Volume-price confirmation<br>Analyst upgrade clusters<br>Short interest direction</div>
+      <div class="sig-items">Volume vs average<br>Analyst buy ratings (30 days)<br>Short interest level<br>Price momentum</div>
     </div>
   </div>
-  <div class="override"><strong>Fundamental override:</strong> If revenue growth is decelerating, a layer cannot be Red regardless of price momentum. Fundamentals always take priority.</div>
-  <div class="ip-note">Signal weights, calibration parameters, and exact scoring logic are proprietary.<br>This summary describes methodology categories only. Not financial advice.</div>
+  <div class="override"><strong>Fundamental override:</strong> A company whose revenue growth is slowing has its growth score capped, so it can't score Red on its own. A layer turns Blue when revenue growth is slowing at every company in it.</div>
+  <div class="ip-note">This summary describes methodology categories only. Not financial advice.</div>
 </div>
  
 </div>
@@ -1134,7 +1134,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <div class="footer">
   <div><strong>RayDar</strong> · {datetime_str}</div>
   <div style="font-size:11px;color:#888780;margin-top:2px">
-    Not financial advice · Always do your own research · Data may be up to 90 days old
+    Not financial advice · Always do your own research · Quarterly financials up to ~5 months old
   </div>
   <div class="footer-cobhc">
     ⚔️ Powered by COBHC · Built in Espoo, Finland ·
