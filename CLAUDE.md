@@ -48,6 +48,7 @@ Proceed without approval, report afterwards: bug fixes with a reproduced and ver
 Always stop and ask regardless: when the fix would change agreed behavior; when the root cause isn't actually understood; when the change affects more than the reported problem.
 Data & honesty
 Never fabricate data, metrics, or milestones. Mark sparse or estimated data as such.
+Commit hashes, figures and file paths in reports are quoted only from command output, never from memory or inference. (2026-10-24: an item-6 hash, fb0de4c, was reported without appearing in any output; the real one was a2a3b69.)
 Financial data may be stale — disclose it. Quarterly financials are the latest reported quarter: its quarter-end can be ~5 months before the session (23 of 35 were 115 days old on 2026-10-23, before Q3 reports), not "up to 90 days".
 Distinguish "the signal is real" from "the price moved." Never conflate them.
 Not financial advice — dashboards inform decisions, they don't make them.
