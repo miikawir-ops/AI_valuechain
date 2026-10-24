@@ -38,7 +38,7 @@ def test_js_text_matches_the_code():
                  "'Deteriorating'", "estimated", "the brain of AI systems", "Western Digital makes NAND"):
         assert gone not in page, f"still on the page: {gone!r}"
     for here in ("analysts cover it (low coverage)", "hasn't tested whether that predicts returns",
-                 "acceleration not measured</span>", "Rating up from", "const PREV_SESSION =",
+                 "accelerating ${r.consecutive} of last ${r.compared} quarters", "Rating up from", "const PREV_SESSION =",
                  "B: neither A nor C", "Western Digital makes hard disk drives (HDDs) for bulk data-centre storage. "
                  "It spun off its flash business as Sandisk in February 2025.", "Gross margin (Yahoo Finance, latest quarter)"):
         assert here in page, f"missing from the page: {here!r}"

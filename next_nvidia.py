@@ -1,6 +1,6 @@
 """
 next_nvidia.py — Next Nvidia Radar: multi-quarter acceleration scoring.
- 
+
 Combines the 25 tracked dashboard tickers + 33 screener universe companies.
 Scores each on Nvidia-like trajectory signals:
   1. Multi-quarter revenue acceleration (3-4 quarters, not just 2)
@@ -8,18 +8,22 @@ Scores each on Nvidia-like trajectory signals:
   3. Gross margin expansion (pricing power forming)
   4. Analyst coverage (low = earlier opportunity)
   5. Price momentum confirmation
- 
-Returns top 5 companies with the strongest sustained Nvidia-like trajectory.
+
+Ranks only companies whose acceleration is measured (6+ quarters of revenue);
+the rest follow in the list, marked, for render to name.
 """
- 
+
 import json
 import logging
 import datetime
 from pathlib import Path
+import pandas as pd
 import yfinance as yf
- 
+
+from fetch_market import drop_unfinished_bar, merged_revenue, yoy_series
+
 log = logging.getLogger(__name__)
- 
+
 # Combined universe: dashboard tickers + screener additions
 RADAR_UNIVERSE = [
     # Energy
@@ -86,10 +90,10 @@ RADAR_UNIVERSE = [
     {"ticker": "BWXT",  "layer": "energy",   "name": "BWX Technologies"},
     {"ticker": "NRG",   "layer": "energy",   "name": "NRG Energy"},
 ]
- 
+
 RADAR_CACHE_FILE = "next_nvidia_cache.json"
- 
- 
+
+
 def fetch_multi_quarter_data(ticker: str) -> dict:
     """
     Fetch 4 quarters of revenue data to compute multi-quarter acceleration.
@@ -98,93 +102,47 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
     try:
         t = yf.Ticker(ticker)
         info = t.info
- 
-        # Price data
-        price = (info.get("currentPrice") or
-                 info.get("regularMarketPrice") or
-                 info.get("previousClose", 0))
- 
-        hist = t.history(period="6mo")
-        closes = hist["Close"].tolist() if not hist.empty else []
-        ret_1mo = round((closes[-1]/closes[-21]-1)*100, 1) if len(closes) >= 21 else 0
-        ret_3mo = round((closes[-1]/closes[-63]-1)*100, 1) if len(closes) >= 63 else 0
+
+        # Price and returns from completed sessions (no live quote, no partial
+        # bar); a return that can't be computed is None, not 0.
+        hist = drop_unfinished_bar(t.history(period="6mo"), label=ticker)
+        closes = hist["Close"].dropna().tolist() if not hist.empty else []
+        price = closes[-1] if closes else None
+        ret_1mo = round((closes[-1]/closes[-21]-1)*100, 1) if len(closes) >= 21 else None
+        ret_3mo = round((closes[-1]/closes[-63]-1)*100, 1) if len(closes) >= 63 else None
         # Sparkline: sample 30 points from 6mo history
         if closes and len(closes) >= 5:
             step = max(1, len(closes) // 30)
             price_history = [round(closes[j], 2) for j in range(0, len(closes), step)][-30:]
         else:
             price_history = []
- 
+
         # Fundamentals
         market_cap    = info.get("marketCap", 0)
         gross_margin  = info.get("grossMargins")
         analyst_count = info.get("numberOfAnalystOpinions") or 0
         fwd_pe        = info.get("forwardPE")
- 
-        # Multi-quarter revenue growth
-        growth_quarters = []
+
+        # Multi-quarter revenue growth: the dashboard's own path (yfinance
+        # quarters + cross-checked EDGAR quarters, date-matched YoY). No QoQ-
+        # annualized or TTM stand-ins: what can't be measured is missing.
+        growth_quarters, growth_quarter, revenue_source = [], None, "none"
         try:
-            rev_cols = None
-            for attr in ["quarterly_income_stmt", "quarterly_financials"]:
-                try:
-                    fin = getattr(t, attr)
-                    if fin is not None and not fin.empty:
-                        for label in ["Total Revenue", "Revenue"]:
-                            if label in fin.index:
-                                rev_cols = fin.loc[label].dropna()
-                                break
-                    if rev_cols is not None and len(rev_cols) >= 2:
-                        break
-                except Exception:
-                    continue
- 
-            if rev_cols is not None and len(rev_cols) >= 2:
-                import pandas as pd
-                n = len(rev_cols)
- 
-                matched = 0
-                for i in range(min(3, n)):
-                    curr_date = rev_cols.index[i]
-                    curr_val  = rev_cols.iloc[i]
-                    target_days_min = 335
-                    target_days_max = 395
-                    best_match = None
-                    best_diff  = 9999
-                    for j in range(i+1, n):
-                        prev_date = rev_cols.index[j]
-                        days_diff = (curr_date - prev_date).days
-                        if target_days_min <= days_diff <= target_days_max:
-                            diff = abs(days_diff - 365)
-                            if diff < best_diff:
-                                best_diff  = diff
-                                best_match = j
-                    if best_match is not None:
-                        prev_val = rev_cols.iloc[best_match]
-                        if prev_val and prev_val != 0:
-                            growth = round((curr_val - prev_val) / abs(prev_val) * 100, 1)
-                            growth_quarters.append(growth)
-                            matched += 1
- 
-                if not growth_quarters and n >= 2:
-                    for i in range(min(3, n - 1)):
-                        q_curr = rev_cols.iloc[i]
-                        q_prev = rev_cols.iloc[i + 1]
-                        if q_prev and q_prev != 0 and q_prev > 0:
-                            qoq = (q_curr / q_prev) ** 4 - 1
-                            growth_quarters.append(round(qoq * 100, 1))
- 
+            fin = t.quarterly_financials
+            rev_row = next((fin.loc[l] for l in ("Total Revenue", "Revenue")
+                            if fin is not None and not fin.empty and l in fin.index), None)
+            if rev_row is not None:
+                yf_rev = {pd.Timestamp(k).date(): float(v) for k, v in rev_row.dropna().items()}
+                revenue, revenue_source = merged_revenue(ticker, yf_rev)
+                series = yoy_series(revenue, 4)
+                growth_quarters = [round(g * 100, 1) for _, g in series]
+                growth_quarter = series[0][0].isoformat() if series else None
         except Exception as e:
             log.debug(f"  {ticker} quarterly error: {e}")
- 
-        # Final fallback: TTM growth from info
-        if not growth_quarters:
-            ttm = info.get("revenueGrowth")
-            if ttm:
-                growth_quarters = [round(ttm * 100, 1)]
- 
+
         return {
             "ticker":         ticker,
-            "price":          round(float(price), 2),
+            "price":          round(float(price), 2) if price is not None else None,
             "price_history":  price_history,
             "market_cap":     market_cap,
             "gross_margin":   round(gross_margin * 100, 1) if gross_margin else None,
@@ -193,91 +151,80 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
             "ret_1mo":        ret_1mo,
             "ret_3mo":        ret_3mo,
             "growth_quarters": growth_quarters,
+            "growth_quarter":  growth_quarter,
+            "revenue_source":  revenue_source,
             "ok":             True,
         }
     except Exception as e:
         log.warning(f"  {ticker}: fetch failed — {e}")
         return {"ticker": ticker, "ok": False, "error": str(e)}
- 
- 
+
+
+ACCEL_BAND_PP = 5.0   # a quarter "accelerates" when YoY rose more than 5 pp (the dashboard's band)
+
+
 def compute_acceleration_score(growth_quarters: list) -> dict:
     """
-    Multi-quarter acceleration scoring.
-    growth_quarters: [Q1_recent, Q2, Q3, Q4] — YoY growth % each quarter
+    Multi-quarter acceleration. growth_quarters: YoY growth % for consecutive
+    quarters, newest first (fetch_multi_quarter_data). Needs at least two —
+    i.e. 6 quarters of revenue — or acceleration is not measured, and the
+    company isn't ranked (Ray, 2026-10-24).
     """
-    if not growth_quarters:
-        return {
-            "consecutive_accel": 0,
-            "trend_delta":       0,
-            "latest_growth":     None,
-            "confidence":        "LOW",
-            "accel_score":       0,
-        }
- 
-    latest = growth_quarters[0]
- 
+    gq = [g for g in (growth_quarters or []) if g is not None]
+    latest = gq[0] if gq else None
+    if len(gq) < 2:
+        return {"measured": False, "consecutive_accel": None, "compared": 0, "trend_delta": None,
+                "latest_growth": latest, "accel_score": None, "all_quarters": gq}
+    deltas = [gq[i] - gq[i + 1] for i in range(len(gq) - 1)]
     consecutive = 0
-    for i in range(len(growth_quarters) - 1):
-        if growth_quarters[i] > growth_quarters[i+1]:
+    for d in deltas:
+        if d > ACCEL_BAND_PP:
             consecutive += 1
         else:
             break
- 
-    deltas = []
-    for i in range(len(growth_quarters) - 1):
-        deltas.append(growth_quarters[i] - growth_quarters[i+1])
-    trend_delta = round(sum(deltas) / len(deltas), 1) if deltas else 0
- 
-    if consecutive >= 3:
-        confidence = "HIGH"
-    elif consecutive >= 2:
-        confidence = "MEDIUM"
-    elif consecutive >= 1 and trend_delta > 0:
-        confidence = "MEDIUM"
-    else:
-        confidence = "LOW"
- 
-    growth_pts = min(40, (latest / 100) * 40) if latest and latest > 0 else 0
+    trend_delta = round(sum(deltas) / len(deltas), 1)
+    growth_pts = min(40, (latest / 100) * 40) if latest > 0 else 0
     consec_pts = min(30, consecutive * 10)
     delta_pts  = min(30, max(0, trend_delta * 1.5))
-    accel_score = round(growth_pts + consec_pts + delta_pts, 1)
- 
     return {
+        "measured":          True,
         "consecutive_accel": consecutive,
+        "compared":          len(deltas),
         "trend_delta":       trend_delta,
         "latest_growth":     latest,
-        "confidence":        confidence,
-        "accel_score":       accel_score,
-        "all_quarters":      growth_quarters,
+        "accel_score":       round(growth_pts + consec_pts + delta_pts, 1),
+        "all_quarters":      gq,
     }
- 
- 
+
+
 def compute_nvidia_score(data: dict, accel: dict) -> float:
     """
     Final composite Nvidia-likeness score (0-100).
     """
+    if not accel.get("measured"):
+        return None
     accel_score = accel.get("accel_score", 0)
     latest_growth = accel.get("latest_growth") or 0
     consecutive = accel.get("consecutive_accel", 0)
- 
+
     confirmation_bonus = min(15, consecutive * 5)
     accel_score = min(100, accel_score + confirmation_bonus)
- 
+
     quarters_available = len(accel.get("all_quarters", []))
     if quarters_available == 1:
         accel_score *= 0.8
- 
+
     gm = data.get("gross_margin")
     margin_score = min(100, (gm / 80) * 100) if gm and gm > 0 else 0
- 
+
     ac = data.get("analyst_count", 20)
     discovery_score = max(0, min(100, (20 - ac) * 5))
- 
-    ret = data.get("ret_1mo", 0)
+
+    ret = data.get("ret_1mo") or 0
     momentum_score = 0
     if latest_growth > 20 and ret > 0:
         momentum_score = min(100, ret * 2)
- 
+
     composite = (
         accel_score     * 0.50 +
         margin_score    * 0.20 +
@@ -285,8 +232,8 @@ def compute_nvidia_score(data: dict, accel: dict) -> float:
         momentum_score  * 0.15
     )
     return round(composite, 1)
- 
- 
+
+
 def run_radar(verbose: bool = True) -> list:
     """
     Run the full Next Nvidia Radar.
@@ -294,7 +241,7 @@ def run_radar(verbose: bool = True) -> list:
     """
     if verbose:
         print(f"\n🔬 Running Next Nvidia Radar ({len(RADAR_UNIVERSE)} companies)...")
- 
+
     results = []
     for entry in RADAR_UNIVERSE:
         ticker = entry["ticker"]
@@ -303,17 +250,17 @@ def run_radar(verbose: bool = True) -> list:
         data = fetch_multi_quarter_data(ticker)
         if not data.get("ok"):
             continue
- 
+
         accel = compute_acceleration_score(data["growth_quarters"])
         score = compute_nvidia_score(data, accel)
- 
+
         # Build sparkline from price history
         ph = data.get("price_history", [])
         if ph and len(ph) >= 5:
             sparkline = [round(float(p), 2) for p in ph[-30:]]
         else:
             sparkline = []
- 
+
         results.append({
             "ticker":        ticker,
             "name":          entry["name"],
@@ -328,17 +275,23 @@ def run_radar(verbose: bool = True) -> list:
             "fwd_pe":        data["fwd_pe"],
             "accel":         accel,
             "growth_quarters": data["growth_quarters"],
+            "growth_quarter":  data["growth_quarter"],
+            "revenue_source":  data["revenue_source"],
             "sparkline":     sparkline,   # ← always preserved for every ticker
         })
- 
-    # Filter weak candidates
-    results = [r for r in results
-               if (r["accel"].get("latest_growth") or 0) >= 10
-               and (r.get("gross_margin") or 0) > 0]
- 
-    # Rank by score
-    ranked = sorted(results, key=lambda x: x["score"], reverse=True)
- 
+
+    # Rank only measured acceleration (Ray, 2026-10-24); weak candidates out.
+    measured = sorted([r for r in results if r["score"] is not None
+                       and (r["accel"].get("latest_growth") or 0) >= 10
+                       and (r.get("gross_margin") or 0) > 0],
+                      key=lambda x: x["score"], reverse=True)
+    # Unmeasured (fewer than 6 quarters) follow, marked, so render can name
+    # high growers instead of dropping them silently.
+    unmeasured = sorted([r for r in results if not r["accel"].get("measured")
+                         and r["accel"].get("latest_growth") is not None],
+                        key=lambda x: -x["accel"]["latest_growth"])
+    ranked = measured + unmeasured
+
     # Save cache — store FULL ranked list, not just top5,
     # so render.py can find wildcard candidates (e.g. APP) with sparklines intact
     Path(RADAR_CACHE_FILE).write_text(json.dumps({
@@ -347,27 +300,22 @@ def run_radar(verbose: bool = True) -> list:
         "top5":  ranked[:5],
         "all":   ranked,          # ← full list with sparklines for every ticker
     }, indent=2, default=str))
- 
+
     if verbose:
         print(f"\n🏆 Top 5 Next Nvidia candidates:")
-        for i, r in enumerate(ranked[:5]):
-            conf   = r["accel"].get("confidence", "?")
-            consec = r["accel"].get("consecutive_accel", 0)
-            latest = r["accel"].get("latest_growth")
-            if latest:
-                print(f"  #{i+1} {r['ticker']:<6} [{r['layer']:<8}] "
-                      f"score={r['score']:.0f} revenue={latest:.0f}% "
-                      f"accel={consec}Q {conf} confidence")
-            else:
-                print(f"  #{i+1} {r['ticker']:<6} score={r['score']:.0f} "
-                      f"accel={consec}Q {conf} confidence")
- 
-    return ranked[:5]
- 
- 
+        for i, r in enumerate(measured[:5]):
+            a = r["accel"]
+            print(f"  #{i+1} {r['ticker']:<6} [{r['layer']:<8}] score={r['score']:.0f} "
+                  f"revenue={a['latest_growth']:.0f}% accelerating {a['consecutive_accel']} of {a['compared']} quarters")
+
+    # The full list, as load_cached_radar returns: render needs the wildcard
+    # candidates and the unmeasured high growers, not just the top 5.
+    return ranked
+
+
 def load_cached_radar() -> list:
     """Load today's cached radar results if available.
- 
+
     Returns the FULL ranked list (not just top5) so that wildcard candidates
     sitting outside the top 5 (e.g. APP) still carry their sparkline data
     through to render.py.
@@ -383,8 +331,8 @@ def load_cached_radar() -> list:
     except Exception:
         pass
     return []
- 
- 
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     top5 = run_radar(verbose=True)

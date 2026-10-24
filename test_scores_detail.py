@@ -20,9 +20,9 @@ from test_regime_label import _ticker
 
 MACRO = {"vix": 17.0, "yield_10y_change": 10.0, "nasdaq_vs_spx_20d": 0.0, "data_missing": []}
 SESSIONS = [datetime.date(2026, 10, d) for d in (19, 20, 21, 22, 23)]
-RADAR = [{"ticker": "MUX", "layer": "memory", "score": 81.2, "accel": {"latest_growth": 379.3},
+RADAR = [{"ticker": "MUX", "layer": "memory", "score": 81.2, "accel": {"measured": True, "latest_growth": 379.3, "consecutive_accel": 1, "compared": 3, "trend_delta": 12.0},
           "gross_margin": 58.1, "analyst_count": 30, "ret_1mo": -18.9},
-         {"ticker": "ZZZ", "layer": "infra", "score": 60.0, "accel": {"latest_growth": None},
+         {"ticker": "ZZZ", "layer": "infra", "score": None, "accel": {"measured": False, "latest_growth": 104.5},
           "gross_margin": None, "analyst_count": 4, "ret_1mo": 3.0}]
 ANALYSIS = ("### 🌍 MACRO REGIME\nRisk-On.\n\n### 🔩 AI CHAIN BOTTLENECK\nSection withheld: figures didn't match the data.\n\n"
             "### 💡 ONE SIGNAL TO WATCH\nCompany: MUX (Micron X), Watch. Signal. Risk. Not financial advice.\n")
@@ -55,7 +55,8 @@ def test_detail_line_is_appended_complete_and_replays():
     assert line["macro"]["regime"] == "Risk-On" and line["macro"]["multiplier"] == 1.0
     assert line["signal"] == {"ticker": "MUX", "close": 877.55}, line["signal"]
     assert line["withheld_sections"] == ["🔩 AI CHAIN BOTTLENECK"], line["withheld_sections"]
-    assert [r["rank"] for r in line["radar"]] == [1, 2] and line["radar"][0]["latest_yoy_pct"] == 379.3
+    assert [r["rank"] for r in line["radar"]] == [1, None] and line["radar"][0]["latest_yoy_pct"] == 379.3
+    assert line["radar"][0]["measured"] and not line["radar"][1]["measured"] and line["radar"][0]["consecutive_accel"] == 1
     c = {x["ticker"]: x for x in line["companies"]}
     assert set(c) == {t["ticker"] for ts in md.values() for t in ts}
     assert c["MUX"]["inputs"]["revenue_source"].startswith("yfinance + EDGAR") and c["MUX"]["accel_measured"]

@@ -435,10 +435,17 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
                 if p.partition("\n")[2].strip() == WITHHELD]
     m = re.search(r"Company[:\s]+\*?\*?([A-Z]{1,5})", analysis or "")
     pick = m.group(1) if m else None
-    radar = [{"rank": i + 1, "ticker": r.get("ticker"), "layer": r.get("layer"), "score": r.get("score"),
-              "latest_yoy_pct": (r.get("accel") or {}).get("latest_growth"),
-              "gross_margin_pct": r.get("gross_margin"), "analyst_count": r.get("analyst_count"),
-              "ret_1mo_pct": r.get("ret_1mo")} for i, r in enumerate(radar_data or [])]
+    radar, rank = [], 0
+    for r in radar_data or []:
+        a = r.get("accel") or {}
+        rank += 1 if a.get("measured") else 0
+        radar.append({"rank": rank if a.get("measured") else None, "ticker": r.get("ticker"), "layer": r.get("layer"),
+                      "score": r.get("score"), "measured": bool(a.get("measured")),
+                      "latest_yoy_pct": a.get("latest_growth"), "growth_quarter": r.get("growth_quarter"),
+                      "consecutive_accel": a.get("consecutive_accel"), "compared": a.get("compared"),
+                      "trend_delta_pp": a.get("trend_delta"), "revenue_source": r.get("revenue_source"),
+                      "gross_margin_pct": r.get("gross_margin"), "analyst_count": r.get("analyst_count"),
+                      "ret_1mo_pct": r.get("ret_1mo")})
     session = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
     line = {
         "session": session.isoformat(),

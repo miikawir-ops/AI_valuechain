@@ -41,6 +41,7 @@ SCORES_HISTORY_FILE = "scores_history.json"
 MAX_HISTORY_DAYS    = 30
 EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
 UNMEASURED_NOTE_SHARE = 0.25   # layer card names unmeasured acceleration above this market-cap share
+RADAR_HIGH_GROWTH_PCT = 25     # radar names unmeasured companies with YoY at or above this
 
 # score_engine.METHOD_VERSION: the first history entry under a new version is
 # flagged methodology_change (for backtests). The page compares nothing across
@@ -569,7 +570,7 @@ def _radar_js_data(radar_data: list) -> str:
         and (r.get("gross_margin") or 0) > 0
     ]
     if wc_candidates:
-        wc_candidates.sort(key=lambda x: (x.get("analyst_count", 99), -x.get("score", 0)))
+        wc_candidates.sort(key=lambda x: (x.get("analyst_count", 99), -(x.get("score") or 0)))   # unmeasured: score None
         wc    = wc_candidates[0]
         accel = wc.get("accel", {})
         wc_traj = []
@@ -597,7 +598,10 @@ def _radar_js_data(radar_data: list) -> str:
  
     # ── Top 5 cards ───────────────────────────────────────────────────────────
     out = []
-    for r in radar_data[:5]:
+    # Top 5: measured acceleration only (Ray, 2026-10-24). next_nvidia puts
+    # the measured, ranked companies first; the unmeasured follow, marked.
+    measured = [r for r in radar_data if (r.get("accel") or {}).get("measured")]
+    for r in measured[:5]:
         accel    = r.get("accel", {})
         quarters = r.get("growth_quarters", [])
         traj = []
@@ -613,17 +617,24 @@ def _radar_js_data(radar_data: list) -> str:
             "name":          r.get("name", "?"),
             "layer":         r.get("layer", "?"),
             "score":         r.get("score", 0),
-            "ret_1mo":       r.get("ret_1mo", 0),
-            "ret_3mo":       r.get("ret_3mo", 0),
+            "ret_1mo":       r.get("ret_1mo"),
+            "ret_3mo":       r.get("ret_3mo"),
             "gross_margin":  r.get("gross_margin"),
             "analyst_count": r.get("analyst_count", 0),
-            "confidence":    accel.get("confidence", "LOW"),
-            "consecutive":   accel.get("consecutive_accel", 0),
+            "consecutive":   accel.get("consecutive_accel"),
+            "compared":      accel.get("compared"),
+            "trend_delta":   accel.get("trend_delta"),
             "latest_growth": accel.get("latest_growth"),
+            "quarter":       _quarter_label(r.get("growth_quarter")),
             "trajectory":    traj,
         })
  
-    return json.dumps({"top5": out, "wildcard": wildcard})
+    # High growers whose acceleration can't be measured yet (fewer than 6
+    # quarters, e.g. young IPOs): named, not silently dropped.
+    unmeasured = [{"ticker": r.get("ticker"), "latest_growth": (r.get("accel") or {}).get("latest_growth")}
+                  for r in radar_data if not (r.get("accel") or {}).get("measured")
+                  and ((r.get("accel") or {}).get("latest_growth") or 0) >= RADAR_HIGH_GROWTH_PCT]
+    return json.dumps({"top5": out, "wildcard": wildcard, "unmeasured": unmeasured})
  
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
@@ -1133,14 +1144,15 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <div class="card" id="radar-card" style="display:none">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
     <div class="card-label" style="margin-bottom:0">🚀 <strong>RayDar</strong> — Next Nvidia Top 5 today</div>
-    <span style="font-size:10px;color:#888780" id="radar-count">Latest revenue growth</span>
+    <span style="font-size:10px;color:#888780" id="radar-count">Multi-quarter acceleration</span>
   </div>
   <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">
-    Ranked by latest year-over-year revenue growth, gross margin, analyst coverage and price momentum.
-    Low analyst coverage = earlier in discovery cycle.
-    <span style="color:#B4B2A9"> · Multi-quarter acceleration isn't measured yet: only one year-over-year figure per company is available.</span>
+    Ranked by multi-quarter revenue acceleration (year-over-year growth, each quarter vs the one before),
+    latest growth, gross margin, analyst coverage and price momentum. Only companies with 6+ quarters of revenue are ranked.
+    <span style="color:#B4B2A9"> · Lower analyst coverage scores higher; this dashboard hasn't tested whether that predicts returns.</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="radar-grid"></div>
+  <div id="radar-unmeasured" style="font-size:10px;color:#888780;margin-top:8px"></div>
   <div id="wildcard-section" style="display:none;margin-top:14px;padding-top:14px;border-top:0.5px solid #E0DFDC">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <span style="font-size:16px">🃏</span>
@@ -1700,8 +1712,8 @@ function buildRadar() {{
   const wcCard    = document.getElementById("wildcard-card");
   if (wildcard && wcSection && wcCard) {{
     wcSection.style.display = "block";
-    const wret = wildcard.ret_1mo >= 0 ? `+${{wildcard.ret_1mo}}%` : `${{wildcard.ret_1mo}}%`;
-    const wrc  = wildcard.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
+    const wret = wildcard.ret_1mo == null ? "—" : wildcard.ret_1mo >= 0 ? `+${{wildcard.ret_1mo}}%` : `${{wildcard.ret_1mo}}%`;
+    const wrc  = wildcard.ret_1mo == null ? "#888780" : wildcard.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
     const wlg  = wildcard.latest_growth ? `Rev +${{wildcard.latest_growth?.toFixed(0)}}%` : "";
     const wgm  = wildcard.gross_margin  ? `GM ${{wildcard.gross_margin}}%` : "";
     const wtraj = (wildcard.trajectory || []).join(" ");
@@ -1801,13 +1813,18 @@ function buildRadar() {{
   }}
  
   // ── Top 5 grid ────────────────────────────────────────────────────────────
+  const um = document.getElementById("radar-unmeasured");
+  if (um && RADAR.unmeasured && RADAR.unmeasured.length) {{
+    um.textContent = "High growth, acceleration not yet measurable (fewer than 6 quarters): " +
+      RADAR.unmeasured.map(u => `${{u.ticker}} ${{u.latest_growth >= 0 ? "+" : ""}}${{u.latest_growth.toFixed(0)}}%`).join(", ");
+  }}
   grid.innerHTML = (RADAR.top5 || []).map((r, i) => {{
     const pct    = Math.min(100, r.score);
     const traj   = (r.trajectory || []).join(" ");
-    const ret1   = r.ret_1mo >= 0 ? `+${{r.ret_1mo}}%` : `${{r.ret_1mo}}%`;
-    const retCol = r.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
+    const ret1   = r.ret_1mo == null ? "—" : r.ret_1mo >= 0 ? `+${{r.ret_1mo}}%` : `${{r.ret_1mo}}%`;
+    const retCol = r.ret_1mo == null ? "#888780" : r.ret_1mo >= 0 ? "#27500A" : "#A32D2D";
     const gm     = r.gross_margin ? `GM ${{r.gross_margin}}%` : "";
-    const lg     = r.latest_growth ? `Rev ${{r.latest_growth > 0 ? "+" : ""}}${{r.latest_growth?.toFixed(0)}}%` : "";
+    const lg     = r.latest_growth != null ? `Rev YoY ${{r.latest_growth > 0 ? "+" : ""}}${{r.latest_growth.toFixed(0)}}%${{r.quarter ? " (qtr " + r.quarter + ")" : ""}}` : "";
  
     return `<div class="radar-card">
       <div class="radar-rank">#${{i+1}} ${{LAYER_SHORT[r.layer]||""}} ${{r.layer}}</div>
@@ -1816,7 +1833,7 @@ function buildRadar() {{
       <div class="radar-traj">${{traj}}</div>
       <div class="radar-bar-wrap"><div class="radar-bar" style="width:${{pct}}%"></div></div>
       <div class="radar-meta">
-        <span class="radar-conf-LOW">acceleration not measured</span>
+        <span>accelerating ${{r.consecutive}} of last ${{r.compared}} quarters · trend ${{fmt(r.trend_delta)}} pp/qtr</span>
       </div>
       <div class="radar-meta">
         <span style="color:${{retCol}}">${{ret1}} (1mo)</span>

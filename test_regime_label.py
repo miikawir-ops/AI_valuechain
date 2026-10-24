@@ -126,8 +126,8 @@ def test_easing_names_only_a_blue_layer():
     print("PASS: no Red layer reads 'Bottleneck: none', no stray arrow")
     assert "of 45 companies" not in page and "count.textContent" not in page, \
         "buildRadar still overwrites the radar header"
-    assert 'id="radar-count">Latest revenue growth</span>' in page
-    print("PASS: radar header stays 'Latest revenue growth'")
+    assert 'id="radar-count">Multi-quarter acceleration</span>' in page   # item 9: acceleration measured
+    print("PASS: radar header stays as rendered ('Multi-quarter acceleration')")
 
 
 def test_earnings_badge_shows_real_dates_within_14_days():
