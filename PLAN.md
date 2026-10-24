@@ -6,4 +6,4 @@ Running record of in-progress work and a queue of known issues deliberately not 
 
 Items here are reported, not yet diagnosed via decomposition against real data (per CLAUDE.md's diagnosis methodology) unless noted otherwise. Don't fix without confirming root cause first — that's the whole point of logging rather than fixing.
 
-Empty — last item (regime label vs applied multiplier) closed 2026-10-21.
+- **Sibling follow-up, RayDar Data Center — note only, don't touch (Ray, 2026-10-24).** It copied fetch_market.py, so it likely has two bugs fixed or being fixed here: revenue growth compares the latest quarter with 2 quarters back instead of the same quarter a year earlier (item 1 of the 2026-10-24 batch), and the card price is the live intraday quote, not the last completed close (fixed here in dbc2812). Not diagnosed in the sibling. Per CLAUDE.md, a bug here doesn't prove the copy has it; test the sibling directly when this is picked up.
