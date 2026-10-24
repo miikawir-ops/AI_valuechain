@@ -1129,7 +1129,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:8px">What the colors mean</div>
   <div class="mc" style="background:#FCEBEB;border-color:#E24B4A">
     <div class="mc-name" style="color:#791F1F">Red — current bottleneck</div>
-    <div class="mc-desc" style="color:#A32D2D">Layer score above 65 (market-cap weighted), held above 55 on 2 of the last 3 sessions. Above 80, or a company whose revenue growth accelerates by more than 60 points, turns Red at once. The strongest bottleneck signal in the chain right now.</div>
+    <div class="mc-desc" style="color:#A32D2D">Layer score above 65 (market-cap weighted), held above 55 on 2 of the last 3 sessions. A score above 80 turns Red at once. The strongest bottleneck signal in the chain right now.</div>
   </div>
   <div class="mc" style="background:#FAEEDA;border-color:#EF9F27">
     <div class="mc-name" style="color:#633806">Orange — emerging</div>

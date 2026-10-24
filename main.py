@@ -108,7 +108,6 @@ def _confirmed_color(
     today_score: float,
     today_color: str,
     layer_id: str,
-    top_fund_delta: float | None,
     sessions: list,
 ) -> tuple[str, str]:
     """
@@ -118,8 +117,12 @@ def _confirmed_color(
     single-day data noise from flipping the dashboard signal.
  
     Rules:
-      INSTANT RED   — today_score > 80 (extreme signal, no confirmation needed)
-                      OR top_fund_delta > 0.60 (very strong fundamental acceleration)
+      INSTANT RED   — today_score > 80 (extreme signal, no confirmation needed).
+                      (The old "or one company's fund_delta > 0.60" path is gone: on
+                      true YoY it fired in 1.7% of 2021-26 company-quarters, about
+                      half of them recoveries off a trough — WDC, VST, SMCI 2025 —
+                      letting one company's quarter skip the layer threshold and
+                      confirmation. Ray, 2026-10-24.)
       CONFIRMED RED — today > 65 AND 2+ of last 3 days also > 55
       CONFIRMED ORANGE — today >= 45 AND 2+ of last 3 days also >= 40
       CONFIRMED BLUE — today < 25 AND 2+ of last 3 days also < 30
@@ -143,10 +146,6 @@ def _confirmed_color(
     if today_score > 80:
         log.info(f"  {layer_id}: instant Red — extreme score {today_score:.1f} > 80")
         return "Red", f"Instant Red — extreme score {today_score:.1f}"
- 
-    if top_fund_delta and top_fund_delta > 0.60:
-        log.info(f"  {layer_id}: instant Red — fund_delta {top_fund_delta:.2f} > 0.60")
-        return "Red", f"Instant Red — strong fundamental acceleration delta={top_fund_delta:.2f}"
  
     # ── 3-day confirmation checks ─────────────────────────────────────────────
     days_above_55  = sum(1 for s in recent if s > 55)
@@ -304,9 +303,9 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
         # ── 3-day color confirmation ──────────────────────────────────────────
         # Prevents single-day noise from flipping the dashboard color.
         # Colors must be sustained across multiple runs to be confirmed.
-        # Extreme signals (score > 80 or fund_delta > 0.60) bypass confirmation.
+        # An extreme score (> 80) bypasses confirmation.
         layer_color, confirm_note = _confirmed_color(
-            weighted_score, layer_color, layer_id, top_fund_delta, sessions
+            weighted_score, layer_color, layer_id, sessions
         )
         if confirm_note:
             layer_status = confirm_note

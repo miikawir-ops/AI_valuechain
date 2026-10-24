@@ -45,9 +45,33 @@ def test_layer_of_small_dips_is_not_blue():
     print("PASS: layer — every company −2..−3 pp isn't Blue; every company −10..−20 pp is")
 
 
+def test_one_company_acceleration_no_longer_makes_a_layer_instant_red():
+    """The old _confirmed_color made a layer Red at once when one company's
+    delta exceeded 60 pp, skipping the 65 threshold and confirmation. Removed
+    (Ray, 2026-10-24): on true YoY it fires mostly on recoveries off a trough.
+    A layer at ~50 with sessions of history and one +70 pp company is not Red."""
+    import os, json, tempfile, datetime
+    md = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
+    md["memory"] = [dict(_ticker("JMP"), growth_curr=0.90, growth_prev=0.20)]   # +70 pp
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            hist = [{"date": str(s), "scores": {"memory": {"score": 50.0, "color": "Orange"}}} for s in SESSIONS[:-1]]
+            json.dump(hist, open("scores_history.json", "w"))
+            scored = main.stage_score(md, MACRO, SESSIONS)
+        finally:
+            os.chdir(cwd)
+    mem = scored["memory"]["best"]
+    assert mem["score"] <= 80, f"setup: score {mem['score']} would be instant Red on score alone"
+    assert mem["color"] != "Red", f"one +70 pp company made the layer {mem['color']}: {mem['status']}"
+    print(f"PASS: one +70 pp company doesn't make a {mem['score']:.0f}-score layer instant Red")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_one_company_acceleration_no_longer_makes_a_layer_instant_red()
     test_small_dip_is_not_deceleration()
     test_layer_of_small_dips_is_not_blue()
     print("\nAll deceleration-threshold tests passed.")
