@@ -15,7 +15,6 @@ Usage:
 v3 scoring:
   - Layer score: market-cap weighted composite of all tickers
   - Bottleneck leader boost: floor at Orange if any ticker has fund_delta > 0.40
-  - Red reality check: dominant C/D companies downgrade Red → Orange
   - 3-day color confirmation: color requires confirmation across multiple days
     to prevent single-day noise from flipping the dashboard signal
   - Extreme signal override: score > 80 allows instant Red without confirmation
@@ -51,8 +50,6 @@ MACRO_DEFAULTS = {
     "data_missing":      ["vix", "yield_10y_change", "nasdaq_vs_spx_20d"],
 }
  
-# Rating quality map — used for Red reality check
-RATING_QUALITY = {"A": 4, "B": 3, "C": 2, "D": 1}
  
 # ── Score history helpers ─────────────────────────────────────────────────────
  
@@ -213,58 +210,6 @@ def _layer_color_from_score(score: float, top_delta: float | None) -> tuple[str,
         return "Green", "Neutral — healthy growth, no constraint pressure"
  
  
-def _red_reality_check(
-    layer_scores: list,
-    market_data_tickers: list,
-    color: str,
-) -> tuple[str, str]:
-    """
-    A layer cannot be Red if its two largest companies by market cap
-    are both rated C or D.
- 
-    Rationale: NVDA + AMD make up ~90% of Semicon layer market cap.
-    If both are decelerating, the layer is not a bottleneck regardless
-    of what ARM or CDNS are doing.
- 
-    Returns (color, status) — possibly downgraded from Red to Orange.
-    """
-    if color != "Red":
-        return color, ""
- 
-    # Build market-cap lookup from raw market data
-    mcap_lookup = {}
-    for t in (market_data_tickers or []):
-        if t and t.get("ticker"):
-            mcap_lookup[t["ticker"]] = t.get("market_cap", 0) or 0
- 
-    # Sort scored tickers by market cap descending
-    sorted_by_mcap = sorted(
-        layer_scores,
-        key=lambda x: mcap_lookup.get(x.get("ticker", ""), 0),
-        reverse=True
-    )
- 
-    top2 = sorted_by_mcap[:2]
-    if len(top2) < 2:
-        return color, ""   # not enough data to check
- 
-    top2_ratings = [t.get("rating", "C") for t in top2]
-    top2_tickers = [t.get("ticker", "?") for t in top2]
-    top2_quality = [RATING_QUALITY.get(r, 2) for r in top2_ratings]
- 
-    # Both top-2 companies rated C or D → downgrade layer from Red to Orange
-    if all(q <= 2 for q in top2_quality):
-        reason = (
-            f"Downgraded Red→Orange: dominant companies "
-            f"{top2_tickers[0]}({top2_ratings[0]}) and "
-            f"{top2_tickers[1]}({top2_ratings[1]}) not confirming bottleneck"
-        )
-        log.info(f"  ⚠️  Red reality check fired: {reason}")
-        return "Orange", reason
- 
-    return color, ""
- 
- 
 def stage_fetch() -> tuple[dict, dict]:
     log.info("[1/4] Fetching market data...")
     try:
@@ -355,13 +300,6 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
         best_ticker  = max(layer_scores, key=lambda x: x["score"])
         top_delta    = best_by_delta.get("fund_delta")   # use best_by_delta, not best_ticker
         layer_color, layer_status = _layer_color_from_score(weighted_score, top_delta)
- 
-        # ── Red reality check ─────────────────────────────────────────────────
-        layer_color, reality_status = _red_reality_check(
-            layer_scores, tickers_data, layer_color
-        )
-        if reality_status:
-            layer_status = reality_status
  
         # ── 3-day color confirmation ──────────────────────────────────────────
         # Prevents single-day noise from flipping the dashboard color.

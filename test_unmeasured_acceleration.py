@@ -59,8 +59,6 @@ def test_engine_unmeasured_is_not_red_and_gets_no_margin_bonus():
 
 def test_layer_unmeasured_is_not_red_and_does_not_mask_deceleration():
     md = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
-    # One company: with two, _red_reality_check (which reads every rating as
-    # C — main.py never sets one) would downgrade Red first and mask this.
     md["memory"] = [dict(_ticker("UNA"), **HOT, growth_prev=None)]
     # Energy: the one measured company decelerates; the other is unmeasured.
     md["energy"] = [dict(_ticker("DEC"), growth_curr=0.10, growth_prev=0.30),
@@ -80,9 +78,24 @@ def test_layer_unmeasured_is_not_red_and_does_not_mask_deceleration():
     print("PASS: card — 'Acceleration not measured', not a stable trend")
 
 
+def test_two_company_red_layer_is_not_downgraded_by_ratings():
+    """The Red reality check is removed (Ray, 2026-10-24). It read each
+    company's `rating`, which nothing set, so it treated every company as C
+    and downgraded any 2+ company Red layer to Orange before confirmation."""
+    md = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
+    md["memory"] = [dict(_ticker("RA"), **HOT, growth_prev=1.2, market_cap=2e11),
+                    dict(_ticker("RB"), **HOT, growth_prev=1.2, market_cap=1e11)]
+    scored, _ = _render(md)
+    mem = scored["memory"]["best"]
+    assert mem["score"] > 65, f"setup: score {mem['score']}"
+    assert mem["color"] == "Red", f"2-company layer above 65 with measured acceleration: {mem['color']} ({mem['status']})"
+    print("PASS: a 2-company layer above 65 with measured acceleration is Red (no rating downgrade)")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_two_company_red_layer_is_not_downgraded_by_ratings()
     test_engine_unmeasured_is_not_red_and_gets_no_margin_bonus()
     test_layer_unmeasured_is_not_red_and_does_not_mask_deceleration()
     print("\nAll unmeasured-acceleration tests passed.")
