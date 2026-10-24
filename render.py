@@ -768,13 +768,23 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .card-title{{font-size:20px;font-weight:700;color:#0C1A3A;
              letter-spacing:-0.01em;margin-bottom:0}}
 .fetch-note{{font-size:10px;color:#B4B2A9;margin-top:4px}}
-.layer{{flex:1;min-width:120px;width:148px;border:1.5px solid;border-radius:10px;
+.layer{{flex:1;min-width:120px;width:148px;border:1.5px solid;border-radius:10px;display:flex;flex-direction:column;
         padding:11px 10px;cursor:pointer;transition:transform .1s,box-shadow .1s}}
 .layer:hover{{transform:translateY(-2px)}}
 .chain-arrow{{display:flex;align-items:center;padding:20px 3px 0;flex-shrink:0}}
 .lyr-pill{{font-size:9px;font-weight:500;padding:2px 8px;border-radius:10px;
            display:inline-block;margin-bottom:6px}}
-.lyr-name{{font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:2px;line-height:1.3}}
+.lyr-name{{font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:2px;line-height:1.3;
+           height:calc(2 * 1.3em);overflow:hidden}}
+/* Layer card: fixed rows so names, scores and ticker lists line up across
+   cards; only .lyr-flags grows, and .lyr-bottom is pinned to the card foot. */
+.lyr-top{{display:flex;align-items:center;flex-wrap:nowrap;gap:3px;height:20px;
+          overflow:hidden;white-space:nowrap;margin-bottom:6px}}
+.lyr-meta-main{{line-height:1.3;height:calc(2 * 1.3em);overflow:hidden;margin-bottom:6px}}
+.lyr-ratings{{display:flex;gap:3px;flex-wrap:nowrap;overflow:hidden;height:17px;margin-bottom:4px}}
+.lyr-flags{{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}}
+.lyr-flags .lyr-meta{{margin-bottom:0}}
+.lyr-bottom{{margin-top:auto}}
 .lyr-score{{font-size:28px;font-weight:500;line-height:1;margin:5px 0 2px}}
 .lyr-delta{{font-size:10px;margin-bottom:4px;display:flex;align-items:center;gap:4px}}
 .lyr-bar{{height:3px;border-radius:2px;background:rgba(0,0,0,.08);margin-bottom:8px}}
@@ -1270,7 +1280,7 @@ function getEarningsBadge(l) {{
   const e = l.earnings || [];
   if (!e.length) return "";
   const more = e.length > 1 ? ` +${{e.length - 1}}` : "";
-  return `<span style="font-size:9px;padding:1px 5px;border-radius:4px;
+  return `<span class="earn-badge" data-compact="📅 ${{e[0].date}}${{more}}" style="font-size:9px;padding:1px 5px;border-radius:4px;
                        background:#FFF3CD;color:#856404;border:0.5px solid #EF9F27;
                        margin-left:4px" title="Earnings: ${{e.map(x => x.sym + " " + x.date).join(", ")}}">
             📅 ${{e[0].sym}} earnings ${{e[0].date}}${{more}}</span>`;
@@ -1452,8 +1462,8 @@ function buildChain() {{
     div.className = "layer";
     div.style.cssText = `background:${{c.bg}};border-color:${{c.border}};${{active===l.id?"box-shadow:0 0 0 2px "+c.border:""}}`;
     div.innerHTML = `
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;margin-bottom:6px">
-        <span class="lyr-pill" style="background:${{c.pill}};color:${{c.pft}}">${{c.lbl}}</span>
+      <div class="lyr-top">
+        <span class="lyr-pill" style="background:${{c.pill}};color:${{c.pft}};margin-bottom:0">${{c.lbl}}</span>
         ${{colorChangeBadge(l)}}${{getEarningsBadge(l)}}
       </div>
       <div class="lyr-name">${{l.n1}}<br><span style="color:#888780;font-weight:400">${{l.n2}}</span></div>
@@ -1466,16 +1476,20 @@ function buildChain() {{
             : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
-      <div class="lyr-meta">News ${{l.news_vel}} hits · <span title="Revenue acceleration of the layer's top-scoring company (YoY change vs the prior quarter), not price momentum">Rev. acceleration ${{l.momentum_label}}</span></div>
-      ${{l.unmeasured ? `<div class="lyr-meta" style="margin-top:-6px">Acceleration not measured: ${{l.unmeasured.syms.join(", ")}} (${{Math.round(l.unmeasured.share * 100)}}% of layer)</div>` : ""}}
-      <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
+      <div class="lyr-meta lyr-meta-main">News ${{l.news_vel}} hits · <span title="Revenue acceleration of the layer's top-scoring company (YoY change vs the prior quarter), not price momentum">Rev. acceleration ${{l.momentum_label}}</span></div>
+      <div class="lyr-ratings">
         ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'B by default: acceleration not measured':t.rating==='A'?'A: accelerating more than 20 pp, as an Orange/Red company':t.rating==='C'?'C: hype flag, or YoY down more than 5 pp':'B: neither A nor C'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
       </div>
-      ${{l.price_div && l.price_div.length ? `<div class="lyr-meta" style="margin-top:-6px;color:#3C3489">Price down sharply while revenue accelerates: ${{l.price_div.join(", ")}}</div>` : ""}}
+      <div class="lyr-flags">
+      ${{l.unmeasured ? `<div class="lyr-meta">Acceleration not measured: ${{l.unmeasured.syms.join(", ")}} (${{Math.round(l.unmeasured.share * 100)}}% of layer)</div>` : ""}}
+      ${{l.price_div && l.price_div.length ? `<div class="lyr-meta" style="color:#3C3489">Price down sharply while revenue accelerates: ${{l.price_div.join(", ")}}</div>` : ""}}
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals
         <div class="div-tooltip">${{l.divergence_msg}}</div></div>` : ""}}
-      <div class="lyr-tickers">${{tkHtml}}</div>
-      ${{l.deep_dive ? `<a href="${{l.deep_dive.url}}" target="_blank" rel="noopener" class="lyr-deepdive" onclick="event.stopPropagation()">${{l.deep_dive.label}} ↗</a>` : ""}}`;
+      </div>
+      <div class="lyr-bottom">
+        <div class="lyr-tickers">${{tkHtml}}</div>
+        ${{l.deep_dive ? `<a href="${{l.deep_dive.url}}" target="_blank" rel="noopener" class="lyr-deepdive" onclick="event.stopPropagation()">${{l.deep_dive.label}} ↗</a>` : ""}}
+      </div>`;
     div.onclick = () => {{ active = active === l.id ? null : l.id; buildChain(); buildExpand(); }};
     wrap.appendChild(div);
  
@@ -1487,6 +1501,12 @@ function buildChain() {{
       </svg>`;
       wrap.appendChild(arrow);
     }}
+  }});
+  // A top row that overflows gets the compact earnings badge ("📅 Oct 26 +2";
+  // the full list stays in its tooltip), so the row keeps one line.
+  document.querySelectorAll("#chain .lyr-top").forEach(r => {{
+    const b = r.querySelector(".earn-badge");
+    if (b && r.scrollWidth > r.clientWidth) b.textContent = b.dataset.compact;
   }});
   buildBottleneckStrip();
   updateChainFade();
