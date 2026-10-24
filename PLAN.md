@@ -2,6 +2,11 @@
 
 Running record of in-progress work and a queue of known issues deliberately not yet fixed. Read alongside CLAUDE.md at the start of every session.
 
+## Next (agreed order, 2026-10-24)
+
+- **After item 3: save every run's per-company inputs and scores to a tracked file** (e.g. `scores_detail.json`, with history; Ray, 2026-10-24). It makes discrepancies traceable (compute 55.5 live vs 54.0 in the replay on the same prices, cause unverified), proves acceleration for companies the page doesn't show (ETN, CSCO, CIEN, DDOG), and gives a backtest point-in-time data. Needs the workflow's `git add` too (own line, like growth_history.json).
+- **Item 7 (two-sided divergence flag): add it to the Gemini prompt too**, as a fact in analyze.build_facts with both readings stated, so the post-check covers it. Don't forget: the prompt was rebuilt in item 3 without it.
+
 ## Queue
 
 Items here are reported, not yet diagnosed via decomposition against real data (per CLAUDE.md's diagnosis methodology) unless noted otherwise. Don't fix without confirming root cause first — that's the whole point of logging rather than fixing.
