@@ -230,6 +230,8 @@ class ScoreEngine:
         upgrades  = self._get(data, "analyst_upgrades",  default=0,   missing_log=missing)
         short_ch  = self._get(data, "short_int_change",  default=0.0, missing_log=missing)
         momentum  = self._get(data, "price_momentum",    default=1.0, missing_log=missing)
+        # Missing 30d return adds no points (as a non-positive one would) and is
+        # named in missing → data_status, so the gap is visible, not a silent 0%.
         ret_30d   = self._get(data, "price_30d_return",  default=0.0, missing_log=missing)
  
         # Volume confirmation
@@ -272,19 +274,20 @@ class ScoreEngine:
         Note: Rule 2 (momentum) remains disabled — fires too broadly in bull markets.
         Hype is a WARNING FLAG on the card, NOT a color override.
         """
-        price_30d  = self._get(data, "price_30d_return",    default=0.0, missing_log=missing)
-        rev_growth = self._get(data, "growth_curr",         default=0.1, missing_log=missing)
-        peer_outpf = self._get(data, "peer_outperformance", default=0.0, missing_log=missing)
- 
+        # A missing input means its rule isn't evaluated — never a stand-in value.
+        price_30d  = self._get(data, "price_30d_return",    default=None, missing_log=missing)
+        rev_growth = self._get(data, "growth_curr",         default=None, missing_log=missing)
+        peer_outpf = self._get(data, "peer_outperformance", default=None, missing_log=missing)
+
         reasons = []
- 
-        if price_30d > 0.15 and (rev_growth or 0) < 0.10:
+
+        if price_30d is not None and rev_growth is not None and price_30d > 0.15 and rev_growth < 0.10:
             reasons.append(
                 f"Price +{price_30d*100:.0f}% in 30d "
                 f"but revenue growth only {(rev_growth or 0)*100:.0f}%"
             )
  
-        if peer_outpf > 0.20 and (delta is None or delta < -0.02):
+        if peer_outpf is not None and peer_outpf > 0.20 and (delta is None or delta < -0.02):
             reasons.append(
                 f"Outperforming peers by {peer_outpf*100:.0f}% "
                 f"with weak growth delta ({(delta or 0)*100:.1f}%)"

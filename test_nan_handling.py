@@ -163,6 +163,30 @@ def test_price_is_the_last_completed_close_not_the_live_quote():
     print("PASS: price and price_act come from the last completed closes, not the live quote")
 
 
+def test_short_history_30d_return_is_missing_not_zero():
+    """Fewer than 21 completed closes can't give a 30d return. The old code
+    wrote 0.0 without marking it missing, and peer_outperformance started at
+    0.0 for every ticker, so a gap read as "flat, in line with peers". Both
+    are None now, and the 30d return is named in data_missing; the hype
+    rules skip what they can't evaluate instead of reading a stand-in."""
+    n_days = 15
+    dates  = pd.date_range(end=FIXED_END, periods=n_days, freq="D")
+    hist   = pd.DataFrame({"Close": [100.0 + i for i in range(n_days)],
+                           "Volume": [1_000_000.0] * n_days}, index=dates)
+    with patch("fetch_market.yf.Ticker", return_value=_mock_ticker(hist)):
+        r = fetch_market.fetch_ticker_data("NEW", headlines=[], layer_keywords=["x"], layer_tickers=["NEW"])
+    assert r is not None, "fetch returned nothing for a short history"
+    assert r["price_30d_return"] is None, f"30d return {r['price_30d_return']!r} on {n_days} closes, want None"
+    assert "price_30d_return" in r["data_missing"], f"30d return not marked missing: {r['data_missing']}"
+    fetch_market.add_peer_outperformance([r])
+    assert r["peer_outperformance"] is None, f"peer_outperformance {r['peer_outperformance']!r}, want None"
+    from score_engine import ScoreEngine
+    hype, reasons = ScoreEngine({}).calculate_hype(
+        {"price_30d_return": None, "growth_curr": None, "peer_outperformance": None}, None, [])
+    assert not hype and not reasons, f"hype fired on missing inputs: {reasons}"
+    print("PASS: a 30d return that can't be computed is None + data_missing, not 0%")
+
+
 def _macro_tickers(tnx_raises: bool = False):
     def bars(closes):
         return pd.DataFrame({"Close": closes}, index=pd.bdate_range(end=FIXED_END, periods=len(closes)))
@@ -223,6 +247,7 @@ if __name__ == "__main__":
     test_mid_series_nan_is_marked_missing_not_nan()
     test_assert_no_nan_is_the_final_backstop()
     test_price_is_the_last_completed_close_not_the_live_quote()
+    test_short_history_30d_return_is_missing_not_zero()
     test_failed_macro_fetch_is_missing_not_a_default()
     test_missing_macro_input_is_left_out_of_the_multiplier()
     print("\nAll NaN-handling tests passed.")

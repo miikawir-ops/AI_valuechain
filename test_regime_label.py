@@ -173,9 +173,42 @@ def test_earnings_badge_shows_real_dates_within_14_days():
     print("PASS: earnings badge shows real dates 0-14 days out, none otherwise")
 
 
+def test_missing_30d_return_shows_a_dash_not_zero():
+    """A ticker with no 30d return must reach the page as null and show "—"
+    in the top ticker band, not "+0.0%". The old render used `... or 0`."""
+    import json, shutil, subprocess
+    if not shutil.which("node"):
+        raise AssertionError("node is required for this check and wasn't found")
+    market_data = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
+    market_data["memory"] = [dict(_ticker("GAP"), price_30d_return=None)]
+    macro = {"vix": 17.0, "yield_10y_change": 10.0, "nasdaq_vs_spx_20d": 0.0, "data_missing": []}
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            scored = main.stage_score(market_data, macro, SESSIONS)
+            render.generate_dashboard(scored, "Stub analysis.", macro, SESSIONS[-1], market_data, [])
+            page = open("index.html", encoding="utf-8").read()
+        finally:
+            os.chdir(cwd)
+    layers = json.loads(re.search(r"const LAYERS\s*= (\[.*?\]);\n", page).group(1))
+    gap = next(t for l in layers for t in l["tickers"] if t["sym"] == "GAP")
+    assert gap["ret30"] is None, f"GAP ret30 is {gap['ret30']!r} on the page, want null"
+    fn = re.search(r"function buildTopTicker\(layers\) \{.*?\n\}", page, re.S).group(0)
+    js = (fn + "\nconst el = {innerHTML: ''};\nconst document = {getElementById: () => el};\n"
+          f"buildTopTicker({json.dumps(layers)});\n"
+          r"console.log(el.innerHTML.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));")
+    res = subprocess.run(["node", "-e", js], capture_output=True, text=True, encoding="utf-8")
+    assert res.returncode == 0, res.stderr
+    item = re.search(r"GAP .*?(—|[+-]?\d+\.\d%)", res.stdout)
+    assert item and item.group(1) == "—", f"top ticker band shows GAP as {item.group(1) if item else res.stdout[:200]!r}"
+    print("PASS: a missing 30d return reaches the page as null and shows '—'")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_missing_30d_return_shows_a_dash_not_zero()
     test_earnings_badge_shows_real_dates_within_14_days()
     test_easing_names_only_a_blue_layer()
     test_rendered_regime_label_equals_the_engine_regime()

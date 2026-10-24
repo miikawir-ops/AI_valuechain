@@ -301,7 +301,7 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
                 result["ticker"]           = ticker_data.get("ticker", "")
                 result["name"]             = ticker_data.get("name", "")
                 result["price"]            = ticker_data.get("price", 0)
-                result["price_30d_return"] = ticker_data.get("price_30d_return", 0)
+                result["price_30d_return"] = ticker_data.get("price_30d_return")
                 result["vol_spike"]        = ticker_data.get("vol_spike", 1.0)
                 result["news_velocity"]    = ticker_data.get("news_velocity", 0)
                 result["market_cap"]       = ticker_data.get("market_cap", 0) or 0

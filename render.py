@@ -305,11 +305,14 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             t_rating     = company_rating(t_scored.get("score", 0), t_delta, t_color, t_hype)
             t_prev_rating = yesterday_ratings.get(sym, "")
             rating_changed = t_prev_rating and t_prev_rating != t_rating
+            r30 = t_scored.get("price_30d_return")
+            if r30 is None:
+                r30 = raw.get("price_30d_return")
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
                 "price":      raw.get("price"),
-                "ret30":      round((t_scored.get("price_30d_return") or raw.get("price_30d_return") or 0) * 100, 1),
+                "ret30":      round(r30 * 100, 1) if r30 is not None else None,   # missing → "—", not 0%
                 "delta_band": delta_band,
                 "hype":       t_hype,
                 "color":      t_color,
@@ -1217,8 +1220,8 @@ function toggleTickerDetail(id) {{
       return;
     }}
     const pad   = range * 0.12;
-    const col   = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
-    const bgCol = t.ret30 >= 0 ? "rgba(39,80,10,0.07)" : "rgba(163,45,45,0.07)";
+    const col   = t.ret30 == null ? "#888780" : t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+    const bgCol = t.ret30 == null ? "rgba(136,135,128,0.07)" : t.ret30 >= 0 ? "rgba(39,80,10,0.07)" : "rgba(163,45,45,0.07)";
     const today = new Date();
     const step  = Math.max(1, Math.floor(180 / data.length));
     const labels = data.map((_, i) => {{
@@ -1353,12 +1356,12 @@ function buildChain() {{
     const pct = Math.min(100, Math.round(l.score));
     const top3 = l.tickers.slice(0, 3);
     const tkHtml = top3.map(t => {{
-      const col = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+      const col = t.ret30 == null ? "#888780" : t.ret30 >= 0 ? "#27500A" : "#A32D2D";
       const db  = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : "—";
       const dc  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
       return `<div class="lyr-tk">
         <span>${{t.sym}} <span style="color:${{dc}};font-size:9px">${{db}}</span></span>
-        <span style="color:${{col}}">${{fmt(t.ret30)}}%</span>
+        <span style="color:${{col}}">${{t.ret30 != null ? fmt(t.ret30) + "%" : "—"}}</span>
       </div>`;
     }}).join("");
  
@@ -1409,7 +1412,7 @@ function buildExpand() {{
   const c = CC[l.color] || CC.Green;
  
   const cards = l.tickers.map(t => {{
-    const rc    = t.ret30 >= 0 ? "#27500A" : "#A32D2D";
+    const rc    = t.ret30 == null ? "#888780" : t.ret30 >= 0 ? "#27500A" : "#A32D2D";
     const hyp   = t.hype ? `<span style="font-size:9px;background:#FAEEDA;color:#854F0B;padding:1px 5px;border-radius:4px;margin-left:4px">hype</span>` : "";
     const tIcon = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : "—";
     const tCol  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
@@ -1434,7 +1437,7 @@ function buildExpand() {{
           padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
         Run rate $${{t.run_rate}}B/yr</div>` : ""}}
       <div class="ex-row"><span class="ex-lbl">Price</span><span>${{t.price != null ? "$" + t.price.toLocaleString() : "—"}}</span></div>
-      <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{fmt(t.ret30)}}%</span></div>
+      <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{t.ret30 != null ? fmt(t.ret30) + "%" : "—"}}</span></div>
       <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>
       <div style="margin-top:6px;padding:5px 8px;border-radius:5px;
                   background:#F8F8F7;border-left:2px solid ${{t.forecast.color}}">
@@ -1750,11 +1753,11 @@ function buildTopTicker(layers) {{
   const items = [];
   layers.forEach(l => {{
     l.tickers.slice(0,3).forEach(t => {{
-      const dir = t.ret30 > 1 ? "up" : t.ret30 < -1 ? "dn" : "neu";
+      const dir = t.ret30 == null ? "neu" : t.ret30 > 1 ? "up" : t.ret30 < -1 ? "dn" : "neu";
       items.push(`<span class="t-item">
         <span class="t-sym">${{t.sym}}</span>
         <span>${{ICONS[l.id]||""}} ${{l.n1}} · ${{STATUS[l.color]||"Neutral"}}</span>
-        <span class="t-${{dir}}">${{t.ret30>=0?"+":""}}${{t.ret30.toFixed(1)}}%</span>
+        <span class="t-${{dir}}">${{t.ret30 == null ? "—" : (t.ret30>=0?"+":"") + t.ret30.toFixed(1) + "%"}}</span>
       </span>`);
     }});
   }});

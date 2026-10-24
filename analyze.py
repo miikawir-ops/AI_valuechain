@@ -18,7 +18,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 OLLAMA_URL     = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "llama3")
- 
+
+
+def _pct(v) -> str:
+    """A fraction as a signed percent; a missing value is "N/A", never 0%."""
+    return f"{v*100:+.1f}%" if v is not None else "N/A"
+
  
 def build_prompt(scored_data: dict, market_data: dict) -> str:
     layer_lines = []
@@ -49,7 +54,7 @@ def build_prompt(scored_data: dict, market_data: dict) -> str:
                 top_tickers.append(
                     f"  {t['ticker']} ({layer_id}): growth={g*100:.0f}% "
                     f"vol_spike={t.get('vol_spike',0):.2f} "
-                    f"price_30d={t.get('price_30d_return',0)*100:.1f}%"
+                    f"price_30d={_pct(t.get('price_30d_return'))}"
                 )
  
     today = datetime.datetime.now().strftime("%A, %B %d %Y")

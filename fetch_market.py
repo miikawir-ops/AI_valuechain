@@ -376,8 +376,9 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         if price_act is None:
             data_missing.append("price_act")
 
-        price_30d = round((closes[-1] / closes[-21] - 1), 4) if len(closes) >= 21 else 0.0
-        if isinstance(price_30d, float) and math.isnan(price_30d):
+        # Fewer than 21 closes is a missing return, not a flat 0% one.
+        price_30d = round((closes[-1] / closes[-21] - 1), 4) if len(closes) >= 21 and closes[-21] else None
+        if price_30d is None or math.isnan(price_30d):
             data_missing.append("price_30d_return")
             price_30d = None
 
@@ -564,7 +565,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             "market_cap":        info.get("marketCap"),
             "revenue_quarterly": revenue_quarterly,
             "price_momentum":    price_momentum,
-            "peer_outperformance": 0.0,
+            "peer_outperformance": None,   # set by add_peer_outperformance when the 30d return exists
             "analyst_count":     info.get("numberOfAnalystOpinions", 0),
             "next_earnings":     next_earnings,
             "sector":            info.get("sector", "N/A"),
