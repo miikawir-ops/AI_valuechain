@@ -48,7 +48,7 @@ Proceed without approval, report afterwards: bug fixes with a reproduced and ver
 Always stop and ask regardless: when the fix would change agreed behavior; when the root cause isn't actually understood; when the change affects more than the reported problem.
 Data & honesty
 Never fabricate data, metrics, or milestones. Mark sparse or estimated data as such.
-Financial data may be stale (quarterly financials up to 90 days old) — disclose it.
+Financial data may be stale — disclose it. Quarterly financials are the latest reported quarter: its quarter-end can be ~5 months before the session (23 of 35 were 115 days old on 2026-10-23, before Q3 reports), not "up to 90 days".
 Distinguish "the signal is real" from "the price moved." Never conflate them.
 Not financial advice — dashboards inform decisions, they don't make them.
 On fetch failure, never substitute zero, a stale cached value, or an estimate silently. A failed fetch is a missing value, not a zero — treating it as zero is itself a form of fabrication. Mark it missing and surface that in the output.
