@@ -124,9 +124,22 @@ def test_post_check_withholds_a_section_with_a_wrong_figure():
     print("PASS: a wrong figure, regime, action word or company withholds exactly its section")
 
 
+def test_page_headings_say_signal_not_action():
+    """Page labels match the Gemini section: "ONE SIGNAL TO WATCH" and
+    "SIGNAL TRACK RECORD — last 5" (old: "ONE ACTION TODAY", "ONE ACTION
+    TRACK RECORD — last 5 picks")."""
+    from test_regime_label import _render_page
+    page = _render_page()
+    assert "ONE SIGNAL TO WATCH" in page and "ONE ACTION TODAY" not in page
+    assert "📊 SIGNAL TRACK RECORD — last 5" in page and "ONE ACTION TRACK RECORD" not in page
+    assert "Returns are measured from the date the signal was shown." in page
+    print("PASS: page headings — ONE SIGNAL TO WATCH, SIGNAL TRACK RECORD — last 5")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_page_headings_say_signal_not_action()
     test_post_check_passes_legitimate_numbers()
     test_post_check_withholds_a_section_with_a_wrong_figure()
     test_prompt_states_the_real_data()

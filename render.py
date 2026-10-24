@@ -1159,11 +1159,11 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <div id="track-record" style="display:none;margin-bottom:12px;
      background:white;border:0.5px solid #E0DFDC;border-radius:10px;padding:14px">
   <div style="font-size:10px;font-weight:500;color:#888780;letter-spacing:.04em;margin-bottom:10px">
-    📊 ONE ACTION TRACK RECORD — last 5 picks
+    📊 SIGNAL TRACK RECORD — last 5
   </div>
   <div id="track-rows"></div>
   <div style="font-size:10px;color:#B4B2A9;margin-top:8px;line-height:1.5">
-    Entry prices aren't recorded yet, so returns show "pending". Not financial advice.
+    Returns are measured from the date the signal was shown. Entry prices aren't recorded yet, so they show "pending". Not financial advice.
   </div>
 </div>
  
