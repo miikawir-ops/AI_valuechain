@@ -83,9 +83,28 @@ def test_real_ci_line_gives_todays_six():
     print(f"PASS: the real 2026-10-23 line flags {flagged}")
 
 
+def test_mirror_hype_rule_adds_visibility_not_a_rating_change():
+    """Hype rule 4 (Ray, 2026-10-24): YoY down more than 5 pp while the price is
+    up 15%+ and 10+ points ahead of the NASDAQ. ARM on 2026-04-24: -8.1 pp,
+    30d +51.7%, YoY 26% — rule 1 (growth < 10%) missed it. It was already C."""
+    arm = dict(_ticker("ARMX"), growth_curr=0.263, growth_prev=0.344, price_30d_return=0.517, peer_outperformance=0.0)
+    on  = ScoreEngine(dict(MACRO, nasdaq_30d_return=0.05)).process_sector("compute", arm)
+    off = ScoreEngine(dict(MACRO, nasdaq_30d_return=None)).process_sector("compute", arm)
+    assert on["is_hype"] and any("slowed -8.1 pp" in r for r in on["hype_reasons"]), on["hype_reasons"]
+    assert not off["is_hype"], "rule 4 evaluated without the NASDAQ return"
+    r_on  = render.company_rating(on["score"], -8.1, on["color"], on["is_hype"])
+    r_off = render.company_rating(off["score"], -8.1, off["color"], off["is_hype"])
+    assert r_on == r_off == "C", (r_on, r_off)
+    f = render.rating_forecast(r_on, -8.1, "decelerating", on["is_hype"], on["color"])
+    assert (f["target"], f["label"]) == ("C", "Deteriorating"), f
+    assert (on["score"], on["color"]) == (off["score"], off["color"])
+    print("PASS: mirror hype rule — ARM-like case flagged, rating C either way, forecast '→ C · Deteriorating'")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_mirror_hype_rule_adds_visibility_not_a_rating_change()
     test_flag_fires_and_changes_nothing_else()
     test_page_and_prompt_state_both_readings()
     test_real_ci_line_gives_todays_six()

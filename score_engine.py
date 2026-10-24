@@ -303,6 +303,12 @@ class ScoreEngine:
  
         Rule 1: Price +15% in 30d AND revenue growth <10%
         Rule 3: Outperforming peers by >20% with negative growth delta
+        Rule 4: YoY down more than 5 pp (measured) while the price is up 15%+ in
+                30d and 10+ points ahead of the NASDAQ — the divergence flag
+                mirrored. Catches fast growers that are slowing, which rule 1's
+                <10% growth misses (ARM, VRT, META, SMCI over 2026-04 → 10). Such
+                companies are already rated C (YoY down > 5 pp), so it adds
+                visibility, not a rating change (Ray, 2026-10-24).
  
         Note: Rule 2 (momentum) remains disabled — fires too broadly in bull markets.
         Hype is a WARNING FLAG on the card, NOT a color override.
@@ -327,6 +333,12 @@ class ScoreEngine:
                    else "with acceleration not measured")
             )
  
+        nq = self.macro_data.get("nasdaq_30d_return")
+        if delta is not None and price_30d is not None and nq is not None:
+            a, r, n = delta * 100, price_30d * 100, nq * 100
+            if a < -DIV_ACCEL_PP and r >= -DIV_DROP_PCT and r - n >= -DIV_REL_PTS:
+                reasons.append(f"Price {r:+.0f}% in 30d (NASDAQ {n:+.0f}%) while revenue growth slowed {a:.1f} pp")
+
         return len(reasons) > 0, reasons
  
     # ── Stage 5: Macro multiplier ─────────────────────────────────────────────
