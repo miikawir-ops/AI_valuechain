@@ -67,9 +67,33 @@ def test_six_quarters_measure_acceleration():
     print("PASS: 6 quarters give YoY for the latest two quarters (+50%, +30%)")
 
 
+def test_growth_history_persists_and_fills_unmeasured_acceleration():
+    """Each run stores growth_curr at its quarter-end. Next quarter, that
+    stored value is the previous-quarter YoY when EDGAR has none (ASML/TSM),
+    and a cross-check when it does. A ticker with no computed YoY stores nothing."""
+    import os, json, tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "growth_history.json")
+        run1 = {"compute": [{"ticker": "ASML", "growth_quarter": "2026-06-30", "growth_curr": 0.212,
+                             "growth_prev": None, "revenue_source": "yfinance only", "data_missing": ["growth_prev"]},
+                            {"ticker": "NONE", "growth_quarter": None, "growth_curr": None, "growth_prev": None}]}
+        fetch_market.apply_growth_history(run1, path)
+        assert json.load(open(path)) == {"ASML": {"2026-06-30": 0.212}}, open(path).read()
+        assert run1["compute"][0]["growth_prev"] is None, "nothing stored yet for the quarter before"
+        run2 = {"compute": [{"ticker": "ASML", "growth_quarter": "2026-09-30", "growth_curr": 0.30,
+                             "growth_prev": None, "revenue_source": "yfinance only", "data_missing": ["growth_prev"]}]}
+        fetch_market.apply_growth_history(run2, path)
+        t = run2["compute"][0]
+        assert t["growth_prev"] == 0.212 and "growth_prev" not in t["data_missing"], t
+        assert "growth_history.json (2026-06-30)" in t["revenue_source"], t["revenue_source"]
+        assert json.load(open(path))["ASML"] == {"2026-06-30": 0.212, "2026-09-30": 0.30}
+    print("PASS: YoY persisted per quarter-end; next quarter it measures acceleration EDGAR can't")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
     test_growth_is_date_matched_yoy_not_two_quarters_back()
     test_six_quarters_measure_acceleration()
+    test_growth_history_persists_and_fills_unmeasured_acceleration()
     print("\nAll revenue-growth tests passed.")
