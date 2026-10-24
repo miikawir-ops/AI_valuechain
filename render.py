@@ -367,6 +367,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
                 "price":      raw.get("price"),
                 "ret30":      round(r30 * 100, 1) if r30 is not None else None,   # missing → "—", not 0%
                 "delta_band": delta_band,
+                "accel_pp":   round(raw_delta, 1) if t_scored.get("fund_delta") is not None else None,
                 "hype":       t_hype,
                 "color":      t_color,
                 "sparkline":  sparkline,
@@ -1455,7 +1456,7 @@ function buildChain() {{
       const db  = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : t.delta_band === "unmeasured" ? "" : "—";
       const dc  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
       return `<div class="lyr-tk">
-        <span>${{t.sym}} <span style="color:${{dc}};font-size:9px">${{db}}</span></span>
+        <span>${{t.sym}} <span style="color:${{dc}};font-size:9px" title="${{t.delta_band === "accelerating" ? "Revenue growth accelerating (last reported quarter)" : t.delta_band === "decelerating" ? "Revenue growth decelerating (last reported quarter)" : ""}}">${{db}}</span></span>
         <span style="color:${{col}}">${{t.ret30 != null ? fmt(t.ret30) + "%" : "—"}}</span>
       </div>`;
     }}).join("");
@@ -1537,9 +1538,7 @@ function buildExpand() {{
       <div class="ex-row"><span class="ex-lbl">Price</span><span>${{t.price != null ? "$" + t.price.toLocaleString() : "—"}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{t.ret30 != null ? fmt(t.ret30) + "%" : "—"}}</span></div>
       <div class="ex-row"><span class="ex-lbl">Revenue YoY</span><span>${{t.growth_yoy != null ? fmt(t.growth_yoy, 0) + "%" + (t.growth_q ? " · qtr ended " + t.growth_q : "") : "—"}}</span></div>
-      ${{t.delta_band === "unmeasured"
-        ? `<div class="ex-row"><span class="ex-lbl">Acceleration</span><span style="color:#888780">not measured</span></div>`
-        : `<div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>`}}
+      <div class="ex-row"><span class="ex-lbl">YoY vs prior qtr</span><span style="color:${{tCol}}">${{t.delta_band === "unmeasured" || t.accel_pp == null ? "— not measured" : tIcon + " " + fmt(t.accel_pp) + " pp · " + t.delta_band}}</span></div>
       <div style="margin-top:6px;padding:5px 8px;border-radius:5px;
                   background:#F8F8F7;border-left:2px solid ${{t.forecast.color}}">
         <span style="font-size:10px;font-weight:500;color:${{t.forecast.color}}">

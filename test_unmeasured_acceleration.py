@@ -153,9 +153,47 @@ def test_card_shows_revenue_yoy_with_its_quarter_end():
     print("PASS: card shows 'Revenue YoY +379% · qtr ended Sep 3, 2026'; layer note renders")
 
 
+def test_card_trend_row_states_the_pp_change():
+    """Item 6: the expand card's "Trend ▲ accelerating" becomes "YoY vs prior
+    qtr ▲ +33.6 pp · accelerating" (±5 pp bands), "— not measured" when
+    unmeasured; layer-card arrows get a tooltip (Ray, 2026-10-24)."""
+    import shutil, subprocess
+    md = {lid: [_ticker(lid[:4].upper())] for lid in render.LAYER_NAMES}
+    md["memory"] = [dict(_ticker("MUX"), growth_curr=3.793, growth_prev=3.457, market_cap=3e11),
+                    dict(_ticker("DIP"), growth_curr=0.200, growth_prev=0.224, market_cap=2e11),
+                    dict(_ticker("NOM"), growth_prev=None, market_cap=1e11)]
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            scored = main.stage_score(md, MACRO, SESSIONS)
+            render.generate_dashboard(scored, "Stub.", MACRO, SESSIONS[-1], md, [])
+            page = open("index.html", encoding="utf-8").read()
+        finally:
+            os.chdir(cwd)
+    layers = json.loads(re.search(r"const LAYERS\s*= (\[.*?\]);\n", page).group(1))
+    t = {x["sym"]: x for l in layers for x in l["tickers"]}
+    defs = "\n".join(l.strip() for l in page.splitlines() if l.strip().startswith(("const tIcon", "const tCol")))
+    row_line = next(l.strip() for l in page.splitlines() if '<span class="ex-lbl">YoY vs prior qtr</span>' in l)
+    fmt = re.search(r"function fmt\(.*?\n\}", page, re.S).group(0)
+    def row(sym):
+        js = (fmt + f"\nconst t = {json.dumps(t[sym])};\n" + defs + f"\nconst html = `{row_line}`;\n"
+              + r"console.log(html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());")
+        out = subprocess.run(["node", "-e", js], capture_output=True, text=True, encoding="utf-8")
+        assert out.returncode == 0, out.stderr
+        return out.stdout.strip()
+    assert row("MUX") == "YoY vs prior qtr ▲ +33.6 pp · accelerating", row("MUX")
+    assert row("DIP") == "YoY vs prior qtr — -2.4 pp · stable", row("DIP")
+    assert row("NOM") == "YoY vs prior qtr — not measured", row("NOM")
+    assert "Revenue growth accelerating (last reported quarter)" in page
+    assert "Revenue growth decelerating (last reported quarter)" in page
+    print("PASS: card reads 'YoY vs prior qtr ▲ +33.6 pp · accelerating'; stable dip and unmeasured too; arrow tooltips")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_card_trend_row_states_the_pp_change()
     test_card_shows_revenue_yoy_with_its_quarter_end()
     test_layer_card_names_material_unmeasured_acceleration()
     test_two_company_red_layer_is_not_downgraded_by_ratings()
