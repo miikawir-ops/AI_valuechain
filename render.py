@@ -95,8 +95,8 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
                     "color": "#27500A", "reason": "Sustained acceleration"}
     elif current_rating == "B":
         if accelerating and hot_layer:
-            return {"direction": "↑", "target": "A", "label": "Accelerating in an Orange/Red layer",
-                    "color": "#27500A", "reason": "Accelerating more than 5 pp in an Orange or Red layer"}
+            return {"direction": "↑", "target": "A", "label": "Accelerating as an Orange/Red company",
+                    "color": "#27500A", "reason": "Accelerating more than 5 pp, and the company itself is Orange or Red"}
         elif real_hype_risk or (decelerating and delta < -10):
             return {"direction": "↓", "target": "C", "label": "Downgrade risk",
                     "color": "#E24B4A", "reason": "Growth slowing with hype or sharp delta drop"}
@@ -104,8 +104,10 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
             return {"direction": "↓", "target": "C", "label": "Watch closely",
                     "color": "#EF9F27", "reason": "Growth decelerating — monitor next quarter"}
         else:
-            return {"direction": "→", "target": "B", "label": "Stable",
-                    "color": "#378ADD", "reason": "Fundamentals holding steady"}
+            # Fallback: meets no upgrade or downgrade condition — neutral wording,
+            # since the company can still be accelerating (AMAT +13.4 pp, Green).
+            return {"direction": "→", "target": "B", "label": "No rating change signalled",
+                    "color": "#378ADD", "reason": "Meets no upgrade or downgrade condition"}
     elif current_rating == "C":
         if accelerating and not real_hype_risk:
             return {"direction": "↑", "target": "B", "label": "Accelerating from C",
@@ -1464,10 +1466,10 @@ function buildChain() {{
             : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
-      <div class="lyr-meta">News ${{l.news_vel}} hits · Momentum ${{l.momentum_label}}</div>
+      <div class="lyr-meta">News ${{l.news_vel}} hits · <span title="Revenue acceleration of the layer's top-scoring company (YoY change vs the prior quarter), not price momentum">Rev. acceleration ${{l.momentum_label}}</span></div>
       ${{l.unmeasured ? `<div class="lyr-meta" style="margin-top:-6px">Acceleration not measured: ${{l.unmeasured.syms.join(", ")}} (${{Math.round(l.unmeasured.share * 100)}}% of layer)</div>` : ""}}
       <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
-        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'B by default: acceleration not measured':t.rating==='A'?'A: accelerating more than 20 pp in an Orange/Red layer':t.rating==='C'?'C: hype flag, or YoY down more than 5 pp':'B: neither A nor C'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
+        ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'B by default: acceleration not measured':t.rating==='A'?'A: accelerating more than 20 pp, as an Orange/Red company':t.rating==='C'?'C: hype flag, or YoY down more than 5 pp':'B: neither A nor C'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
       </div>
       ${{l.price_div && l.price_div.length ? `<div class="lyr-meta" style="margin-top:-6px;color:#3C3489">Price down sharply while revenue accelerates: ${{l.price_div.join(", ")}}</div>` : ""}}
       ${{l.divergence ? `<div class="div-flag" tabindex="0">⚡ Narrative ahead of fundamentals

@@ -61,9 +61,39 @@ def test_gemini_signal_wording():
     print("PASS: signal sentence 1 gets its full stop; prompt's sentence-3 rule points at the data")
 
 
+def test_layer_card_says_revenue_acceleration_not_momentum():
+    """momentum_label is the top company's revenue acceleration (fund_delta),
+    not price: memory read "Momentum +strong" with stocks down 19-27%."""
+    page = _render_page()
+    assert "· Momentum ${l.momentum_label}" not in page and "Rev. acceleration ${l.momentum_label}" in page
+    assert "not price momentum" in page
+    print("PASS: layer card reads 'Rev. acceleration', with a tooltip saying it isn't price momentum")
+
+
+def test_b_fallback_forecast_is_neutral_not_stable():
+    """A B company meeting no upgrade/downgrade condition can still be
+    accelerating (AMAT +13.4 pp, a Green company, on 2026-10-23)."""
+    f = render.rating_forecast("B", 13.4, "accelerating", False, "Green")
+    assert (f["target"], f["label"]) == ("B", "No rating change signalled"), f
+    print("PASS: B fallback forecast is 'No rating change signalled', not 'Stable'")
+
+
+def test_a_and_upgrade_wording_use_the_company_colour():
+    """company_rating and rating_forecast get the company's own colour (PWR,
+    EQIX: Orange companies in Green layers), so the text says company."""
+    up = render.rating_forecast("B", 12.3, "accelerating", False, "Orange")
+    assert up["label"] == "Accelerating as an Orange/Red company" and "layer" not in up["reason"], up
+    page = _render_page()
+    assert "Orange/Red layer" not in page and "A: accelerating more than 20 pp, as an Orange/Red company" in page
+    print("PASS: A hover and upgrade forecast say 'Orange/Red company'")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_layer_card_says_revenue_acceleration_not_momentum()
+    test_b_fallback_forecast_is_neutral_not_stable()
+    test_a_and_upgrade_wording_use_the_company_colour()
     test_no_forecast_targets_a_rating_that_does_not_exist()
     test_js_text_matches_the_code()
     test_gemini_signal_wording()
