@@ -63,6 +63,9 @@ def company_rating(score: float, delta: float, color: str, is_hype: bool) -> str
 def rating_forecast(current_rating: str, delta: float, delta_band: str,
                     is_hype: bool, color: str) -> dict:
     """Forecast where rating is heading based on momentum signals."""
+    if delta_band == "unmeasured":
+        return {"direction": "→", "target": current_rating, "label": "Acceleration not measured",
+                "color": "#888780", "reason": "Fewer than 6 quarters of revenue data — no trend to judge"}
     accelerating   = delta_band == "accelerating"
     decelerating   = delta_band == "decelerating"
     hot_layer      = color in ("Red", "Orange")
@@ -288,7 +291,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
         # News velocity — the layer's own best (highest-scoring) ticker's news, not a scan/fallback
         news_vel = best.get("news_velocity", 0)
  
-        fund_delta = best.get("fund_delta") or 0
+        fund_delta = best.get("fund_delta")   # None = acceleration not measured
  
         # Build ticker list
         tickers_out = []
@@ -296,7 +299,10 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             sym       = t_scored.get("ticker", "")
             raw       = ticker_lookup.get(sym, {})
             raw_delta = (t_scored.get("fund_delta") or 0) * 100
-            delta_band = "accelerating" if raw_delta > 5 else "decelerating" if raw_delta < -5 else "stable"
+            if t_scored.get("fund_delta") is None:
+                delta_band = "unmeasured"   # fewer than 6 quarters: no trend, not "stable"
+            else:
+                delta_band = "accelerating" if raw_delta > 5 else "decelerating" if raw_delta < -5 else "stable"
             hist_raw  = raw.get("price_history", [])
             sparkline = [round(p, 2) for p in hist_raw[-30:]] if hist_raw else []
             t_color      = t_scored.get("color", "Green")
@@ -329,13 +335,19 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             })
  
         n1, n2 = LAYER_NAMES.get(layer_id, (layer_id.upper(), ""))
-        momentum_band = "strong" if abs(fund_delta*100) > 20 else "moderate" if abs(fund_delta*100) > 5 else "mild"
-        momentum_dir  = "+" if fund_delta >= 0 else "-"
+        if fund_delta is None:
+            momentum_label = "not measured"
+        else:
+            momentum_band  = "strong" if abs(fund_delta*100) > 20 else "moderate" if abs(fund_delta*100) > 5 else "mild"
+            momentum_label = ("+" if fund_delta >= 0 else "-") + momentum_band
  
         # Narrative vs fundamental divergence detection
         divergence     = False
         divergence_msg = ""
-        if news_vel >= 4 and fund_delta < -0.05:
+        # Not evaluated without measured acceleration — no stand-in 0.
+        if fund_delta is None:
+            pass
+        elif news_vel >= 4 and fund_delta < -0.05:
             divergence     = True
             divergence_msg = (
                 "News narrative is active but revenue growth is decelerating. "
@@ -363,7 +375,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             "score":          score,
             "color":          color,
             "news_vel":       int(news_vel),
-            "momentum_label": f"{momentum_dir}{momentum_band}",
+            "momentum_label": momentum_label,
             "delta_score":    delta_score,
             "prev_color":     prev_color,
             "color_changed":  color_changed,
@@ -1362,7 +1374,7 @@ function buildChain() {{
     const top3 = l.tickers.slice(0, 3);
     const tkHtml = top3.map(t => {{
       const col = t.ret30 == null ? "#888780" : t.ret30 >= 0 ? "#27500A" : "#A32D2D";
-      const db  = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : "—";
+      const db  = t.delta_band === "accelerating" ? "▲" : t.delta_band === "decelerating" ? "▼" : t.delta_band === "unmeasured" ? "" : "—";
       const dc  = t.delta_band === "accelerating" ? "#27500A" : t.delta_band === "decelerating" ? "#A32D2D" : "#888780";
       return `<div class="lyr-tk">
         <span>${{t.sym}} <span style="color:${{dc}};font-size:9px">${{db}}</span></span>
@@ -1443,7 +1455,9 @@ function buildExpand() {{
         Run rate $${{t.run_rate}}B/yr</div>` : ""}}
       <div class="ex-row"><span class="ex-lbl">Price</span><span>${{t.price != null ? "$" + t.price.toLocaleString() : "—"}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{t.ret30 != null ? fmt(t.ret30) + "%" : "—"}}</span></div>
-      <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>
+      ${{t.delta_band === "unmeasured"
+        ? `<div class="ex-row"><span class="ex-lbl">Acceleration</span><span style="color:#888780">not measured</span></div>`
+        : `<div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>`}}
       <div style="margin-top:6px;padding:5px 8px;border-radius:5px;
                   background:#F8F8F7;border-left:2px solid ${{t.forecast.color}}">
         <span style="font-size:10px;font-weight:500;color:${{t.forecast.color}}">

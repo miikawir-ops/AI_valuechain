@@ -169,7 +169,9 @@ class ScoreEngine:
         # Rewards DDOG (80% GM), MU (58% GM) without penalising CEG (20% GM)
         # CEG's acceleration score stands on its own — no penalty applied
         gross_margin = self._get(data, "gross_margin", default=None, missing_log=missing)
-        if gross_margin and gross_margin > 0.55 and (delta is None or delta >= 0):
+        # Not when acceleration is unmeasured: the bonus rewards high-margin
+        # *accelerators*, and an unknown delta isn't one (Ray, 2026-10-24).
+        if gross_margin and gross_margin > 0.55 and delta is not None and delta >= 0:
             raw = min(raw * 1.08, 100.0)
  
         # ── Fundamental override ──────────────────────────────────────────────
@@ -290,7 +292,8 @@ class ScoreEngine:
         if peer_outpf is not None and peer_outpf > 0.20 and (delta is None or delta < -0.02):
             reasons.append(
                 f"Outperforming peers by {peer_outpf*100:.0f}% "
-                f"with weak growth delta ({(delta or 0)*100:.1f}%)"
+                + (f"with weak growth delta ({delta*100:.1f}%)" if delta is not None
+                   else "with acceleration not measured")
             )
  
         return len(reasons) > 0, reasons
@@ -377,7 +380,11 @@ class ScoreEngine:
  
         # Bottleneck confirmation: Red requires positive acceleration
         if score > 65:
-            if delta is not None and delta < 0.05:
+            # Red needs measured acceleration — an unmeasured delta (fewer than
+            # 6 quarters of revenue) can't confirm a bottleneck.
+            if delta is None:
+                return "Orange", "Emerging — high score, acceleration not measured"
+            if delta < 0.05:
                 # Score is high but acceleration is weak — downgrade to Orange
                 return "Orange", f"Emerging — high score but acceleration slowing ({delta*100:.1f}%)"
             return "Red", "Confirmed bottleneck — revenue accelerating into supply constraint"
@@ -437,6 +444,7 @@ class ScoreEngine:
                     "raw_composite":round(raw, 2),
                 },
                 "fund_delta":   round(delta, 4) if delta is not None else None,
+                "accel_measured": delta is not None,
                 "is_hype":      is_hype,
                 "hype_reasons": hype_reasons,
                 "data_status":  "Full" if not missing_fields else f"Partial — missing: {', '.join(missing_fields)}",

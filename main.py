@@ -333,7 +333,11 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
         # but the weighted score is dragged below 45 by diversified peers,
         # floor the layer at Orange (45) so the signal isn't lost.
         # Example: CEG (+69% delta) in Energy layer alongside GEV/ETN (negative delta).
-        best_by_delta = max(layer_scores, key=lambda x: (x.get("fund_delta") or 0))
+        # Only companies with measured acceleration: an unmeasured delta (None)
+        # must not count as 0 — it would outrank a decelerating peer and block
+        # the all-decelerating → Blue rule.
+        measured       = [t for t in layer_scores if t.get("fund_delta") is not None]
+        best_by_delta  = max(measured, key=lambda x: x["fund_delta"]) if measured else {}
         top_fund_delta = best_by_delta.get("fund_delta") or 0
         if top_fund_delta > 0.40 and weighted_score < 45:
             old_score = weighted_score
@@ -366,6 +370,12 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
         )
         if confirm_note:
             layer_status = confirm_note
+
+        # Red needs measured acceleration in at least one company — no
+        # path (instant, confirmed, held) may reach Red without it.
+        if layer_color == "Red" and not measured:
+            layer_color  = "Orange"
+            layer_status = "Emerging — acceleration not measured for any company in the layer"
  
         # ── Build best ticker (highest individual score, for detail panels) ───
         # Best ticker is still the highest individual scorer — used for
