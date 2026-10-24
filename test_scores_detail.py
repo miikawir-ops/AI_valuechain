@@ -43,7 +43,9 @@ def test_detail_line_is_appended_complete_and_replays():
         try:
             md = _market()
             scored = main.stage_score(md, MACRO, SESSIONS)
-            main.save_scores_detail(md, MACRO, scored, SESSIONS[-1], RADAR, ANALYSIS)
+            run = {"raw": "### 🔩 AI CHAIN BOTTLENECK\nMUX +350% ...", "engine": "gemini-2.5-flash",
+                   "withheld": [{"section": "🔩 AI CHAIN BOTTLENECK", "mismatches": ['+350 in "MUX +350% ..."']}]}
+            main.save_scores_detail(md, MACRO, scored, SESSIONS[-1], RADAR, ANALYSIS, analysis_run=run)
             main.save_scores_detail(md, MACRO, scored, SESSIONS[-1], RADAR, ANALYSIS)   # e.g. the 06:00 rerun
             lines = [json.loads(l) for l in open("scores_detail.jsonl", encoding="utf-8")]
         finally:
@@ -55,6 +57,9 @@ def test_detail_line_is_appended_complete_and_replays():
     assert line["macro"]["regime"] == "Risk-On" and line["macro"]["multiplier"] == 1.0
     assert line["signal"] == {"ticker": "MUX", "close": 877.55}, line["signal"]
     assert line["withheld_sections"] == ["🔩 AI CHAIN BOTTLENECK"], line["withheld_sections"]
+    assert line["withheld_detail"] == [{"section": "🔩 AI CHAIN BOTTLENECK", "mismatches": ['+350 in "MUX +350% ..."']}]
+    assert line["analysis_raw"].startswith("### 🔩") and line["analysis_engine"] == "gemini-2.5-flash"
+    assert lines[1]["analysis_raw"] is None and lines[1]["withheld_detail"] == [], "no analysis run → empty, not invented"
     assert [r["rank"] for r in line["radar"]] == [1, None] and line["radar"][0]["latest_yoy_pct"] == 379.3
     assert line["radar"][0]["measured"] and not line["radar"][1]["measured"] and line["radar"][0]["consecutive_accel"] == 1
     c = {x["ticker"]: x for x in line["companies"]}

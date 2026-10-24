@@ -178,18 +178,27 @@ def run_analysis(scored_data: dict, market_data: dict, macro_data: dict = None, 
         return "Analysis unavailable — GEMINI_API_KEY missing from .env file."
  
     prompt, facts = build_prompt(scored_data, market_data, macro_data, session_date)
+    LAST_RUN.update(raw=None, engine=None, withheld=[])
     log.info(f"  Prompt built ({len(prompt)} chars) — sending to {GEMINI_MODEL}...")
  
     try:
-        return finalize(analyze_with_gemini(prompt), facts)
+        raw = analyze_with_gemini(prompt)
+        LAST_RUN.update(raw=raw, engine=GEMINI_MODEL)
+        return finalize(raw, facts)
     except Exception as gemini_err:
         log.warning(f"  Gemini failed ({gemini_err}) — trying Ollama...")
         try:
-            return finalize(analyze_with_ollama(prompt), facts)
+            raw = analyze_with_ollama(prompt)
+            LAST_RUN.update(raw=raw, engine=OLLAMA_MODEL)
+            return finalize(raw, facts)
         except Exception as ollama_err:
             log.error(f"  Both engines failed.")
             return f"Analysis unavailable.\nGemini: {gemini_err}\nOllama: {ollama_err}"
 
+
+# The last run_analysis() call, for scores_detail.jsonl: the raw model reply
+# and each withheld section with its mismatches (value + sentence snippet).
+LAST_RUN = {"raw": None, "engine": None, "withheld": []}
 
 NFA_SUFFIX = "Not financial advice."
 
@@ -274,6 +283,7 @@ def finalize(text: str, facts: dict) -> str:
         bad = check_section(title, body, facts)
         if bad:
             log.warning(f"  Analysis section withheld — {title.strip('# ').strip()}: " + " | ".join(bad))
+            LAST_RUN["withheld"].append({"section": title.strip("# ").strip(), "mismatches": bad})
             part = f"{title}\n{WITHHELD}\n\n"
         elif "SIGNAL TO WATCH" in title.upper():
             # "Company: X (Name), Watch" on its own line: end it as a sentence,

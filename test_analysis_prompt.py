@@ -117,7 +117,10 @@ def test_post_check_withholds_a_section_with_a_wrong_figure():
     for name, reply in cases.items():
         out = analyze.finalize(reply, facts)
         assert out.count(analyze.WITHHELD) == 1, f"{name}: {out.count(analyze.WITHHELD)} sections withheld"
+    analyze.LAST_RUN.update(withheld=[])
     wrong = analyze.finalize(cases["wrong YoY"], facts)
+    w = analyze.LAST_RUN["withheld"]
+    assert len(w) == 1 and w[0]["section"] == "🔩 AI CHAIN BOTTLENECK" and any(m.startswith("+150 in \"") for m in w[0]["mismatches"]), w
     assert "+150%" not in wrong and "No company is flagged" in wrong, "withheld the wrong section"
     signal = analyze.finalize(cases["buy"], facts)
     assert "Company: MUX" not in signal, "a withheld signal still names a company for the track record"

@@ -394,7 +394,8 @@ def _code_commit() -> str | None:
 
 
 def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, session_date,
-                       radar_data: list, analysis: str, path: str = SCORES_DETAIL_FILE) -> dict:
+                       radar_data: list, analysis: str, path: str = SCORES_DETAIL_FILE,
+                       analysis_run: dict = None) -> dict:
     """Append one line per run: every company's scoring inputs, sub-scores
     and result, the macro inputs and regime, the radar ranking, the signal
     pick (with that session's close, for item 8's entry prices) and any
@@ -408,6 +409,7 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
     import re
     import render
     from analyze import WITHHELD, _split_sections
+    analysis_run = analysis_run or {}
     from score_engine import METHOD_VERSION
     lookup = {t["ticker"]: t for ts in market_data.values() for t in (ts or []) if t and t.get("ticker")}
     companies, layers, regime = [], {}, None
@@ -456,6 +458,11 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
         "layers": layers, "companies": companies, "radar": radar,
         "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None},
         "withheld_sections": withheld,
+        # Why each was withheld (value + sentence snippet) and the raw reply,
+        # so a withheld section can be judged without the Actions log.
+        "withheld_detail": analysis_run.get("withheld", []),
+        "analysis_engine": analysis_run.get("engine"),
+        "analysis_raw": analysis_run.get("raw"),
     }
     text = json.dumps(line, separators=(",", ":"), default=str, allow_nan=False)
     with open(path, "a", encoding="utf-8") as fh:
@@ -532,7 +539,9 @@ def run_full_pipeline(score_only: bool = False):
     # Point-in-time log of what was scored and shown. Its own try: a failure
     # here is logged, never allowed to stop the page from publishing.
     try:
-        save_scores_detail(market_data, macro_data, scored_data, session_date, radar_data, analysis)
+        import analyze
+        save_scores_detail(market_data, macro_data, scored_data, session_date, radar_data, analysis,
+                           analysis_run=dict(analyze.LAST_RUN))
     except Exception as e:
         log.error(f"  scores_detail not written: {e}")
     # Track record (item 8): after scores_detail has this run's line. Its own
