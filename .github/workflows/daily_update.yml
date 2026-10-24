@@ -5,6 +5,20 @@ on:
     - cron: '0 6 * * 1-5'
     - cron: '30 20 * * 1-5'
   workflow_dispatch:
+  # A code push runs the pipeline itself (manual dispatches didn't always
+  # register). The bot's commit-back uses the default GITHUB_TOKEN, which
+  # never triggers workflows, and only touches data files outside these paths.
+  push:
+    branches: [main]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+
+# One run at a time; a new one waits rather than cancelling one mid-commit.
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
  
 permissions:
   contents: write
@@ -14,6 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Latest main, not the pushed commit: the previous run's commit-back
+          # (scores_detail.jsonl appends) must be in the tree this run appends to.
+          ref: main
  
       - uses: actions/setup-python@v5
         with:
@@ -39,4 +57,6 @@ jobs:
           git add growth_history.json 2>/dev/null || true
           git add scores_detail.jsonl 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Daily update: $(date -u +'%Y-%m-%d %H:%M') UTC"
+          # A code push may have landed during the run; data files don't conflict with it.
+          git pull --rebase origin main
           git push
