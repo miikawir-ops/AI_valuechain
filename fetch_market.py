@@ -349,14 +349,9 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         t    = yf.Ticker(ticker)
         info = t.info
  
-        price = (info.get("currentPrice")
-                 or info.get("regularMarketPrice")
-                 or info.get("previousClose", 0))
-        prev        = info.get("previousClose") or price
         week52_high = info.get("fiftyTwoWeekHigh", 0) or 0
         week52_low  = info.get("fiftyTwoWeekLow",  0) or 0
         market_cap  = info.get("marketCap", 0) or 0
-        price_act   = round((price - prev) / prev, 4) if prev else 0.0
         gross_margin = info.get("grossMargins")
  
         data_missing: list = []
@@ -370,7 +365,17 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         else:
             price_history = []
         volumes = hist["Volume"].tolist() if not hist.empty else []
- 
+
+        # Price and day change from the last completed session's close — the
+        # same bars as the 30d return and the "Data: close of ..." label, not
+        # info's live quote (which was intraday during US trading hours).
+        price = closes[-1] if closes else None
+        if price is None:
+            data_missing.append("price")
+        price_act = round(closes[-1] / closes[-2] - 1, 4) if len(closes) >= 2 and closes[-2] else None
+        if price_act is None:
+            data_missing.append("price_act")
+
         price_30d = round((closes[-1] / closes[-21] - 1), 4) if len(closes) >= 21 else 0.0
         if isinstance(price_30d, float) and math.isnan(price_30d):
             data_missing.append("price_30d_return")
@@ -528,7 +533,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         return {
             "ticker":            ticker,
             "name":              info.get("longName") or info.get("shortName", ticker),
-            "price":             round(float(price), 2),
+            "price":             round(float(price), 2) if price is not None else None,
             "currency":          info.get("currency", "USD"),
             "growth_curr":       growth_curr,
             "growth_prev":       growth_prev,

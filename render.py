@@ -291,7 +291,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
             tickers_out.append({
                 "sym":        sym or "?",
                 "name":       t_scored.get("name") or raw.get("name") or sym or "?",
-                "price":      t_scored.get("price") or raw.get("price", 0),
+                "price":      raw.get("price"),
                 "ret30":      round((t_scored.get("price_30d_return") or raw.get("price_30d_return") or 0) * 100, 1),
                 "delta_band": delta_band,
                 "hype":       t_hype,
@@ -303,7 +303,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict) -> str
                 "rating_down":  rating_changed and ord(t_rating) > ord(t_prev_rating),
                 "forecast":     rating_forecast(t_rating, t_delta, delta_band, t_hype, t_color),
                 "run_rate":     round(raw.get("revenue_quarterly", 0) * 4 / 1e9, 1) if (raw.get("revenue_quarterly") or 0) > 0 else None,
-                "pct_of_high":  round((raw.get("price", 0) / raw.get("week52_high", 1)) * 100) if raw.get("week52_high") else None,
+                "pct_of_high":  round((raw["price"] / raw["week52_high"]) * 100) if raw.get("week52_high") and raw.get("price") is not None else None,
                 "week52_high":  raw.get("week52_high"),
                 "week52_low":   raw.get("week52_low"),
             })
@@ -1423,7 +1423,7 @@ function buildExpand() {{
       ${{t.run_rate ? `<div style="font-size:10px;font-weight:600;color:#27500A;margin:3px 0;
           padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
         Run rate $${{t.run_rate}}B/yr</div>` : ""}}
-      <div class="ex-row"><span class="ex-lbl">Price</span><span>$${{t.price.toLocaleString()}}</span></div>
+      <div class="ex-row"><span class="ex-lbl">Price</span><span>${{t.price != null ? "$" + t.price.toLocaleString() : "—"}}</span></div>
       <div class="ex-row"><span class="ex-lbl">30d return</span><span style="color:${{rc}}">${{fmt(t.ret30)}}%</span></div>
       <div class="ex-row"><span class="ex-lbl">Trend</span><span style="color:${{tCol}}">${{tIcon}} ${{t.delta_band}}</span></div>
       <div style="margin-top:6px;padding:5px 8px;border-radius:5px;

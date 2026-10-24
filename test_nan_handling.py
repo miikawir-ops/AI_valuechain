@@ -145,6 +145,24 @@ def test_assert_no_nan_is_the_final_backstop():
     print("PASS: assert_no_nan raises on NaN, passes clean data")
 
 
+def test_price_is_the_last_completed_close_not_the_live_quote():
+    """The card price and the day change (price_act, a smart-money input)
+    come from the completed-session closes, the same bars as the 30d return
+    and the "Data: close of ..." label. The old code read info's live quote:
+    run #290 (2026-10-21 19:31 UTC) showed MU at a Wednesday intraday $919.11
+    under "close of Tuesday, October 20" (Tuesday's close was $896.07)."""
+    n_days = 70
+    dates  = pd.date_range(end=FIXED_END, periods=n_days, freq="D")
+    closes = [100.0 + i * 0.5 for i in range(n_days)]
+    hist   = pd.DataFrame({"Close": closes, "Volume": [1_000_000.0] * n_days}, index=dates)
+    mock   = _mock_ticker(hist, currentPrice=999.0, regularMarketPrice=999.0, previousClose=1.0)
+    with patch("fetch_market.yf.Ticker", return_value=mock):
+        r = fetch_market.fetch_ticker_data("LIVE", headlines=[], layer_keywords=["x"], layer_tickers=["LIVE"])
+    assert r["price"] == round(closes[-1], 2), f"price {r['price']} is not the last completed close {closes[-1]}"
+    assert r["price_act"] == round(closes[-1] / closes[-2] - 1, 4), f"price_act {r['price_act']} not from closes"
+    print("PASS: price and price_act come from the last completed closes, not the live quote")
+
+
 def _macro_tickers(tnx_raises: bool = False):
     def bars(closes):
         return pd.DataFrame({"Close": closes}, index=pd.bdate_range(end=FIXED_END, periods=len(closes)))
@@ -204,6 +222,7 @@ if __name__ == "__main__":
     test_trailing_nan_row_is_dropped_and_does_not_propagate()
     test_mid_series_nan_is_marked_missing_not_nan()
     test_assert_no_nan_is_the_final_backstop()
+    test_price_is_the_last_completed_close_not_the_live_quote()
     test_failed_macro_fetch_is_missing_not_a_default()
     test_missing_macro_input_is_left_out_of_the_multiplier()
     print("\nAll NaN-handling tests passed.")
