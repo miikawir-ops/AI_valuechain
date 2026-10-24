@@ -98,7 +98,10 @@ def test_trailing_nan_row_is_dropped_and_does_not_propagate():
         f"a mismatch here means the trailing NaN row leaked into the formula "
         f"instead of being dropped first."
     )
-    assert result["data_missing"] == []
+    # Price-derived fields only: the mock has no quarterly financials, so
+    # growth_curr/growth_prev are rightly marked missing (since c. 2026-10-24).
+    price_fields = {"price", "price_act", "price_30d_return", "price_momentum", "vol_spike"}
+    assert not price_fields & set(result["data_missing"]), result["data_missing"]
 
     print("PASS: trailing NaN row dropped; price_30d_return/price_momentum match the clean history")
 
