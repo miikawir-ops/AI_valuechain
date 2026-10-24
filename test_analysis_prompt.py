@@ -132,7 +132,7 @@ def test_page_headings_say_signal_not_action():
     page = _render_page()
     assert "ONE SIGNAL TO WATCH" in page and "ONE ACTION TODAY" not in page
     assert "📊 SIGNAL TRACK RECORD — last 5" in page and "ONE ACTION TRACK RECORD" not in page
-    assert "Returns are measured from the date the signal was shown." in page
+    assert "Return from the close of the session a signal was first shown" in page   # item 8 footnote
     print("PASS: page headings — ONE SIGNAL TO WATCH, SIGNAL TRACK RECORD — last 5")
 
 

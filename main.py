@@ -465,13 +465,13 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
 
 
 def stage_render(scored_data: dict, analysis: str, macro_data: dict,
-                 session_date, market_data: dict = None, radar_data: list = None):
+                 session_date, market_data: dict = None, radar_data: list = None, track: dict = None):
     log.info("[4/4] Rendering and delivering report...")
     try:
         from render import generate_dashboard, deliver
         html_path = generate_dashboard(
             scored_data, analysis, macro_data, session_date,
-            market_data or {}, radar_data or []
+            market_data or {}, radar_data or [], track
         )
         deliver(analysis, html_path)
         log.info(f"  Dashboard saved: {html_path}")
@@ -535,7 +535,15 @@ def run_full_pipeline(score_only: bool = False):
         save_scores_detail(market_data, macro_data, scored_data, session_date, radar_data, analysis)
     except Exception as e:
         log.error(f"  scores_detail not written: {e}")
-    stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data)
+    # Track record (item 8): after scores_detail has this run's line. Its own
+    # try: closes are fetched; a failure shows no record, never a wrong one.
+    track = None
+    try:
+        import render, track_record
+        track = track_record.build(render.load_scores_history(), SCORES_DETAIL_FILE, session_date, METHOD_VERSION)
+    except Exception as e:
+        log.error(f"  track record not built: {e}")
+    stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data, track)
  
     elapsed = (datetime.datetime.now() - start).seconds
     log.info(f"\n✅ Pipeline complete in {elapsed}s")

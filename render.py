@@ -493,33 +493,6 @@ def _analysis_sections(analysis: str):
  
 # ── JS data builders ──────────────────────────────────────────────────────────
  
-def _track_record_js_data(history: list, market_data: dict) -> str:
-    """Build track record of last 5 One Action picks with returns."""
-    price_lookup = {}
-    for tickers in market_data.values():
-        for t in (tickers or []):
-            if t and t.get("ticker") and t.get("price"):
-                price_lookup[t["ticker"]] = t["price"]
- 
-    track = []
-    seen  = set()
-    for entry in reversed(history):
-        ticker = entry.get("action_ticker", "")
-        if not ticker or ticker in seen:
-            continue
-        seen.add(ticker)
-        entry_price   = entry.get("action_price")
-        current_price = price_lookup.get(ticker)
-        ret = None
-        if entry_price and current_price:
-            ret = round((current_price / entry_price - 1) * 100, 1)
-        track.append({"ticker": ticker, "date": entry.get("date",""), "ret_since": ret})
-        if len(track) >= 5:
-            break
- 
-    return json.dumps(list(reversed(track)))
- 
- 
 def _history_js_data(history: list, scored_data: dict) -> str:
     layer_ids = list(scored_data.keys())
     date_map  = {e["date"]: e.get("scores", {}) for e in history}
@@ -669,7 +642,7 @@ def regime_label(scored_data: dict, macro_data: dict) -> str:
 
 
 def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, session_date,
-                       market_data: dict = None, radar_data: list = None) -> str:
+                       market_data: dict = None, radar_data: list = None, track: dict = None) -> str:
     if market_data is None:
         market_data = {}
     if radar_data is None:
@@ -736,7 +709,8 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     layers_js              = _chain_js_data(scored_data, market_data, yesterday, session_date)
     radar_js               = _radar_js_data(radar_data)
     history_js             = _history_js_data(full_history, scored_data)
-    track_js               = _track_record_js_data(full_history, market_data)
+    # track_record.build() output (main computes it: it fetches closes).
+    track_js               = json.dumps(track or {"current": [], "old": []})
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday          = "true" if yesterday else "false"
     method_break_js        = "true" if method_break else "false"
@@ -1171,7 +1145,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
   <div id="track-rows"></div>
   <div style="font-size:10px;color:#B4B2A9;margin-top:8px;line-height:1.5">
-    Returns are measured from the date the signal was shown. Entry prices aren't recorded yet, so they show "pending". Not financial advice.
+    Return from the close of the session a signal was first shown to the close of its last session (or the latest close while active),
+    split-adjusted, against the NASDAQ over the same sessions. Not a trading record. Not financial advice.
   </div>
 </div>
  
@@ -1885,22 +1860,28 @@ function buildSignalBars() {{
 function buildTrackRecord() {{
   const section = document.getElementById("track-record");
   const rows    = document.getElementById("track-rows");
-  if (!TRACK_RECORD || TRACK_RECORD.length === 0) return;
+  const cur = (TRACK_RECORD && TRACK_RECORD.current) || [], old = (TRACK_RECORD && TRACK_RECORD.old) || [];
+  if (!cur.length && !old.length) return;
   section.style.display = "block";
-  rows.innerHTML = TRACK_RECORD.map(r => {{
-    const retCol = r.ret_since > 0 ? "#27500A" : r.ret_since < 0 ? "#A32D2D" : "#888780";
-    const retTxt = r.ret_since !== null ? `${{r.ret_since >= 0 ? "+" : ""}}${{r.ret_since.toFixed(1)}}%` : "pending";
+  const d = iso => {{ const [y, m, dd] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, dd)).toLocaleDateString("en", {{month: "short", day: "numeric", timeZone: "UTC"}}); }};
+  const pct = v => v == null ? "—" : `${{v >= 0 ? "+" : ""}}${{v.toFixed(1)}}%`;
+  const row = r => {{
+    const col = r.ret_pct == null ? "#888780" : r.ret_pct > 0 ? "#27500A" : r.ret_pct < 0 ? "#A32D2D" : "#888780";
     return `<div style="display:flex;justify-content:space-between;align-items:center;
                          padding:6px 0;border-bottom:0.5px solid #E0DFDC;font-size:11px">
       <div>
         <span style="font-weight:500;color:#1A1A1A">${{r.ticker}}</span>
-        <span style="color:#888780;margin-left:8px">${{r.date}}</span>
+        <span style="color:#888780;margin-left:8px">${{d(r.first)}} → ${{r.active ? "now" : d(r.end)}}${{r.entry != null ? " · entry $" + r.entry.toLocaleString() : ""}}</span>
       </div>
-      <span style="font-weight:500;color:${{retCol}}">${{retTxt}}</span>
+      <span><span style="font-weight:500;color:${{col}}">${{pct(r.ret_pct)}}</span>
+            <span style="color:#888780;margin-left:6px">NASDAQ ${{pct(r.nasdaq_pct)}}</span></span>
     </div>`;
-  }}).join("");
+  }};
+  rows.innerHTML = cur.map(row).join("") + (old.length
+    ? `<div style="font-size:10px;font-weight:500;color:#888780;margin:10px 0 2px">Old method (before Oct 24) — entry reconstructed from historical close; these picks were published with Buy/Watch/Avoid wording</div>` + old.map(row).join("")
+    : "");
 }}
- 
+
 function toggleMeth() {{
   const b = document.getElementById("meth-body");
   const a = document.getElementById("marrow");
