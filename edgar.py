@@ -22,6 +22,7 @@ isn't guaranteed.
 """
 
 import os
+import time
 import logging
 import datetime
 
@@ -45,10 +46,18 @@ MATCH_TOL      = 0.01   # an overlapping quarter must agree with yfinance within
 MIN_OVERLAP    = 3      # ...on at least this many quarters
 DATE_TOL_DAYS  = 10     # yfinance dates are month-ends; filings use the fiscal period end
 
+MIN_INTERVAL_S = 0.15   # ≤ ~7 requests/s, under SEC's 10/s fair-access limit
+
 _cik_cache: dict | None = None
+_last_request = 0.0
 
 
 def _get(url: str) -> dict:
+    global _last_request
+    wait = MIN_INTERVAL_S - (time.monotonic() - _last_request)
+    if wait > 0:
+        time.sleep(wait)
+    _last_request = time.monotonic()
     r = requests.get(url, headers={"User-Agent": SEC_USER_AGENT}, timeout=30)
     r.raise_for_status()
     return r.json()

@@ -89,6 +89,24 @@ def test_failed_edgar_fetch_leaves_acceleration_unmeasured():
     print("PASS: a failed EDGAR fetch leaves acceleration unmeasured and says why")
 
 
+def test_requests_stay_under_sec_rate_limit():
+    """SEC's fair-access limit is 10 requests/s. With instant responses the
+    throttle must still space requests MIN_INTERVAL_S apart."""
+    import time
+    from unittest.mock import MagicMock
+    stamps = []
+    def instant(url, **kw):
+        stamps.append(time.monotonic())
+        return MagicMock(json=lambda: {}, raise_for_status=lambda: None)
+    with patch("edgar.requests.get", instant):
+        for _ in range(12):
+            edgar._get("https://data.sec.gov/x")
+    gaps = [b - a for a, b in zip(stamps, stamps[1:])]
+    assert min(gaps) >= edgar.MIN_INTERVAL_S * 0.95, f"min gap {min(gaps):.3f}s"
+    assert edgar.MIN_INTERVAL_S >= 0.1, "throttle allows more than 10 requests/s"
+    print(f"PASS: SEC requests spaced ≥{edgar.MIN_INTERVAL_S}s apart (min gap {min(gaps):.3f}s)")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
@@ -96,4 +114,5 @@ if __name__ == "__main__":
     test_partial_concept_is_rejected_and_full_one_used()
     test_edgar_quarters_make_acceleration_measurable()
     test_failed_edgar_fetch_leaves_acceleration_unmeasured()
+    test_requests_stay_under_sec_rate_limit()
     print("\nAll EDGAR tests passed.")
