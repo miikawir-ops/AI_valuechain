@@ -1833,7 +1833,7 @@ function buildRadar() {{
       <div class="radar-traj">${{traj}}</div>
       <div class="radar-bar-wrap"><div class="radar-bar" style="width:${{pct}}%"></div></div>
       <div class="radar-meta">
-        <span>accelerating ${{r.consecutive}} of last ${{r.compared}} quarters · trend ${{fmt(r.trend_delta)}} pp/qtr</span>
+        <span>accelerating ${{r.consecutive}} of last ${{r.compared}} quarters · avg ${{fmt(r.trend_delta)}} pp/qtr over ${{r.compared}} quarters</span>
       </div>
       <div class="radar-meta">
         <span style="color:${{retCol}}">${{ret1}} (1mo)</span>
