@@ -20,6 +20,7 @@ v3 scoring:
   - Extreme signal override: score > 80 allows instant Red without confirmation
 """
  
+import os
 import sys
 import json
 import logging
@@ -356,6 +357,104 @@ def stage_analyze(scored_data: dict, market_data: dict, macro_data: dict = None,
         return f"Analysis unavailable — error: {e}"
  
  
+# ── Point-in-time detail log ──────────────────────────────────────────────────
+
+SCORES_DETAIL_FILE = "scores_detail.jsonl"
+
+# Every input process_sector reads, so one line can replay its scores.
+DETAIL_INPUTS = ("price", "price_act", "price_30d_return", "price_momentum", "vol_spike", "analyst_upgrades",
+                 "short_int_change", "news_velocity", "capex_div", "gross_margin", "gm_delta",
+                 "growth_curr", "growth_prev", "growth_quarter", "revenue_source", "market_cap",
+                 "peer_outperformance", "next_earnings", "name", "data_missing")
+
+
+def _library_versions() -> dict:
+    import platform
+    out = {"python": platform.python_version()}
+    for mod, name in (("yfinance", "yfinance"), ("pandas", "pandas"), ("numpy", "numpy"),
+                      ("requests", "requests"), ("google.genai", "google-genai")):
+        try:
+            m = __import__(mod, fromlist=["__version__"])
+            out[name] = getattr(m, "__version__", None)
+        except Exception:
+            out[name] = None
+    return out
+
+
+def _code_commit() -> str | None:
+    sha = os.getenv("GITHUB_SHA")
+    if sha:
+        return sha
+    try:
+        import subprocess
+        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10).stdout.strip() or None
+    except Exception:
+        return None
+
+
+def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, session_date,
+                       radar_data: list, analysis: str, path: str = SCORES_DETAIL_FILE) -> dict:
+    """Append one line per run: every company's scoring inputs, sub-scores
+    and result, the macro inputs and regime, the radar ranking, the signal
+    pick (with that session's close, for item 8's entry prices) and any
+    sections the post-check withheld, plus code commit and library versions.
+
+    Pure append, keyed by session + run_utc, never replaced: a 06:00 UTC run
+    scores the same session as the previous evening's but with different
+    news, and its line is what the page showed until the next run. A
+    backtest takes the last run before the next open (Ray, 2026-10-24).
+    """
+    import re
+    import render
+    from analyze import WITHHELD, _split_sections
+    from score_engine import METHOD_VERSION
+    lookup = {t["ticker"]: t for ts in market_data.values() for t in (ts or []) if t and t.get("ticker")}
+    companies, layers, regime = [], {}, None
+    for lid, res in scored_data.items():
+        best = res.get("best", {})
+        unm  = render._unmeasured_acceleration(res.get("all_tickers", []))
+        layers[lid] = {"score": best.get("score"), "color": best.get("color"), "status": best.get("status"),
+                       "unmeasured_share": unm["share"] if unm else 0.0}
+        for t in res.get("all_tickers", []):
+            raw = lookup.get(t.get("ticker"), {})
+            d = t.get("fund_delta")
+            regime = regime or (t.get("regime"), t.get("multiplier"))
+            companies.append({
+                "ticker": t.get("ticker"), "layer": lid,
+                "inputs": {k: raw.get(k) for k in DETAIL_INPUTS},
+                "sub_scores": t.get("sub_scores", {}),
+                "score": t.get("score"), "color": t.get("color"),
+                "rating": render.company_rating(t.get("score", 0), (d or 0) * 100, t.get("color", "Green"), t.get("is_hype", False)),
+                "fund_delta": d, "accel_measured": d is not None,
+                "is_hype": t.get("is_hype", False), "hype_reasons": t.get("hype_reasons", []),
+                "data_status": t.get("data_status"),
+            })
+    withheld = [p.split("\n", 1)[0].strip("# ").strip() for p in _split_sections(analysis or "")
+                if p.partition("\n")[2].strip() == WITHHELD]
+    m = re.search(r"Company[:\s]+\*?\*?([A-Z]{1,5})", analysis or "")
+    pick = m.group(1) if m else None
+    radar = [{"rank": i + 1, "ticker": r.get("ticker"), "layer": r.get("layer"), "score": r.get("score"),
+              "latest_yoy_pct": (r.get("accel") or {}).get("latest_growth"),
+              "gross_margin_pct": r.get("gross_margin"), "analyst_count": r.get("analyst_count"),
+              "ret_1mo_pct": r.get("ret_1mo")} for i, r in enumerate(radar_data or [])]
+    session = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
+    line = {
+        "session": session.isoformat(),
+        "run_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "method": METHOD_VERSION, "code_commit": _code_commit(), "versions": _library_versions(),
+        "macro": {k: macro_data.get(k) for k in ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "data_missing")}
+                 | {"regime": regime[0] if regime else None, "multiplier": regime[1] if regime else None},
+        "layers": layers, "companies": companies, "radar": radar,
+        "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None},
+        "withheld_sections": withheld,
+    }
+    text = json.dumps(line, separators=(",", ":"), default=str, allow_nan=False)
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(text + "\n")
+    log.info(f"  Scores detail appended ({len(text) / 1024:.1f} KB, {len(companies)} companies)")
+    return line
+
+
 def stage_render(scored_data: dict, analysis: str, macro_data: dict,
                  session_date, market_data: dict = None, radar_data: list = None):
     log.info("[4/4] Rendering and delivering report...")
@@ -421,6 +520,12 @@ def run_full_pipeline(score_only: bool = False):
         radar_data = []
  
     analysis = stage_analyze(scored_data, market_data, macro_data, session_date)
+    # Point-in-time log of what was scored and shown. Its own try: a failure
+    # here is logged, never allowed to stop the page from publishing.
+    try:
+        save_scores_detail(market_data, macro_data, scored_data, session_date, radar_data, analysis)
+    except Exception as e:
+        log.error(f"  scores_detail not written: {e}")
     stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data)
  
     elapsed = (datetime.datetime.now() - start).seconds
