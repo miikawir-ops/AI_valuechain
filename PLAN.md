@@ -9,6 +9,8 @@ Running record of in-progress work and a queue of known issues deliberately not 
 
 ## Queue
 
+- **Radar base-effect weakness (Ray, 2026-10-24, after the January review).** MU's YoY 57→196→346→379 and TER's 4→44→87→104 look like rebounds from a cyclical trough; YoY acceleration off a trough is mechanically large, so the radar can't tell structural acceleration from a cyclical rebound. Possible fix: check whether the latest quarterly revenue exceeds its prior peak (e.g. the highest quarter in the previous 3 years; EDGAR has the history).
+- **Radar universe (Ray, 2026-10-24, after the January review).** ~47 names limit how early the radar can be (today's Top 5 are well-known: MU, PLTR, NVDA, TER, AVGO). Next strategic step: a wider two-stage screen — a cheap weekly broad screen that promotes candidates to daily scoring.
 - **Gemini "Next Nvidia" section stays removed (Ray, 2026-10-24).** Reconsider only if the ~2027-01-24 review shows radar picks led price moves (radar ranking is in scores_detail.jsonl from 2026-10-24).
 - **Review the divergence-flag thresholds around 2027-01-24 (Ray, 2026-10-24).** From scores_detail.jsonl: do flagged companies' returns over the next 1–3 months differ from unflagged ones? Adjust DIV_ACCEL_PP / DIV_DROP_PCT / DIV_REL_PTS then. Starting set fired on 3.0% of company-sessions (46% of sessions had at least one) over 2026-04-24 → 10-23.
 - **Mirror case counted, not built (2026-10-24).** Acceleration < −5 pp with 30d ≥ +15% and ≥ 10 pts above NASDAQ: 93 company-sessions (2.2%) over the same 6 months, 6 companies; hype missed 48 of them (52%): ARM 20 sessions, VRT 11, META 9, SMCI 7, LRCX 1 — fast growers that are slowing (YoY 22–93%, so hype rule 1's < 10% growth doesn't apply). Decide later whether a mirror flag is needed.
