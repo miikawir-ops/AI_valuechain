@@ -6,4 +6,3 @@ scores_history_backup.json
 audit_log.json
 .venv*/
 Output/
-_site/

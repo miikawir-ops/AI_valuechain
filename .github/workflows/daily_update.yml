@@ -60,18 +60,3 @@ jobs:
           # A code push may have landed during the run; data files don't conflict with it.
           git pull --rebase origin main
           git push
-
-      # Split-repo hosting (2026-10-25): this repo becomes private (AI_valuechain-src)
-      # and the public miikawir-ops/AI_valuechain holds only the published pages.
-      # Only the files listed here are published, paths preserved.
-      - name: Prepare curated site
-        run: |
-          rm -rf _site && mkdir -p _site
-          cp index.html ai_chain_report.html _site/
-
-      # Skips (exit 0) until the SITE_DEPLOY_KEY secret exists; after that a
-      # failed push fails the run. Refuses code/data files; keeps CNAME/.nojekyll.
-      - name: Publish to the public site repo
-        env:
-          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
-        run: python tools/publish_site.py _site miikawir-ops/AI_valuechain
