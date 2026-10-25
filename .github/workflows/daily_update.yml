@@ -21,7 +21,9 @@ concurrency:
   cancel-in-progress: false
  
 permissions:
-  contents: write
+  contents: write   # the commit-back of index.html and the data files
+  pages: write      # actions/deploy-pages
+  id-token: write   # actions/deploy-pages (OIDC)
  
 jobs:
   update:
@@ -60,3 +62,28 @@ jobs:
           # A code push may have landed during the run; data files don't conflict with it.
           git pull --rebase origin main
           git push
+
+      # Curated Pages output (2026-10-25): only the pages are published, paths
+      # preserved. Code, docs and the data files stay in the repo but are no
+      # longer served. Pages source must be "GitHub Actions".
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p _site
+          cp index.html ai_chain_report.html _site/
+          test -f _site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
