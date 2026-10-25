@@ -415,9 +415,14 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
     companies, layers, regime = [], {}, None
     for lid, res in scored_data.items():
         best = res.get("best", {})
-        unm  = render._unmeasured_acceleration(res.get("all_tickers", []))
+        # The actual unmeasured market-cap share, not the card note's value
+        # (which is None below 25%): 0.0 here would record TSM's 20.6% as nothing.
+        ts   = res.get("all_tickers", [])
+        tot  = sum(t.get("market_cap") or 0 for t in ts)
+        unm_share = (round(sum(t.get("market_cap") or 0 for t in ts if t.get("fund_delta") is None) / tot, 3)
+                     if tot else None)
         layers[lid] = {"score": best.get("score"), "color": best.get("color"), "status": best.get("status"),
-                       "unmeasured_share": unm["share"] if unm else 0.0}
+                       "unmeasured_share": unm_share}
         for t in res.get("all_tickers", []):
             raw = lookup.get(t.get("ticker"), {})
             d = t.get("fund_delta")

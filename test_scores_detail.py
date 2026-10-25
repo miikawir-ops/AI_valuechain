@@ -67,6 +67,9 @@ def test_detail_line_is_appended_complete_and_replays():
     assert set(c) == {t["ticker"] for ts in md.values() for t in ts}
     assert c["MUX"]["inputs"]["revenue_source"].startswith("yfinance + EDGAR") and c["MUX"]["accel_measured"]
     assert c["NOM"]["fund_delta"] is None and not c["NOM"]["accel_measured"]
+    # NOM is 1e11 of the memory layer's 1e12: a real 10% share, below the card
+    # note's 25% threshold — recorded as 0.1, never as 0.0.
+    assert line["layers"]["memory"]["unmeasured_share"] == 0.1, line["layers"]["memory"]["unmeasured_share"]
     assert set(c["MUX"]["sub_scores"]) >= {"acceleration", "constraints", "smart_money"}
     print("PASS: one line per run appended (2 runs, same session → 2 lines); fields, signal, withheld, radar present")
 
