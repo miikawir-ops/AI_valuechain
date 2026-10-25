@@ -90,9 +90,26 @@ def test_growth_history_persists_and_fills_unmeasured_acceleration():
     print("PASS: YoY persisted per quarter-end; next quarter it measures acceleration EDGAR can't")
 
 
+def test_growth_history_keeps_one_entry_per_quarter_across_source_dates():
+    """Yahoo and EDGAR date the same quarter a few days apart (MU: Yahoo
+    2026-08-31, EDGAR 2026-09-03). When the label changes between runs, the
+    stored quarter must be replaced, not duplicated (found 2026-10-25)."""
+    import os, json, tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "growth_history.json")
+        mu = lambda q, g: {"memory": [{"ticker": "MU", "growth_quarter": q, "growth_curr": g, "growth_prev": 3.4572,
+                                       "revenue_source": "x", "data_missing": []}]}
+        fetch_market.apply_growth_history(mu("2026-09-03", 3.7927), path)   # EDGAR's date (run 1)
+        fetch_market.apply_growth_history(mu("2026-08-31", 3.7927), path)   # Yahoo's date (run 2)
+        stored = json.load(open(path))["MU"]
+        assert list(stored) == ["2026-08-31"], f"same quarter stored twice: {stored}"
+    print("PASS: growth_history keeps one entry per quarter when the source date shifts by days")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_growth_history_keeps_one_entry_per_quarter_across_source_dates()
     test_growth_is_date_matched_yoy_not_two_quarters_back()
     test_six_quarters_measure_acceleration()
     test_growth_history_persists_and_fills_unmeasured_acceleration()

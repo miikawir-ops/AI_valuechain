@@ -778,6 +778,11 @@ def apply_growth_history(results: dict, path: str = GROWTH_HISTORY_FILE) -> None
             elif prev and abs(t["growth_prev"] - prev[1]) > 0.01:
                 log.warning(f"  {t['ticker']}: previous-quarter YoY {t['growth_prev']:+.1%} "
                             f"disagrees with stored {prev[1]:+.1%} for {prev[0]}")
+            # One entry per quarter: Yahoo and EDGAR date the same quarter a few
+            # days apart (MU 2026-08-31 vs 2026-09-03), so a changed label
+            # replaces the stored one instead of adding a duplicate.
+            for d in [d for d in mine if d != q and abs((datetime.date.fromisoformat(d) - q0).days) <= edgar.DATE_TOL_DAYS]:
+                del mine[d]
             mine[q] = g
     p.write_text(json.dumps(hist, indent=1, sort_keys=True))
 
