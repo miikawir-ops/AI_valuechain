@@ -1,90 +1,5 @@
 [
   {
-    "date": "2026-09-14",
-    "time": "23:15",
-    "action_ticker": "MU",
-    "action_price": null,
-    "scores": {
-      "energy": {
-        "score": 41.55,
-        "color": "Green",
-        "ratings": {
-          "CEG": "C",
-          "VST": "C",
-          "PWR": "B",
-          "GEV": "B",
-          "ETN": "B"
-        }
-      },
-      "compute": {
-        "score": 46.32,
-        "color": "Orange",
-        "ratings": {
-          "NVDA": "C",
-          "AMD": "B",
-          "AVGO": "A",
-          "ASML": "C",
-          "TSM": "B",
-          "ARM": "C",
-          "CDNS": "C"
-        }
-      },
-      "memory": {
-        "score": 68.75,
-        "color": "Red",
-        "ratings": {
-          "MU": "A",
-          "WDC": "B",
-          "AMAT": "B",
-          "LRCX": "B"
-        }
-      },
-      "infra": {
-        "score": 42.53,
-        "color": "Green",
-        "ratings": {
-          "VRT": "B",
-          "ANET": "B",
-          "EQIX": "B",
-          "SMCI": "C",
-          "CSCO": "B",
-          "CIEN": "B"
-        }
-      },
-      "cloud": {
-        "score": 36.77,
-        "color": "Green",
-        "ratings": {
-          "MSFT": "B",
-          "GOOGL": "C",
-          "AMZN": "C",
-          "META": "C"
-        }
-      },
-      "software": {
-        "score": 36.73,
-        "color": "Green",
-        "ratings": {
-          "PLTR": "C",
-          "NOW": "B",
-          "SNOW": "B",
-          "CRM": "C",
-          "DDOG": "B"
-        }
-      },
-      "security": {
-        "score": 48.42,
-        "color": "Orange",
-        "ratings": {
-          "CRWD": "B",
-          "PANW": "B",
-          "S": "B",
-          "OKTA": "C"
-        }
-      }
-    }
-  },
-  {
     "date": "2026-09-15",
     "time": "23:01",
     "action_ticker": "MU",
@@ -2540,6 +2455,94 @@
       "security": {
         "score": 41.23,
         "color": "Orange",
+        "ratings": {
+          "CRWD": "B",
+          "PANW": "B",
+          "S": "B",
+          "OKTA": "B"
+        }
+      }
+    }
+  },
+  {
+    "date": "2026-10-26",
+    "method": "2026-10-yoy-edgar",
+    "methodology_change": true,
+    "methodology_note": "Revenue growth is now true year-over-year (each quarter vs the same quarter a year earlier), with SEC filings filling quarters Yahoo Finance lacks. HBM memory's earlier Red rested on a 2-quarter calculation; colour changes since then reflect the fix, not a market move.",
+    "time": "23:59",
+    "action_ticker": "MU",
+    "action_price": null,
+    "scores": {
+      "energy": {
+        "score": 37.52,
+        "color": "Green",
+        "ratings": {
+          "CEG": "C",
+          "VST": "C",
+          "PWR": "B",
+          "GEV": "B",
+          "ETN": "B"
+        }
+      },
+      "compute": {
+        "score": 56.7,
+        "color": "Orange",
+        "ratings": {
+          "NVDA": "A",
+          "AMD": "B",
+          "AVGO": "A",
+          "ASML": "A",
+          "TSM": "B",
+          "ARM": "B",
+          "CDNS": "B"
+        }
+      },
+      "memory": {
+        "score": 56.28,
+        "color": "Orange",
+        "ratings": {
+          "MU": "A",
+          "WDC": "B",
+          "AMAT": "B",
+          "LRCX": "A"
+        }
+      },
+      "infra": {
+        "score": 38.06,
+        "color": "Green",
+        "ratings": {
+          "VRT": "C",
+          "ANET": "B",
+          "EQIX": "B",
+          "SMCI": "C",
+          "CSCO": "B",
+          "CIEN": "B"
+        }
+      },
+      "cloud": {
+        "score": 37.28,
+        "color": "Green",
+        "ratings": {
+          "MSFT": "B",
+          "GOOGL": "B",
+          "AMZN": "B",
+          "META": "B"
+        }
+      },
+      "software": {
+        "score": 39.64,
+        "color": "Green",
+        "ratings": {
+          "PLTR": "B",
+          "NOW": "B",
+          "SNOW": "B",
+          "CRM": "B",
+          "DDOG": "B"
+        }
+      },
+      "security": {
+        "score": 38.56,
+        "color": "Green",
         "ratings": {
           "CRWD": "B",
           "PANW": "B",
