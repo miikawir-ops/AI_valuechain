@@ -2469,7 +2469,7 @@
     "method": "2026-10-yoy-edgar",
     "methodology_change": true,
     "methodology_note": "Revenue growth is now true year-over-year (each quarter vs the same quarter a year earlier), with SEC filings filling quarters Yahoo Finance lacks. HBM memory's earlier Red rested on a 2-quarter calculation; colour changes since then reflect the fix, not a market move.",
-    "time": "23:59",
+    "time": "11:31",
     "action_ticker": "MU",
     "action_price": null,
     "scores": {
@@ -2485,7 +2485,7 @@
         }
       },
       "compute": {
-        "score": 56.7,
+        "score": 59.1,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2498,7 +2498,7 @@
         }
       },
       "memory": {
-        "score": 56.28,
+        "score": 56.16,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2520,7 +2520,7 @@
         }
       },
       "cloud": {
-        "score": 37.28,
+        "score": 39.18,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2530,7 +2530,7 @@
         }
       },
       "software": {
-        "score": 39.64,
+        "score": 39.28,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2541,7 +2541,7 @@
         }
       },
       "security": {
-        "score": 38.56,
+        "score": 38.46,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
