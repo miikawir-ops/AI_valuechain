@@ -138,7 +138,7 @@ LAYER_NAMES = {
 # needs only a new entry here, no buildChain() template edit, to get its
 # own named affordance ("Enter <product name> ↗") on its layer card.
 LAYER_DEEP_DIVE_URLS = {
-    "infra": {"url": "https://miikawir-ops.github.io/RayDar-DataCenter/",
+    "infra": {"url": "https://datacenter.raydar.fi/",
               "label": "Enter RayDar Data Center"},
 }
  

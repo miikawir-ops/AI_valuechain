@@ -18,7 +18,7 @@ import urllib.request
 
 import yfinance as yf
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else "https://miikawir-ops.github.io/AI_valuechain/"
+SRC = sys.argv[1] if len(sys.argv) > 1 else "https://raydar.fi/"
 page = (urllib.request.urlopen(SRC, timeout=30).read().decode("utf-8") if SRC.startswith("http")
         else open(SRC, encoding="utf-8").read())
 grab = lambda p, f=re.S: re.search(p, page, f)
