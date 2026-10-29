@@ -1,0 +1,76 @@
+name: Mirror RayDar sites
+
+# github.io mirror of raydar.fi, datacenter.raydar.fi and vice.raydar.fi for
+# networks that block raydar.fi (Ray, 2026-10-28). Pulls the live sites; the
+# three source repos and their deploys are not touched.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # commit the verified mirror state
+  pages: write      # actions/deploy-pages
+  id-token: write   # actions/deploy-pages (OIDC)
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # A fetch failure fails here, before anything is published: the last
+      # good mirror stays up and the run shows red.
+      - name: Fetch the live sites and build the mirror
+        env:
+          GITHUB_TOKEN: ${{ github.token }}   # repo-tree API call, not rate-limited per runner IP
+        run: |
+          rm -rf site
+          python mirror.py build site
+
+      - name: Anything changed?
+        id: diff
+        run: |
+          git add -A site
+          if git diff --staged --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; echo "No change since the last publish."
+          else echo "changed=true" >> "$GITHUB_OUTPUT"; git diff --staged --stat | tail -1; fi
+
+      - name: Upload Pages artifact
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        if: steps.diff.outputs.changed == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify the published mirror
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          python mirror.py verify site
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+          python render_check.py site https://miikawir-ops.github.io/raydar-mirror/
+
+      # Last, so the repo only records states that were published and
+      # verified; after a failed deploy or verify the next run tries again.
+      - name: Commit the verified mirror
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Mirror update: $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git push
