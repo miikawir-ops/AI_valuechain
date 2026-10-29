@@ -2471,12 +2471,12 @@
   {
     "date": "2026-10-28",
     "method": "2026-10-yoy-edgar",
-    "time": "12:10",
+    "time": "14:14",
     "action_ticker": "VRT",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 40.13,
+        "score": 39.62,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2487,7 +2487,7 @@
         }
       },
       "compute": {
-        "score": 56.4,
+        "score": 56.52,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2500,7 +2500,7 @@
         }
       },
       "memory": {
-        "score": 54.88,
+        "score": 54.73,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2510,7 +2510,7 @@
         }
       },
       "infra": {
-        "score": 39.35,
+        "score": 38.13,
         "color": "Green",
         "ratings": {
           "VRT": "A",
@@ -2522,7 +2522,7 @@
         }
       },
       "cloud": {
-        "score": 42.84,
+        "score": 42.06,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2532,7 +2532,7 @@
         }
       },
       "software": {
-        "score": 38.28,
+        "score": 38.11,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2543,7 +2543,7 @@
         }
       },
       "security": {
-        "score": 36.65,
+        "score": 37.21,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
