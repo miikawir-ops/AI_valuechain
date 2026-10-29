@@ -49,7 +49,7 @@ Always stop and ask regardless: when the fix would change agreed behavior; when 
 Data & honesty
 Never fabricate data, metrics, or milestones. Mark sparse or estimated data as such.
 Commit hashes, figures and file paths in reports are quoted only from command output, never from memory or inference. (2026-10-24: an item-6 hash, fb0de4c, was reported without appearing in any output; the real one was a2a3b69.)
-Financial data may be stale — disclose it. Quarterly financials are the latest reported quarter: its quarter-end can be ~5 months before the session (23 of 35 were 115 days old on 2026-10-23, before Q3 reports), not "up to 90 days".
+Financial data may be stale — disclose it, as "Quarterly financials are the latest reported quarter and can be several months old" (Ray, 2026-10-28). Don't put a maximum age on the page: there is none. 23 of 35 quarters were 115 days old here on 2026-10-23 (before Q3 reports); in DataCenter, DLR's was 211 days on 2026-10-28 (Yahoo's newest column empty). "Up to 90 days" and "~5 months" were both wrong.
 Distinguish "the signal is real" from "the price moved." Never conflate them.
 Not financial advice — dashboards inform decisions, they don't make them.
 On fetch failure, never substitute zero, a stale cached value, or an estimate silently. A failed fetch is a missing value, not a zero — treating it as zero is itself a form of fabrication. Mark it missing and surface that in the output.

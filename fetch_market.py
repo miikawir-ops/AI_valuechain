@@ -632,7 +632,7 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             "next_earnings":     next_earnings,
             "sector":            info.get("sector", "N/A"),
             "data_date":         datetime.datetime.now().strftime("%Y-%m-%d"),
-            "data_age_note":     "Quarterly financials may be up to 90 days old",
+            "data_age_note":     "Quarterly financials are the latest reported quarter and can be several months old",
             "data_missing":      data_missing,
         }
  

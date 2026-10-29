@@ -686,7 +686,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     # manually so this renders the same on the Linux runner and on Windows.
     prev_session  = datetime.date.fromisoformat(prev_date) if prev_date else None
     prev_label    = f"{prev_session.strftime('%a %b')} {prev_session.day}" if prev_session else ""
-    fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials: latest reported quarter, up to ~5 months old"
+    fetch_note   = f"Data: close of {session_date_long} · fetched {time_str} UTC · Quarterly financials are the latest reported quarter and can be several months old"
  
     # A missing macro input is None (fetch_macro's data_missing), never a
     # default: its card shows "—" / "No data".
@@ -1100,7 +1100,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <p style="margin-bottom:10px"><strong>revenue up, price down</strong> badge on a company — Revenue YoY accelerated more than 5 percentage points last quarter while the price fell 15% or more in 30 days and at least 10 points more than the NASDAQ. Two readings: the market may be pricing a risk that reported revenue doesn't show yet, or the price may have fallen further than the revenue trend implies. Not a recommendation. It changes no score, colour or rating.</p>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
     <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — CNBC, MarketWatch, Yahoo Finance company headlines · AI analysis — Google Gemini 2.5</p>
-    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials are each company's latest reported quarter, up to about 5 months old · Not financial advice · Always do your own research</p>
+    <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials are the latest reported quarter and can be several months old · Not financial advice · Always do your own research</p>
   </div>
   <div id="chain-wrap" style="position:relative">
     <div style="display:flex;align-items:stretch;gap:0" id="chain"></div>
@@ -1225,7 +1225,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <div class="footer">
   <div><strong>RayDar</strong> · {datetime_str}</div>
   <div style="font-size:11px;color:#888780;margin-top:2px">
-    Not financial advice · Always do your own research · Quarterly financials up to ~5 months old
+    Not financial advice · Always do your own research · Quarterly financials are the latest reported quarter and can be several months old
   </div>
   <div class="footer-cobhc">
     ⚔️ Powered by COBHC · Built in Espoo, Finland ·
