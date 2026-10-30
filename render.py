@@ -38,6 +38,14 @@ TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
  
 SCORES_HISTORY_FILE = "scores_history.json"
+# Link previews (LinkedIn, Slack, X) and the footer author line (Ray,
+# 2026-10-30). Static text only: a preview is cached, so no live figures.
+SITE_URL         = "https://raydar.fi/"
+SITE_TITLE       = "RayDar — AI value chain intelligence"
+SITE_DESCRIPTION = ("RayDar tracks the AI value chain, from power and chips to cloud and software, and flags "
+                    "where revenue acceleration meets supply constraints. Updated on weekdays. Not financial advice.")
+OG_IMAGE_ALT     = "RayDar — AI value chain intelligence. Dark radar-style title card."
+AUTHOR_LINKEDIN_URL = ""   # Ray's LinkedIn profile URL; the footer links it only once set
 MAX_HISTORY_DAYS    = 30
 EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
 UNMEASURED_NOTE_SHARE = 0.25   # layer card names unmeasured acceleration above this market-cap share
@@ -723,6 +731,19 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RayDar — AI value chain intelligence · {datetime_str}</title>
+<meta name="description" content="{SITE_DESCRIPTION}">
+<meta property="og:title" content="{SITE_TITLE}">
+<meta property="og:description" content="{SITE_DESCRIPTION}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{SITE_URL}">
+<meta property="og:image" content="{SITE_URL}og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="{OG_IMAGE_ALT}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -1226,6 +1247,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div><strong>RayDar</strong> · {datetime_str}</div>
   <div style="font-size:11px;color:#888780;margin-top:2px">
     Not financial advice · Always do your own research · Quarterly financials are the latest reported quarter and can be several months old
+  </div>
+  <div style="font-size:11px;color:#8A9AB8;margin-top:4px">
+    Personal project by Miika Ray Wires · {f'<a href="{AUTHOR_LINKEDIN_URL}" target="_blank" rel="noopener" style="color:#85B7EB">LinkedIn</a>' if AUTHOR_LINKEDIN_URL else 'LinkedIn'}
   </div>
   <div class="footer-cobhc">
     ⚔️ Powered by COBHC · Built in Espoo, Finland ·

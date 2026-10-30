@@ -69,8 +69,9 @@ jobs:
       - name: Prepare Pages artifact
         run: |
           mkdir -p _site
-          cp index.html ai_chain_report.html _site/
+          cp index.html ai_chain_report.html og-image.png favicon.svg favicon.png apple-touch-icon.png _site/
           test -f _site/index.html
+          test -f _site/og-image.png
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
