@@ -2473,7 +2473,7 @@
   {
     "date": "2026-10-30",
     "method": "2026-10-yoy-edgar",
-    "time": "08:23",
+    "time": "11:45",
     "action_ticker": "L",
     "action_price": null,
     "scores": {
@@ -2489,7 +2489,7 @@
         }
       },
       "compute": {
-        "score": 59.42,
+        "score": 58.85,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2512,7 +2512,7 @@
         }
       },
       "infra": {
-        "score": 38.42,
+        "score": 38.3,
         "color": "Green",
         "ratings": {
           "VRT": "A",
@@ -2524,7 +2524,7 @@
         }
       },
       "cloud": {
-        "score": 41.12,
+        "score": 41.16,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
