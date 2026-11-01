@@ -622,13 +622,17 @@ def _radar_js_data(radar_data: list) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
 
-# Hyperscaler capex card (capex.py; Ray, 2026-11-01). Display-only: it reads
-# the run's layer scores for the supply side and feeds nothing back.
+# Hyperscaler capex card (capex.py; Ray, 2026-11-01), above the signal
+# scores in DataCenter's dark strip style. Display-only: it reads the run's
+# layer scores for the supply side and feeds nothing back.
 CAPEX_SUPPLY_LAYERS = ["energy", "compute", "memory", "infra"]   # capex recipients; Cloud is the spender
 CAPEX_FLOWS = [("Accelerators and servers", "Semicon, HBM memory"),
                ("Networking, cooling, racks", "Data center"),
                ("Buildings and power", "Data center, Energy")]
 DATACENTER_URL = "https://datacenter.raydar.fi/"
+# Text colours on the dark strip (contrast checked against its background).
+CX_DIR_COLOR   = {"accelerating": "#97C459", "stable": "#FAC775", "decelerating": "#F09595"}
+CX_LAYER_COLOR = {"Red": "#F09595", "Orange": "#FAC775", "Green": "#97C459", "Blue": "#85B7EB"}
 
 
 def _qdate(iso: str) -> str:
@@ -636,61 +640,80 @@ def _qdate(iso: str) -> str:
     return f"{d:%b} {d.day}, {d.year}"
 
 
+def _qlabel(iso: str) -> str:
+    d = datetime.date.fromisoformat(iso)
+    return f"Q{(d.month - 1) // 3 + 1}'{d:%y}"
+
+
 def _capex_html(cx: dict | None, scored_data: dict) -> str:
-    """The capex card under the signal scores: demand side (the aggregate),
-    supply side (the highest-scoring capex-recipient layer), the companies,
-    a general beneficiary mapping and the caveats. Missing data is said,
-    never shown as zero."""
+    """The capex strip above the signal scores: the direction as the
+    headline, the dollar line, a four-quarter YoY chart, the supply side,
+    the companies, the beneficiary chips, one caveat line and the rest
+    behind Details. Missing data is said, never shown as zero."""
     import html as _h
     cx = cx or {"available": False, "reason": "not fetched this run", "companies": []}
+    chart = ""
     if cx.get("available"):
-        arrow = {"accelerating": "▲", "decelerating": "▼", "stable": "—"}.get(cx.get("direction"), "")
-        dcol  = {"accelerating": "#27500A", "decelerating": "#A32D2D"}.get(cx.get("direction"), "#5F5E5A")
-        part  = "" if cx["included"] == len(cx["companies"]) else f" · {cx['included']} of {len(cx['companies'])} companies"
-        demand = (f'<div class="cx-big">${cx["total"] / 1e9:.1f}bn</div>'
-                  f'<div class="cx-line">in the quarter ending {_qdate(cx["quarter"])}, '
-                  f'<strong>{cx["yoy"] * 100:+.1f}%</strong> vs a year earlier{part}</div>')
-        if cx.get("direction"):
-            demand += (f'<div class="cx-dir" style="color:{dcol}">{arrow} {cx["direction"]} '
-                       f'({cx["change_pp"]:+.1f} pp vs the previous quarter)</div>')
+        d = cx.get("direction")
+        col = CX_DIR_COLOR.get(d, "#C8D4E8")
+        arrow = {"accelerating": "▲", "decelerating": "▼", "stable": "—"}.get(d, "")
+        n = len(cx["companies"])
+        part = "" if cx["included"] == n else f" · {cx['included']} of {n} companies"
+        if d:
+            head = (f'<div class="capex-dir" style="color:{col}">{arrow} {d.capitalize()}'
+                    f'<span class="cx-pp">{cx["change_pp"]:+.1f} pp vs the previous quarter</span></div>')
         else:
-            demand += f'<div class="cx-dir">Direction not measured: {_h.escape(cx.get("direction_note", ""))}</div>'
+            head = (f'<div class="capex-dir" style="color:#C8D4E8">Direction not measured'
+                    f'<span class="cx-pp">{_h.escape(cx.get("direction_note", ""))}</span></div>')
+        head += (f'<div class="capex-meta">${cx["total"] / 1e9:.1f}bn in the quarter ending {_qdate(cx["quarter"])} '
+                 f'· {cx["yoy"] * 100:+.1f}% vs a year earlier{part}</div>')
+        hist = cx.get("history") or []
+        if hist:
+            top = max(abs(h["yoy"]) for h in hist) or 1
+            bars = "".join(
+                f'<div class="cx-col"><span class="cx-val">{h["yoy"] * 100:+.1f}%</span>'
+                f'<div class="cx-bar{" cx-last" if i == len(hist) - 1 else ""}{" cx-neg" if h["yoy"] < 0 else ""}" '
+                f'style="height:{max(4, round(56 * abs(h["yoy"]) / top))}px"></div>'
+                f'<span class="cx-q">{_qlabel(h["quarter"])}</span></div>' for i, h in enumerate(hist))
+            label = ", ".join(f"{_qlabel(h['quarter'])} {h['yoy'] * 100:+.1f}%" for h in hist)
+            chart = (f'<div class="cx-chart" role="img" aria-label="Aggregate capex, YoY by quarter: {label}">'
+                     f'<div class="cx-chart-lbl">Aggregate YoY by quarter</div><div class="cx-bars">{bars}</div></div>')
     else:
-        demand = f'<div class="cx-line">Not available this run: {_h.escape(cx.get("reason", ""))}</div>'
-    cos = []
-    for c in cx.get("companies", []):
-        if c.get("status") == "included":
-            cos.append(f'<div class="cx-co"><strong>{c["ticker"]}</strong><span>{_qdate(c["quarter"])}</span>'
-                       f'<span>${c["value"] / 1e9:.1f}bn · {c["yoy"] * 100:+.1f}%</span></div>')
-        else:
-            note = (f"latest quarter {_qdate(c['latest_quarter'])}" if c.get("status") == "stale" and c.get("latest_quarter")
-                    else c.get("note", ""))
-            cos.append(f'<div class="cx-co cx-off"><strong>{c["ticker"]}</strong>'
-                       f'<span>{c.get("status", "missing")}: {_h.escape(note)}</span><span>not included</span></div>')
+        head = (f'<div class="capex-dir" style="color:#C8D4E8">— Not available this run</div>'
+                f'<div class="capex-meta">{_h.escape(cx.get("reason", ""))}</div>')
     supply = [(lid, scored_data[lid]["best"]) for lid in CAPEX_SUPPLY_LAYERS if lid in scored_data]
     if supply:
         lid, b = max(supply, key=lambda x: x[1]["score"])
-        sup = (f'<div class="cx-line">Highest-scoring layer today:</div>'
-               f'<div class="cx-big" style="color:{CC.get(b["color"], {}).get("border", "#0C1A3A")}">{LAYER_NAMES[lid][0]}</div>'
-               f'<div class="cx-line">score {b["score"]:.0f} · {b["color"]}</div>'
-               f'<div class="cx-small">Among the capex recipients: Energy, Semicon, HBM memory, Data center</div>')
+        sup = (f'<div class="cx-supply">Supply side: <b style="color:{CX_LAYER_COLOR.get(b["color"], "#fff")}">'
+               f'{LAYER_NAMES[lid][0]}</b> · {b["score"]:.0f} · {b["color"]}'
+               f'<span class="cx-sub"> (highest-scoring capex recipient)</span></div>')
     else:
-        sup = '<div class="cx-line">No layer scores this run.</div>'
-    flows = "".join(f"<li><strong>{a}</strong> → {b}</li>" for a, b in CAPEX_FLOWS)
-    return f"""<div class="card" id="capex-card">
-  <div class="cx-head">
-    <div class="card-label" style="margin-bottom:0">Hyperscaler capex (last reported quarters)</div>
+        sup = '<div class="cx-supply">Supply side: no layer scores this run</div>'
+    cos = []
+    for c in cx.get("companies", []):
+        if c.get("status") == "included":
+            cos.append(f'<span class="capex-co"><b>{c["ticker"]}</b> {_qdate(c["quarter"])} · '
+                       f'${c["value"] / 1e9:.1f}bn · {c["yoy"] * 100:+.1f}%</span>')
+        else:
+            note = (f"latest quarter {_qdate(c['latest_quarter'])}" if c.get("status") == "stale" and c.get("latest_quarter")
+                    else c.get("note", ""))
+            cos.append(f'<span class="capex-co capex-off"><b>{c["ticker"]}</b> {c.get("status", "missing")}: '
+                       f'{_h.escape(note)} · not included</span>')
+    flows = "".join(f'<div class="capex-chip"><b>{x}</b> → {y}</div>' for x, y in CAPEX_FLOWS)
+    return f"""<div class="capex-strip{"" if cx.get("available") else " insufficient"}" id="capex-card">
+  <div class="cx-top">
+    <div class="capex-lbl">HYPERSCALER CAPEX (LAST REPORTED QUARTERS)</div>
     <a class="cx-link" href="{DATACENTER_URL}">Detail by sub-layer: datacenter.raydar.fi →</a>
   </div>
-  <div class="cx-grid">
-    <div class="cx-side"><div class="cx-tag">Demand side · MSFT, GOOGL, AMZN, META</div>{demand}</div>
-    <div class="cx-side"><div class="cx-tag">Supply side</div>{sup}</div>
-  </div>
-  <div class="cx-cos">{"".join(cos)}</div>
-  <div class="cx-note">Context only: capex is a demand signal for the whole chain. It doesn't show which layer needs the most, and it isn't part of any score.</div>
-  <div class="cx-flows"><div class="cx-tag">Where AI capex typically flows (general context, not this quarter's allocation)</div>
-    <ul>{flows}<li><strong>Cloud</strong> is where the spend comes from; AI software and AI security aren't direct capex recipients.</li></ul></div>
-  <div class="cx-note">Reported cash capex: backward-looking. Company guidance isn't included. Figures are cash capex as filed; headline figures in company releases or the press can differ, for example by including finance leases.</div>
+  <div class="cx-main"><div>{head}{sup}</div>{chart}</div>
+  <div class="capex-cos">{"".join(cos)}</div>
+  <div class="cx-flows-lbl">Where AI capex typically flows · general context, not this quarter's allocation</div>
+  <div class="capex-chips">{flows}<div class="capex-chip"><b>Cloud</b> is the spender · AI software and security aren't direct recipients</div></div>
+  <div class="capex-caveat">Reported cash capex, backward-looking · context only, not part of any score</div>
+  <details class="cx-details"><summary>Details</summary>
+    <p>Capex is a demand signal for the whole chain. It doesn't show which layer needs the most, and it isn't part of any score. The supply side is the highest-scoring of Energy, Semicon, HBM memory and Data center today.</p>
+    <p>Company guidance isn't included. Figures are cash capex as filed with the SEC; headline figures in company releases or the press can differ, for example by including finance leases. The four hyperscalers' last reported quarters are summed and compared with the same quarters a year earlier; a company without the comparable quarter is named and left out.</p>
+  </details>
 </div>
 """
 
@@ -864,22 +887,40 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .card-title{{font-size:20px;font-weight:700;color:#0C1A3A;
              letter-spacing:-0.01em;margin-bottom:0}}
 .fetch-note{{font-size:10px;color:#B4B2A9;margin-top:4px}}
-.cx-head{{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:12px}}
-.cx-link{{font-size:11px;color:#185FA5;text-decoration:none;font-weight:500}}
-.cx-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
-.cx-side{{background:#F8F8F7;border:0.5px solid #E0DFDC;border-radius:8px;padding:12px}}
-.cx-tag{{font-size:10px;font-weight:500;color:#888780;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}}
-.cx-big{{font-size:22px;font-weight:700;color:#0C1A3A;line-height:1.2}}
-.cx-line{{font-size:12px;color:#444441;margin-top:2px}}
-.cx-dir{{font-size:13px;font-weight:600;color:#5F5E5A;margin-top:6px}}
-.cx-small{{font-size:10px;color:#888780;margin-top:6px}}
-.cx-cos{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}}
-.cx-co{{border:0.5px solid #E0DFDC;border-radius:8px;padding:8px 10px;font-size:11px;color:#444441;display:flex;flex-direction:column;gap:2px}}
-.cx-co strong{{font-size:12px;color:#0C1A3A}}
-.cx-off{{background:#FAEEDA;border-color:#EF9F27}}
-.cx-note{{font-size:10px;color:#888780;margin-top:10px;line-height:1.5}}
-.cx-flows{{margin-top:10px}}
-.cx-flows ul{{margin:0;padding-left:16px;font-size:11px;color:#444441;line-height:1.7}}
+.capex-strip{{background:linear-gradient(135deg,#1A1830,#0F1A2E);border:1px solid rgba(175,169,236,0.35);
+             border-radius:10px;padding:14px 16px;margin-bottom:12px;color:#E8E6DF}}
+.capex-strip.insufficient{{border-style:dashed}}
+.capex-lbl{{font-size:10px;font-weight:500;color:#AFA9EC;letter-spacing:.06em}}
+.cx-top{{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}}
+.cx-link{{font-size:11px;color:#85B7EB;text-decoration:none;font-weight:500}}
+.cx-main{{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;margin-bottom:10px}}
+.capex-dir{{font-size:28px;font-weight:600;line-height:1.15;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}}
+.cx-pp{{font-size:14px;font-weight:400;color:#C8D4E8}}
+.capex-meta{{font-size:13px;color:#C8D4E8;margin-top:4px}}
+.cx-supply{{font-size:12px;color:#C8D4E8;margin-top:8px}}
+.cx-sub{{color:#9AA8C4}}
+.cx-chart-lbl{{font-size:9px;color:#9AA8C4;letter-spacing:.04em;margin-bottom:4px;text-align:center}}
+.cx-bars{{display:flex;align-items:flex-end;gap:10px;height:92px}}
+.cx-col{{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;min-width:48px}}
+.cx-val{{font-size:11px;color:#E8E6DF;font-weight:500}}
+.cx-bar{{width:26px;border-radius:3px 3px 0 0;background:#534AB7}}
+.cx-bar.cx-last{{background:#85B7EB}}
+.cx-bar.cx-neg{{background:#F09595}}
+.cx-q{{font-size:10px;color:#9AA8C4}}
+.capex-cos{{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}}
+.capex-co{{background:rgba(255,255,255,.06);border:0.5px solid rgba(175,169,236,0.3);border-radius:8px;
+          padding:4px 9px;font-size:11px;color:#C8D4E8}}
+.capex-co b{{color:#fff}}
+.capex-off{{border-color:#EF9F27;color:#FAC775}}
+.cx-flows-lbl{{font-size:10px;color:#9AA8C4;margin-bottom:6px}}
+.capex-chips{{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}}
+.capex-chip{{background:rgba(255,255,255,.06);border:0.5px solid rgba(175,169,236,0.3);
+            border-radius:8px;padding:6px 10px;font-size:11px;color:#C8D4E8}}
+.capex-chip b{{color:#fff}}
+.capex-caveat{{font-size:11px;color:#9AA8C4;line-height:1.5}}
+.cx-details{{margin-top:6px;font-size:11px;color:#C8D4E8;line-height:1.55}}
+.cx-details summary{{cursor:pointer;color:#85B7EB;font-weight:500;padding:4px 0;width:max-content}}
+.cx-details p{{margin:6px 0 0}}
 .layer{{flex:1;min-width:120px;width:148px;border:1.5px solid;border-radius:10px;display:flex;flex-direction:column;
         padding:11px 10px;cursor:pointer;transition:transform .1s,box-shadow .1s}}
 .layer:hover{{transform:translateY(-2px)}}
@@ -1091,8 +1132,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }}
 @media(max-width:768px){{
   #radar-grid{{grid-template-columns:repeat(2,1fr)!important}}
-  .cx-grid{{grid-template-columns:1fr}}
-  .cx-cos{{grid-template-columns:1fr 1fr}}
+  .cx-main{{grid-template-columns:1fr}}
+  .capex-dir{{font-size:24px}}
+  .cx-bars{{justify-content:space-around}}
 }}
 @media(max-width:380px){{
   .hm-grid{{grid-template-columns:1fr 1fr}}
@@ -1163,6 +1205,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="ticker-scroll" id="top-ticker"></div>
 </div>
 <div class="body">
+{capex_html}
  
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
@@ -1236,7 +1279,6 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
  
-{capex_html}
 <div class="card">
   <div class="card-label">Daily analysis — Gemini 2.5-flash · {time_str}</div>
   <div class="as-wrap" id="analysis"></div>

@@ -120,16 +120,34 @@ def test_no_previous_quarter_means_direction_not_measured():
     print("PASS: without the same companies' previous quarter, direction is not measured, not guessed")
 
 
-def test_card_supply_side_names_a_recipient_layer_not_cloud():
+def test_history_is_aggregate_yoy_for_up_to_four_quarters():
+    r = capex.aggregate(q(REAL))
+    # REAL has no 2024 quarters, so only Q2 and Q3 2026 have a year-earlier quarter.
+    assert [(h["quarter"], h["yoy"]) for h in r["history"]] == [("2026-06-30", 0.8702), ("2026-09-30", 1.0759)], r["history"]
+    long = {t: {D(f"{y}-{m}"): 10 * BN * (1.1 ** i) for i, (y, m) in enumerate(
+        [(2024, "09-30"), (2024, "12-31"), (2025, "03-31"), (2025, "06-30"), (2025, "09-30"), (2025, "12-31"),
+         (2026, "03-31"), (2026, "06-30"), (2026, "09-30")])} for t in REAL}
+    h = capex.aggregate(long)["history"]
+    assert [x["quarter"] for x in h] == ["2025-12-31", "2026-03-31", "2026-06-30", "2026-09-30"], h
+    assert all(abs(x["yoy"] - (1.1 ** 4 - 1)) < 0.0005 for x in h), h
+    print("PASS: history: aggregate YoY for the last 4 quarters with the same companies, oldest first")
+
+
+def test_card_headline_chart_supply_and_companies():
     import render
     best = lambda score, color: {"best": {"score": score, "color": color}}
     scored = {"cloud": best(70.0, "Red"), "compute": best(59.1, "Orange"), "memory": best(56.3, "Orange"),
               "energy": best(39.5, "Green"), "infra": best(38.4, "Green"), "software": best(80.0, "Red")}
     html = render._capex_html(capex.aggregate(q(REAL)), scored)
-    assert "Semicon</div>" in html and "score 59 · Orange" in html, "highest of Energy/Semicon/HBM memory/Data center"
-    assert ">Cloud</div>" not in html and ">AI software</div>" not in html
-    assert "$201.9bn" in html and "+107.6%" in html and "accelerating (+20.6 pp" in html
-    print("PASS: card: supply side is the highest-scoring capex recipient (Semicon), never Cloud or software")
+    assert '▲ Accelerating<span class="cx-pp">+20.6 pp vs the previous quarter</span>' in html
+    assert "$201.9bn in the quarter ending Sep 30, 2026 · +107.6% vs a year earlier" in html
+    assert 'aria-label="Aggregate capex, YoY by quarter: Q2\'26 +87.0%, Q3\'26 +107.6%"' in html, "chart labelled"
+    assert "Supply side: <b" in html and ">Semicon</b> · 59 · Orange" in html, "highest of the capex recipients"
+    assert ">Cloud</b> · " not in html and ">AI software</b>" not in html, "never Cloud or software as the supply side"
+    assert "<b>MSFT</b> Sep 30, 2026 · $39.4bn · +103.0%" in html
+    assert "Reported cash capex, backward-looking · context only, not part of any score" in html
+    assert "<details" in html and "finance leases" in html and "guidance isn't included" in html
+    print("PASS: card: headline direction, dollar line, labelled 4-quarter chart, supply side, company chips, Details")
 
 
 def test_card_names_stale_and_never_shows_zero():
@@ -137,12 +155,12 @@ def test_card_names_stale_and_never_shows_zero():
     d = q(REAL)
     d["AMZN"] = {k: v for k, v in d["AMZN"].items() if k <= D("2026-03-31")}
     html = render._capex_html(capex.aggregate(d), {})
-    assert "stale: latest quarter Mar 31, 2026" in html and "3 of 4 companies" in html, "stale company named"
+    assert "stale: latest quarter Mar 31, 2026 · not included" in html and "3 of 4 companies" in html, "stale company named"
     html = render._capex_html({"available": False, "reason": "fetch failed (RuntimeError)", "companies": []}, {})
-    assert "Not available this run: fetch failed" in html and "$0" not in html and "0.0%" not in html
-    html = render._capex_html(None, {})
-    assert "Not available this run: not fetched this run" in html
-    print("PASS: card: a stale company is named; a failed fetch says 'not available', never $0 or 0%")
+    assert "— Not available this run" in html and "fetch failed (RuntimeError)" in html
+    assert "$0" not in html and "0.0%" not in html and "cx-chart" not in html
+    assert "Not available this run" in render._capex_html(None, {})
+    print("PASS: card: a stale company is named; a failed fetch says 'not available', never $0, 0% or a chart")
 
 
 if __name__ == "__main__":
@@ -153,6 +171,7 @@ if __name__ == "__main__":
     test_fewer_than_three_is_not_available()
     test_direction_bands()
     test_no_previous_quarter_means_direction_not_measured()
-    test_card_supply_side_names_a_recipient_layer_not_cloud()
+    test_history_is_aggregate_yoy_for_up_to_four_quarters()
+    test_card_headline_chart_supply_and_companies()
     test_card_names_stale_and_never_shows_zero()
     print("\nAll capex tests passed.")
