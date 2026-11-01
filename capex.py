@@ -38,6 +38,10 @@ CONCEPTS = [("us-gaap", "PaymentsToAcquirePropertyPlantAndEquipment"),
 FORMS = {"10-Q", "10-K", "10-Q/A", "10-K/A"}
 MIN_COMPANIES = 3      # fewer: no aggregate, "not available" (never a 1-2 company "aggregate")
 DIRECTION_BAND = 0.05  # ±5 pp change in aggregate YoY, the revenue-acceleration band
+# What Yahoo's cash-flow table held per ticker in the last fetch: "row", "no
+# row" or "no table". DataCenter fails its run when tables came back but none
+# had the capex row, a data-format change (its ledger R44); nothing else reads it.
+YAHOO_TABLES: dict = {}
 
 
 def edgar_quarters(rows: list) -> dict:
@@ -65,7 +69,9 @@ def yahoo_quarters(ticker: str) -> dict:
     import yfinance as yf
     cf = yf.Ticker(ticker).quarterly_cashflow
     if cf is None or cf.empty or "Capital Expenditure" not in cf.index:
+        YAHOO_TABLES[ticker] = "no table" if cf is None or cf.empty else "no row"
         return {}
+    YAHOO_TABLES[ticker] = "row"
     return {k.date(): abs(float(v)) for k, v in cf.loc["Capital Expenditure"].items() if v == v}
 
 
@@ -173,6 +179,7 @@ def aggregate(quarters: dict, sources: dict = None) -> dict:
 def fetch() -> dict:
     """The aggregate for TICKERS, fetched live. Never raises: a failure is
     "not available" with its reason, never a zero."""
+    YAHOO_TABLES.clear()
     try:
         quarters, sources = {}, {}
         for t in TICKERS:
