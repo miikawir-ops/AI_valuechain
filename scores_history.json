@@ -2473,8 +2473,8 @@
   {
     "date": "2026-10-30",
     "method": "2026-10-yoy-edgar",
-    "time": "08:19",
-    "action_ticker": "AVGO",
+    "time": "08:23",
+    "action_ticker": "L",
     "action_price": null,
     "scores": {
       "energy": {
