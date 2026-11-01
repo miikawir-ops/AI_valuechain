@@ -120,6 +120,31 @@ def test_no_previous_quarter_means_direction_not_measured():
     print("PASS: without the same companies' previous quarter, direction is not measured, not guessed")
 
 
+def test_card_supply_side_names_a_recipient_layer_not_cloud():
+    import render
+    best = lambda score, color: {"best": {"score": score, "color": color}}
+    scored = {"cloud": best(70.0, "Red"), "compute": best(59.1, "Orange"), "memory": best(56.3, "Orange"),
+              "energy": best(39.5, "Green"), "infra": best(38.4, "Green"), "software": best(80.0, "Red")}
+    html = render._capex_html(capex.aggregate(q(REAL)), scored)
+    assert "Semicon</div>" in html and "score 59 · Orange" in html, "highest of Energy/Semicon/HBM memory/Data center"
+    assert ">Cloud</div>" not in html and ">AI software</div>" not in html
+    assert "$201.9bn" in html and "+107.6%" in html and "accelerating (+20.6 pp" in html
+    print("PASS: card: supply side is the highest-scoring capex recipient (Semicon), never Cloud or software")
+
+
+def test_card_names_stale_and_never_shows_zero():
+    import render
+    d = q(REAL)
+    d["AMZN"] = {k: v for k, v in d["AMZN"].items() if k <= D("2026-03-31")}
+    html = render._capex_html(capex.aggregate(d), {})
+    assert "stale: latest quarter Mar 31, 2026" in html and "3 of 4 companies" in html, "stale company named"
+    html = render._capex_html({"available": False, "reason": "fetch failed (RuntimeError)", "companies": []}, {})
+    assert "Not available this run: fetch failed" in html and "$0" not in html and "0.0%" not in html
+    html = render._capex_html(None, {})
+    assert "Not available this run: not fetched this run" in html
+    print("PASS: card: a stale company is named; a failed fetch says 'not available', never $0 or 0%")
+
+
 if __name__ == "__main__":
     test_ytd_facts_become_single_quarters()
     test_dollar_aggregate_all_four()
@@ -128,4 +153,6 @@ if __name__ == "__main__":
     test_fewer_than_three_is_not_available()
     test_direction_bands()
     test_no_previous_quarter_means_direction_not_measured()
+    test_card_supply_side_names_a_recipient_layer_not_cloud()
+    test_card_names_stale_and_never_shows_zero()
     print("\nAll capex tests passed.")

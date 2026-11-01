@@ -622,6 +622,79 @@ def _radar_js_data(radar_data: list) -> str:
  
 # ── Master HTML builder ───────────────────────────────────────────────────────
 
+# Hyperscaler capex card (capex.py; Ray, 2026-11-01). Display-only: it reads
+# the run's layer scores for the supply side and feeds nothing back.
+CAPEX_SUPPLY_LAYERS = ["energy", "compute", "memory", "infra"]   # capex recipients; Cloud is the spender
+CAPEX_FLOWS = [("Accelerators and servers", "Semicon, HBM memory"),
+               ("Networking, cooling, racks", "Data center"),
+               ("Buildings and power", "Data center, Energy")]
+DATACENTER_URL = "https://datacenter.raydar.fi/"
+
+
+def _qdate(iso: str) -> str:
+    d = datetime.date.fromisoformat(iso)
+    return f"{d:%b} {d.day}, {d.year}"
+
+
+def _capex_html(cx: dict | None, scored_data: dict) -> str:
+    """The capex card under the signal scores: demand side (the aggregate),
+    supply side (the highest-scoring capex-recipient layer), the companies,
+    a general beneficiary mapping and the caveats. Missing data is said,
+    never shown as zero."""
+    import html as _h
+    cx = cx or {"available": False, "reason": "not fetched this run", "companies": []}
+    if cx.get("available"):
+        arrow = {"accelerating": "▲", "decelerating": "▼", "stable": "—"}.get(cx.get("direction"), "")
+        dcol  = {"accelerating": "#27500A", "decelerating": "#A32D2D"}.get(cx.get("direction"), "#5F5E5A")
+        part  = "" if cx["included"] == len(cx["companies"]) else f" · {cx['included']} of {len(cx['companies'])} companies"
+        demand = (f'<div class="cx-big">${cx["total"] / 1e9:.1f}bn</div>'
+                  f'<div class="cx-line">in the quarter ending {_qdate(cx["quarter"])}, '
+                  f'<strong>{cx["yoy"] * 100:+.1f}%</strong> vs a year earlier{part}</div>')
+        if cx.get("direction"):
+            demand += (f'<div class="cx-dir" style="color:{dcol}">{arrow} {cx["direction"]} '
+                       f'({cx["change_pp"]:+.1f} pp vs the previous quarter)</div>')
+        else:
+            demand += f'<div class="cx-dir">Direction not measured: {_h.escape(cx.get("direction_note", ""))}</div>'
+    else:
+        demand = f'<div class="cx-line">Not available this run: {_h.escape(cx.get("reason", ""))}</div>'
+    cos = []
+    for c in cx.get("companies", []):
+        if c.get("status") == "included":
+            cos.append(f'<div class="cx-co"><strong>{c["ticker"]}</strong><span>{_qdate(c["quarter"])}</span>'
+                       f'<span>${c["value"] / 1e9:.1f}bn · {c["yoy"] * 100:+.1f}%</span></div>')
+        else:
+            note = (f"latest quarter {_qdate(c['latest_quarter'])}" if c.get("status") == "stale" and c.get("latest_quarter")
+                    else c.get("note", ""))
+            cos.append(f'<div class="cx-co cx-off"><strong>{c["ticker"]}</strong>'
+                       f'<span>{c.get("status", "missing")}: {_h.escape(note)}</span><span>not included</span></div>')
+    supply = [(lid, scored_data[lid]["best"]) for lid in CAPEX_SUPPLY_LAYERS if lid in scored_data]
+    if supply:
+        lid, b = max(supply, key=lambda x: x[1]["score"])
+        sup = (f'<div class="cx-line">Highest-scoring layer today:</div>'
+               f'<div class="cx-big" style="color:{CC.get(b["color"], {}).get("border", "#0C1A3A")}">{LAYER_NAMES[lid][0]}</div>'
+               f'<div class="cx-line">score {b["score"]:.0f} · {b["color"]}</div>'
+               f'<div class="cx-small">Among the capex recipients: Energy, Semicon, HBM memory, Data center</div>')
+    else:
+        sup = '<div class="cx-line">No layer scores this run.</div>'
+    flows = "".join(f"<li><strong>{a}</strong> → {b}</li>" for a, b in CAPEX_FLOWS)
+    return f"""<div class="card" id="capex-card">
+  <div class="cx-head">
+    <div class="card-label" style="margin-bottom:0">Hyperscaler capex (last reported quarters)</div>
+    <a class="cx-link" href="{DATACENTER_URL}">Detail by sub-layer: datacenter.raydar.fi →</a>
+  </div>
+  <div class="cx-grid">
+    <div class="cx-side"><div class="cx-tag">Demand side · MSFT, GOOGL, AMZN, META</div>{demand}</div>
+    <div class="cx-side"><div class="cx-tag">Supply side</div>{sup}</div>
+  </div>
+  <div class="cx-cos">{"".join(cos)}</div>
+  <div class="cx-note">Context only: capex is a demand signal for the whole chain. It doesn't show which layer needs the most, and it isn't part of any score.</div>
+  <div class="cx-flows"><div class="cx-tag">Where AI capex typically flows (general context, not this quarter's allocation)</div>
+    <ul>{flows}<li><strong>Cloud</strong> is where the spend comes from; AI software and AI security aren't direct capex recipients.</li></ul></div>
+  <div class="cx-note">Reported cash capex: backward-looking. Company guidance isn't included. Figures are cash capex as filed; headline figures in company releases or the press can differ, for example by including finance leases.</div>
+</div>
+"""
+
+
 def method_boundary(history: list):
     """The last session stored under an older METHOD_VERSION (date), or None."""
     old = [e["date"] for e in history if e.get("date") and e.get("method") != METHOD_VERSION]
@@ -652,7 +725,8 @@ def regime_label(scored_data: dict, macro_data: dict) -> str:
 
 
 def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, session_date,
-                       market_data: dict = None, radar_data: list = None, track: dict = None) -> str:
+                       market_data: dict = None, radar_data: list = None, track: dict = None,
+                       capex: dict = None) -> str:
     if market_data is None:
         market_data = {}
     if radar_data is None:
@@ -721,6 +795,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     history_js             = _history_js_data(full_history, scored_data)
     # track_record.build() output (main computes it: it fetches closes).
     track_js               = json.dumps(track or {"current": [], "old": []})
+    capex_html             = _capex_html(capex, scored_data)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday          = "true" if yesterday else "false"
     method_break_js        = "true" if method_break else "false"
@@ -789,6 +864,22 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .card-title{{font-size:20px;font-weight:700;color:#0C1A3A;
              letter-spacing:-0.01em;margin-bottom:0}}
 .fetch-note{{font-size:10px;color:#B4B2A9;margin-top:4px}}
+.cx-head{{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:12px}}
+.cx-link{{font-size:11px;color:#185FA5;text-decoration:none;font-weight:500}}
+.cx-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+.cx-side{{background:#F8F8F7;border:0.5px solid #E0DFDC;border-radius:8px;padding:12px}}
+.cx-tag{{font-size:10px;font-weight:500;color:#888780;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}}
+.cx-big{{font-size:22px;font-weight:700;color:#0C1A3A;line-height:1.2}}
+.cx-line{{font-size:12px;color:#444441;margin-top:2px}}
+.cx-dir{{font-size:13px;font-weight:600;color:#5F5E5A;margin-top:6px}}
+.cx-small{{font-size:10px;color:#888780;margin-top:6px}}
+.cx-cos{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}}
+.cx-co{{border:0.5px solid #E0DFDC;border-radius:8px;padding:8px 10px;font-size:11px;color:#444441;display:flex;flex-direction:column;gap:2px}}
+.cx-co strong{{font-size:12px;color:#0C1A3A}}
+.cx-off{{background:#FAEEDA;border-color:#EF9F27}}
+.cx-note{{font-size:10px;color:#888780;margin-top:10px;line-height:1.5}}
+.cx-flows{{margin-top:10px}}
+.cx-flows ul{{margin:0;padding-left:16px;font-size:11px;color:#444441;line-height:1.7}}
 .layer{{flex:1;min-width:120px;width:148px;border:1.5px solid;border-radius:10px;display:flex;flex-direction:column;
         padding:11px 10px;cursor:pointer;transition:transform .1s,box-shadow .1s}}
 .layer:hover{{transform:translateY(-2px)}}
@@ -1000,6 +1091,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }}
 @media(max-width:768px){{
   #radar-grid{{grid-template-columns:repeat(2,1fr)!important}}
+  .cx-grid{{grid-template-columns:1fr}}
+  .cx-cos{{grid-template-columns:1fr 1fr}}
 }}
 @media(max-width:380px){{
   .hm-grid{{grid-template-columns:1fr 1fr}}
@@ -1143,6 +1236,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
  
+{capex_html}
 <div class="card">
   <div class="card-label">Daily analysis — Gemini 2.5-flash · {time_str}</div>
   <div class="as-wrap" id="analysis"></div>
