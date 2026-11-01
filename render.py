@@ -894,8 +894,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-top{{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}}
 .cx-link{{font-size:11px;color:#85B7EB;text-decoration:none;font-weight:500}}
 .cx-main{{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;margin-bottom:10px}}
-.capex-dir{{font-size:28px;font-weight:600;line-height:1.15;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}}
-.cx-pp{{font-size:14px;font-weight:400;color:#C8D4E8}}
+.capex-dir{{font-size:22px;font-weight:600;line-height:1.15;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}}
+.cx-pp{{font-size:13px;font-weight:400;color:#C8D4E8}}
 .capex-meta{{font-size:13px;color:#C8D4E8;margin-top:4px}}
 .cx-supply{{font-size:12px;color:#C8D4E8;margin-top:8px}}
 .cx-sub{{color:#9AA8C4}}
@@ -1133,7 +1133,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 @media(max-width:768px){{
   #radar-grid{{grid-template-columns:repeat(2,1fr)!important}}
   .cx-main{{grid-template-columns:1fr}}
-  .capex-dir{{font-size:24px}}
+  .capex-dir{{font-size:18px}}
+  .cx-pp{{font-size:12px}}
   .cx-bars{{justify-content:space-around}}
 }}
 @media(max-width:380px){{
