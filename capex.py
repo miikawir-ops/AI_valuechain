@@ -38,6 +38,7 @@ CONCEPTS = [("us-gaap", "PaymentsToAcquirePropertyPlantAndEquipment"),
 FORMS = {"10-Q", "10-K", "10-Q/A", "10-K/A"}
 MIN_COMPANIES = 3      # fewer: no aggregate, "not available" (never a 1-2 company "aggregate")
 DIRECTION_BAND = 0.05  # ±5 pp change in aggregate YoY, the revenue-acceleration band
+HISTORY_QUARTERS = 4   # aggregate YoY for the chart: the latest quarter and up to 3 before it
 # What Yahoo's cash-flow table held per ticker in the last fetch: "row", "no
 # row" or "no table". DataCenter fails its run when tables came back but none
 # had the capex row, a data-format change (its ledger R44); nothing else reads it.
@@ -152,7 +153,8 @@ def aggregate(quarters: dict, sources: dict = None) -> dict:
     base = sum(r["year_ago_value"] for r in companies if r["status"] == "included")
     out = {"available": True, "quarter": target.isoformat(), "total": now, "total_year_ago": base,
            "yoy": round(now / base - 1, 4), "included": len(included), "companies": companies,
-           "prev_quarter": None, "prev_yoy": None, "change_pp": None, "direction": None}
+           "prev_quarter": None, "prev_yoy": None, "change_pp": None, "direction": None,
+           "history": _history(quarters, dict(included))}
 
     # Previous quarter, the same companies: each needs the quarter before its
     # aggregate quarter and that quarter's year-earlier one.
@@ -174,6 +176,29 @@ def aggregate(quarters: dict, sources: dict = None) -> dict:
                direction="accelerating" if change > DIRECTION_BAND else
                          "decelerating" if change < -DIRECTION_BAND else "stable")
     return out
+
+
+def _history(quarters: dict, ends: dict) -> list:
+    """[{"quarter", "yoy"}], oldest first: aggregate YoY for up to
+    HISTORY_QUARTERS consecutive quarters ending at the aggregate's, the same
+    companies in each, each against its own year-earlier quarter. Stops at
+    the first quarter a company can't supply, never mixing company sets."""
+    out = []
+    for _ in range(HISTORY_QUARTERS):
+        now = base = 0.0
+        for t, end in ends.items():
+            b = _year_ago(quarters[t], end)
+            if not (b and quarters[t][b]):
+                return out[::-1]
+            now += quarters[t][end]
+            base += quarters[t][b]
+        out.append({"quarter": max(ends.values()).isoformat(), "yoy": round(now / base - 1, 4)})
+        prev = {t: next((d for d in sorted(quarters[t], reverse=True) if 75 <= (end - d).days <= 105), None)
+                for t, end in ends.items()}
+        if any(p is None for p in prev.values()):
+            break
+        ends = prev
+    return out[::-1]
 
 
 def fetch() -> dict:
