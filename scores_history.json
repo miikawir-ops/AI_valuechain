@@ -2473,12 +2473,12 @@
   {
     "date": "2026-10-30",
     "method": "2026-10-yoy-edgar",
-    "time": "16:51",
+    "time": "16:56",
     "action_ticker": "L",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 38.57,
+        "score": 38.58,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2534,7 +2534,7 @@
         }
       },
       "software": {
-        "score": 37.38,
+        "score": 37.4,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2545,7 +2545,7 @@
         }
       },
       "security": {
-        "score": 41.98,
+        "score": 41.47,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
