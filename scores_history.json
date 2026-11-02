@@ -2473,12 +2473,12 @@
   {
     "date": "2026-10-30",
     "method": "2026-10-yoy-edgar",
-    "time": "17:05",
+    "time": "19:48",
     "action_ticker": "L",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 38.59,
+        "score": 37.69,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2489,7 +2489,7 @@
         }
       },
       "compute": {
-        "score": 57.74,
+        "score": 58.05,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2502,7 +2502,7 @@
         }
       },
       "memory": {
-        "score": 55.58,
+        "score": 56.32,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2512,7 +2512,7 @@
         }
       },
       "infra": {
-        "score": 38.82,
+        "score": 38.83,
         "color": "Green",
         "ratings": {
           "VRT": "A",
@@ -2524,7 +2524,7 @@
         }
       },
       "cloud": {
-        "score": 41.58,
+        "score": 39.91,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2534,7 +2534,7 @@
         }
       },
       "software": {
-        "score": 37.38,
+        "score": 38.1,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2545,7 +2545,7 @@
         }
       },
       "security": {
-        "score": 41.48,
+        "score": 42.59,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
