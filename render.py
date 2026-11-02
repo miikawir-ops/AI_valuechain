@@ -750,6 +750,74 @@ def _capex_html(cx: dict | None, scored_data: dict) -> str:
 """
 
 
+# "What changed" and "Data gaps" in the scores card (Ray, 2026-11-02).
+# Display-only. changes.py builds the list from scores_detail.jsonl.
+WHAT_CHANGED_SHOWN = 5
+DATA_GAP_DAYS = 150   # quarter older than this: ~91 days in the quarter + up to 60 days to file
+
+
+def _sday(iso: str) -> str:
+    d = datetime.date.fromisoformat(iso)
+    return f"{d:%a} {d:%b} {d.day}"
+
+
+def _changes_html(ch: dict | None) -> str:
+    import html as _h
+    import changes as _changes
+    if not ch or not ch.get("available"):
+        return ""
+    since = _sday(ch["prev_session"])
+    rule = (f"Generated from the stored record of each session's last run, compared with the previous session's. "
+            f"Layer colour and confirmation-state changes are listed as they are. A company's rating or colour "
+            f"change is listed only if its score moved at least {_changes.MIN_SCORE_MOVE:.0f} points (run-to-run "
+            f"news noise is 1–2 points) or it reported a new quarter. Also: new or cleared hype and divergence "
+            f"flags, and newly reported quarters. Nothing is compared across a scoring-method change.")
+    if ch.get("method_break"):
+        body = f'<div class="wc-head">No comparison with {since}: the scoring method changed.</div>'
+    elif not ch["items"]:
+        body = f'<div class="wc-head">No changes since {since}.</div>'
+    else:
+        items = [_h.escape(i) for i in ch["items"]]
+        shown, rest = items[:WHAT_CHANGED_SHOWN], items[WHAT_CHANGED_SHOWN:]
+        body = (f'<div class="wc-head">What changed since {since}</div>'
+                + "".join(f'<div class="wc-item">{i}</div>' for i in shown))
+        if rest:
+            body += (f'<details class="wc-more"><summary>Show all ({len(items)})</summary>'
+                     + "".join(f'<div class="wc-item">{i}</div>' for i in rest) + "</details>")
+    return (f'<div class="wc-box">{body}<details class="wc-more"><summary>How this list is made</summary>'
+            f'<div class="wc-rule">{rule}</div></details></div>')
+
+
+def _gaps_html(scored_data: dict, market_data: dict, session_date) -> str:
+    """One consolidated list: acceleration not measured, a quarter older than
+    DATA_GAP_DAYS, missing fields. One quiet line when there are none."""
+    today = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
+    raw = {t.get("ticker"): t for ts in (market_data or {}).values() for t in (ts or []) if isinstance(t, dict)}
+    rows, total, measured = [], 0, 0
+    for lid in scored_data:
+        for t in scored_data[lid].get("all_tickers", []):
+            total += 1
+            sym, r = t.get("ticker"), raw.get(t.get("ticker"), {})
+            miss = [m for m in (r.get("data_missing") or []) if m not in ("growth_prev", "growth_curr")]
+            if t.get("fund_delta") is None:
+                why = ("no revenue growth figure" if r.get("growth_curr") is None
+                       else "no year-on-year figure for the previous quarter")
+                rows.append(f"{sym}: acceleration not measured ({why})")
+            else:
+                measured += 1
+            q = r.get("growth_quarter")
+            if q and (today - datetime.date.fromisoformat(q)).days > DATA_GAP_DAYS:
+                rows.append(f"{sym}: latest quarter {_qdate(q)}, {(today - datetime.date.fromisoformat(q)).days} days old")
+            if miss:
+                rows.append(f"{sym}: missing {', '.join(miss)}")
+    if not rows:
+        return f'<div class="gaps-ok">No data gaps this run · {measured} of {total} measured</div>'
+    return ('<div class="gaps-box"><div class="wc-head">Data gaps this run</div>'
+            + "".join(f'<div class="wc-item">{r}</div>' for r in rows)
+            + f'<div class="wc-rule">Acceleration measured for {measured} of {total} companies. A quarter counts as '
+              f'old after {DATA_GAP_DAYS} days.</div></div>')
+
+
 def method_boundary(history: list):
     """The last session stored under an older METHOD_VERSION (date), or None."""
     old = [e["date"] for e in history if e.get("date") and e.get("method") != METHOD_VERSION]
@@ -781,7 +849,7 @@ def regime_label(scored_data: dict, macro_data: dict) -> str:
 
 def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, session_date,
                        market_data: dict = None, radar_data: list = None, track: dict = None,
-                       capex: dict = None) -> str:
+                       capex: dict = None, changes: dict = None) -> str:
     if market_data is None:
         market_data = {}
     if radar_data is None:
@@ -851,6 +919,8 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     # track_record.build() output (main computes it: it fetches closes).
     track_js               = json.dumps(track or {"current": [], "old": []})
     capex_html             = _capex_html(capex, scored_data)
+    changes_html           = _changes_html(changes)
+    gaps_html              = _gaps_html(scored_data, market_data, session_date)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday          = "true" if yesterday else "false"
     method_break_js        = "true" if method_break else "false"
@@ -931,6 +1001,13 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .capex-meta{{font-size:13px;color:#C8D4E8;margin-top:4px}}
 .cx-supply{{font-size:12px;color:#C8D4E8;margin-top:8px}}
 .cx-fund{{font-size:12px;color:#C8D4E8;margin-top:6px;line-height:1.5}}
+.wc-box,.gaps-box{{border:0.5px solid #E0DFDC;background:#FBFAF7;border-radius:6px;padding:8px 12px;margin-bottom:8px;
+                   font-size:11px;color:#444441;line-height:1.6}}
+.gaps-box{{border-color:#EF9F27;background:#FAEEDA;margin:10px 0 0}}
+.wc-head{{font-weight:600;color:#1A1A1A;margin-bottom:2px}}
+.wc-more summary{{cursor:pointer;color:#185FA5;font-weight:500;margin-top:2px;width:max-content}}
+.wc-rule{{color:#5F5E5A;font-size:10px;margin-top:4px}}
+.gaps-ok{{font-size:10px;color:#5F5E5A;margin-top:10px}}
 .cx-sub{{color:#9AA8C4}}
 .cx-chart-lbl{{font-size:9px;color:#9AA8C4;letter-spacing:.04em;margin-bottom:4px;text-align:center}}
 .cx-bars{{display:flex;align-items:flex-end;gap:10px;height:92px}}
@@ -1263,6 +1340,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             flex-shrink:0;display:flex;align-items:center;gap:6px"
             id="about-btn">ℹ️ About this dashboard</button>
   </div>
+  {changes_html}
   <div id="about-section" style="display:none;background:#F8F8F7;border:0.5px solid #E0DFDC;
        border-radius:8px;padding:14px;margin-bottom:10px;font-size:12px;color:#5F5E5A;line-height:1.7">
     <div style="font-size:13px;font-weight:500;color:#1A1A1A;margin-bottom:10px">About this dashboard</div>
@@ -1311,6 +1389,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
     <div class="heat-grid" id="heat"></div>
   </div>
+  {gaps_html}
 </div>
  
 <div class="card">
