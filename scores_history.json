@@ -2473,12 +2473,12 @@
   {
     "date": "2026-10-30",
     "method": "2026-10-yoy-edgar",
-    "time": "14:37",
-    "action_ticker": "AVGO",
+    "time": "16:51",
+    "action_ticker": "L",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 38.54,
+        "score": 38.57,
         "color": "Green",
         "ratings": {
           "CEG": "C",
@@ -2489,7 +2489,7 @@
         }
       },
       "compute": {
-        "score": 59.33,
+        "score": 57.74,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2502,7 +2502,7 @@
         }
       },
       "memory": {
-        "score": 55.63,
+        "score": 55.6,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2512,7 +2512,7 @@
         }
       },
       "infra": {
-        "score": 39.41,
+        "score": 38.81,
         "color": "Green",
         "ratings": {
           "VRT": "A",
@@ -2524,7 +2524,7 @@
         }
       },
       "cloud": {
-        "score": 40.76,
+        "score": 41.73,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2534,7 +2534,7 @@
         }
       },
       "software": {
-        "score": 37.13,
+        "score": 37.38,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2545,7 +2545,7 @@
         }
       },
       "security": {
-        "score": 41.55,
+        "score": 41.98,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
