@@ -752,7 +752,6 @@ def _capex_html(cx: dict | None, scored_data: dict) -> str:
 
 # "What changed" and "Data gaps" in the scores card (Ray, 2026-11-02).
 # Display-only. changes.py builds the list from scores_detail.jsonl.
-WHAT_CHANGED_SHOWN = 5
 DATA_GAP_DAYS = 150   # quarter older than this: ~91 days in the quarter + up to 60 days to file
 
 
@@ -777,15 +776,54 @@ def _changes_html(ch: dict | None) -> str:
     elif not ch["items"]:
         body = f'<div class="wc-head">No changes since {since}.</div>'
     else:
-        items = [_h.escape(i) for i in ch["items"]]
-        shown, rest = items[:WHAT_CHANGED_SHOWN], items[WHAT_CHANGED_SHOWN:]
-        body = (f'<div class="wc-head">What changed since {since}</div>'
-                + "".join(f'<div class="wc-item">{i}</div>' for i in shown))
-        if rest:
-            body += (f'<details class="wc-more"><summary>Show all ({len(items)})</summary>'
-                     + "".join(f'<div class="wc-item">{i}</div>' for i in rest) + "</details>")
-    return (f'<div class="wc-box">{body}<details class="wc-more"><summary>How this list is made</summary>'
+        n = len(ch["items"])
+        # Chips beyond two rows are hidden by wchFit() until "Show all" is opened.
+        body = (f'<div class="wc-head">What changed since {since} · {n} change{"s" if n != 1 else ""}</div>'
+                f'<div class="wch-chips" id="wch-chips">{"".join(_change_chip(i) for i in ch["items"])}</div>'
+                f'<details class="wc-more" id="wch-all" hidden><summary>Show all ({n})</summary></details>')
+    return (f'<div class="wc-box wch-box">{body}<details class="wc-more"><summary>How this list is made</summary>'
             f'<div class="wc-rule">{rule}</div></details></div>')
+
+
+WCH_COLOR = {"Red": "#E24B4A", "Orange": "#EF9F27", "Green": "#639922", "Blue": "#378ADD"}   # the layer pills' colours (CC)
+WCH_RANK = {"A": 3, "B": 2, "C": 1}
+
+
+def _change_chip(i) -> str:
+    """One "What changed" item as a chip: layer context, colour pills, flag
+    icons, rating arrows. The plain-text line is its accessible label and
+    title. Clicking opens the layer's expanded card."""
+    import html as _h
+    if isinstance(i, str):                      # a saved result from before the chips (tools/replay.py)
+        return f'<span class="wch-chip">{_h.escape(i)}</span>'
+    esc = _h.escape
+
+    def dot(c):
+        return (f'<span class="wch-dot" style="background:{WCH_COLOR.get(c, "#B4B2A9")}" title="{esc(c or "")}">'
+                f'<span class="wch-sr">{esc(c or "")}</span></span>')
+
+    def colors():
+        return f'{dot(i["color_from"])}<span class="wch-to">→</span>{dot(i["color_to"])}' if i.get("color_from") else ""
+
+    who = f'{esc(i["layer_name"])} · <b>{esc(i["ticker"])}</b>' if i.get("ticker") else f'<b>{esc(i["layer_name"])}</b>'
+    k = i["kind"]
+    if k == "layer":
+        st = lambda s: esc(s.replace(" " + (i["color_to"] or ""), ""))   # "Confirmed Orange" -> "Confirmed": the dot shows the colour
+        what = colors() if i.get("color_from") else f'{dot(i["color_to"])} {st(i["state_from"])} → {st(i["state_to"])}'
+    elif k == "flag":
+        icon = ('<span class="wch-div">⚡</span> divergence' if i["flag"] == "divergence"
+                else '<span class="wch-hype">⚠</span> hype')
+        what = f'{icon} <span class="{"wch-new" if i["new"] else "wch-cleared"}">{"new" if i["new"] else "cleared"}</span>'
+    elif k == "company":
+        what = colors()
+        if i.get("rating_from") or i.get("rating_to"):
+            up = WCH_RANK.get(i.get("rating_to"), 0) > WCH_RANK.get(i.get("rating_from"), 0)
+            arrow = f'<span class="{"wch-up" if up else "wch-down"}">{"▲" if up else "▼"}</span>'
+            what += f' <span class="wch-rt">{esc(i.get("rating_from") or "—")}{arrow}{esc(i.get("rating_to") or "—")}</span>'
+    else:
+        what = f'new quarter {_qdate(i["quarter"])}'
+    return (f'<button type="button" class="wch-chip wch-{k}" onclick="openLayer(\'{esc(i["layer"] or "")}\')" '
+            f'title="{esc(i["text"])}" aria-label="{esc(i["text"])}. Open the layer">{who} {what}</button>')
 
 
 def _gaps_html(scored_data: dict, market_data: dict, session_date) -> str:
@@ -1008,6 +1046,23 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .wc-more summary{{cursor:pointer;color:#185FA5;font-weight:500;margin-top:2px;width:max-content}}
 .wc-rule{{color:#5F5E5A;font-size:10px;margin-top:4px}}
 .gaps-ok{{font-size:10px;color:#5F5E5A;margin-top:10px}}
+.wch-box{{background:#FFFFFF;border-left:3px solid #7F77DD}}
+.wch-chips{{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px}}
+.wch-chip{{display:inline-flex;align-items:center;gap:4px;background:#F8F8F7;border:0.5px solid #D3D1C7;border-radius:8px;
+          padding:3px 9px;font:inherit;font-size:11px;color:#444441;cursor:pointer;max-width:100%;text-align:left}}
+.wch-chip b{{color:#1A1A1A;font-weight:600}}
+.wch-chip:hover{{border-color:#7F77DD}}
+.wch-chip:focus-visible{{outline:2px solid #534AB7;outline-offset:1px}}
+.wch-x{{display:none}}
+.wch-dot{{display:inline-block;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.55);flex-shrink:0}}
+.wch-sr{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+.wch-to{{color:#5F5E5A}}
+.wch-up{{color:#27500A}}
+.wch-down{{color:#A32D2D}}
+.wch-div{{color:#3C3489}}
+.wch-hype{{color:#854F0B}}
+.wch-new{{font-weight:600;color:#1A1A1A}}
+.wch-cleared{{color:#5F5E5A}}
 .cx-sub{{color:#9AA8C4}}
 .cx-chart-lbl{{font-size:9px;color:#9AA8C4;letter-spacing:.04em;margin-bottom:4px;text-align:center}}
 .cx-bars{{display:flex;align-items:flex-end;gap:10px;height:92px}}
@@ -1868,6 +1923,32 @@ function buildExpand() {{
   </div>`;
 }}
  
+// "What changed" chips (render._changes_html): a chip opens its layer's
+// expanded card; chips beyond two rows wait behind "Show all".
+function openLayer(id) {{
+  if (!LAYERS.some(l => l.id === id)) return;
+  active = id; buildChain(); buildExpand();
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById("expand-area").scrollIntoView({{block: "start", behavior: reduce ? "auto" : "smooth"}});
+}}
+function wchFit() {{
+  const box = document.getElementById("wch-chips"), all = document.getElementById("wch-all");
+  if (!box || !all) return;
+  const chips = [...box.children];
+  chips.forEach(c => c.classList.remove("wch-x"));
+  if (all.open) return;
+  const tops = [...new Set(chips.map(c => c.offsetTop))].sort((a, b) => a - b);
+  const hidden = tops.length > 2 ? chips.filter(c => c.offsetTop > tops[1]) : [];
+  hidden.forEach(c => c.classList.add("wch-x"));
+  all.hidden = hidden.length === 0;
+}}
+document.addEventListener("DOMContentLoaded", () => {{
+  const all = document.getElementById("wch-all");
+  if (all) all.addEventListener("toggle", wchFit);
+  wchFit();
+}});
+window.addEventListener("resize", wchFit);
+
 function colorFromName(c) {{
   return {{Red:"#E24B4A",Orange:"#EF9F27",Green:"#97C459",Blue:"#B5D4F4"}}[c] || "#E8E6DF";
 }}

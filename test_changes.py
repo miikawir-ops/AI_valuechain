@@ -15,8 +15,8 @@ import tempfile
 import changes
 
 
-def company(t, score, rating="B", color="Green", q="2026-06-30", hype=False, div=False):
-    return {"ticker": t, "score": score, "rating": rating, "color": color, "is_hype": hype,
+def company(t, score, rating="B", color="Green", q="2026-06-30", hype=False, div=False, layer="energy"):
+    return {"ticker": t, "layer": layer, "score": score, "rating": rating, "color": color, "is_hype": hype,
             "divergence": {"evaluated": True, "flag": div}, "inputs": {"growth_quarter": q}}
 
 
@@ -33,8 +33,12 @@ L1 = {"energy": {"color": "Orange", "score": 46.3, "status": "Confirmed Orange �
 NAMES = {"energy": "Energy", "compute": "Semicon", "memory": "HBM memory"}
 
 
+def texts(items):
+    return [i["text"] for i in items]
+
+
 def test_layers_listed_as_they_are_without_day_counts():
-    items = changes.compare(record("a", L0, []), record("b", L1, []), NAMES)
+    items = texts(changes.compare(record("a", L0, []), record("b", L1, []), NAMES))
     assert items == ["Energy: Green → Orange (score 44.1 → 46.3)",
                      "HBM memory: Confirmed Orange → Holding Orange"], items
     print("PASS: layer colour and confirmation-state changes listed; '2/3 → 3/3 days' isn't a change")
@@ -46,7 +50,7 @@ def test_company_changes_need_a_two_point_move_or_a_new_quarter():
            company("MOVED", 52.5, rating="A", color="Orange"),            # 2.5 points: listed
            company("NEWQ", 50.4, rating="C", q="2026-09-30"),             # new quarter: listed despite 0.4
            company("FLAT", 50.1)]
-    items = changes.compare(record("a", {}, prev), record("b", {}, cur))
+    items = texts(changes.compare(record("a", {}, prev), record("b", {}, cur)))
     assert items == ["MOVED: rating B → A, Green → Orange (score 50.0 → 52.5)",
                      "NEWQ: rating B → C (score 50.0 → 50.4)",
                      "NEWQ: new quarter (Sep 30, 2026)"], items
@@ -56,7 +60,7 @@ def test_company_changes_need_a_two_point_move_or_a_new_quarter():
 def test_flags_new_and_cleared():
     prev = [company("H", 50, hype=True), company("D", 50)]
     cur = [company("H", 50), company("D", 50, div=True)]
-    items = changes.compare(record("a", {}, prev), record("b", {}, cur))
+    items = texts(changes.compare(record("a", {}, prev), record("b", {}, cur)))
     assert items == ["H: hype flag cleared", "D: divergence flag new"], items
     print("PASS: new and cleared hype and divergence flags listed")
 
@@ -70,7 +74,7 @@ def test_compute_uses_each_sessions_last_run_and_not_across_methods():
         open(path, "w").write("\n".join(json.dumps(r) for r in recs) + "\n")
         r = changes.compute(path, "2026-10-30", NAMES)
         assert r["available"] and r["prev_session"] == "2026-10-29" and not r["method_break"], r
-        assert "X: rating B → A (score 40.0 → 43.0)" in r["items"], r["items"]
+        assert "X: rating B → A (score 40.0 → 43.0)" in texts(r["items"]), r["items"]
         recs.append(record("2026-11-02", L0, [company("X", 60.0, rating="C")], method="new-method"))
         open(path, "w").write("\n".join(json.dumps(r) for r in recs) + "\n")
         r = changes.compute(path, "2026-11-02", NAMES)
@@ -80,12 +84,37 @@ def test_compute_uses_each_sessions_last_run_and_not_across_methods():
     print("PASS: each session's last run compared; nothing across a method change; missing data never raises")
 
 
+def test_order_layers_then_flags_then_companies():
+    prev = [company("GEV", 50.0), company("NVDA", 50.0, layer="compute"), company("MU", 50.0, layer="memory")]
+    cur = [company("GEV", 53.0, rating="A", color="Orange"),           # company change, listed first in the input
+           company("NVDA", 50.0, layer="compute", div=True),           # a new flag
+           company("MU", 50.0, layer="memory", q="2026-09-30")]        # a new quarter
+    items = changes.compare(record("a", L0, prev), record("b", L1, cur), NAMES)
+    assert [i["kind"] for i in items] == ["layer", "layer", "flag", "company", "quarter"], items
+    gev = items[3]
+    assert (gev["layer_name"], gev["ticker"], gev["color_from"], gev["color_to"], gev["rating_from"], gev["rating_to"]) ==         ("Energy", "GEV", "Green", "Orange", "B", "A"), gev
+    assert items[2]["layer"] == "compute" and items[2]["flag"] == "divergence" and items[2]["new"] is True
+    print("PASS: order is layer changes, flags, company changes (then new quarters), each with its layer")
+
+
 def test_sections_render():
     import datetime
     import render
-    items = [f"T{i}: hype flag new" for i in range(7)]
+    prev = [company("GEV", 50.0), company("NVDA", 50.0, layer="compute")]
+    cur = [company("GEV", 53.0, rating="C", color="Orange"), company("NVDA", 50.0, layer="compute", hype=True)]
+    items = changes.compare(record("a", L0, prev), record("b", L1, cur), NAMES)
     html = render._changes_html({"available": True, "prev_session": "2026-10-29", "method_break": False, "items": items})
-    assert "What changed since Thu Oct 29" in html and "Show all (7)" in html and html.count('class="wc-item"') == 7
+    assert "What changed since Thu Oct 29 · 4 changes" in html and html.count('class="wch-chip wch-') == 4, html
+    assert "Energy · <b>GEV</b>" in html and "openLayer('energy')" in html, "layer context and the click target"
+    assert html.index("<b>Energy</b>") < html.index("Semicon · <b>NVDA</b>") < html.index("Energy · <b>GEV</b>"), "order"
+    assert 'title="Green"' in html and 'title="Orange"' in html and '<span class="wch-sr">Orange</span>' in html, "colour names kept as text"
+    assert 'class="wch-down">▼' in html and "⚠</span> hype" in html, "B → C is ▼; hype flag icon"
+    assert 'aria-label="GEV: rating B → C, Green → Orange (score 50.0 → 53.0). Open the layer"' in html
+    assert "<b>HBM memory</b> " in html and "Confirmed → Holding</button>" in html, "the dot carries the colour"
+    assert "Show all (4)" in html and 'id="wch-all" hidden' in html, "Show all exists, shown by wchFit() only past two rows"
+    one = render._changes_html({"available": True, "prev_session": "2026-10-29", "method_break": False, "items": items[:1]})
+    assert "· 1 change<" in one
+    assert 'class="wch-chip">T: hype flag new</span>' in render._change_chip("T: hype flag new"), "old saved string items still render"
     assert "How this list is made" in html and "at least 2 points" in html, "the rule is in the Details"
     assert "No changes since Thu Oct 29." in render._changes_html({"available": True, "prev_session": "2026-10-29", "method_break": False, "items": []})
     assert "scoring method changed" in render._changes_html({"available": True, "prev_session": "2026-10-29", "method_break": True, "items": []})
@@ -97,13 +126,14 @@ def test_sections_render():
     for want in ("A: acceleration not measured (no year-on-year figure for the previous quarter)",
                  "A: latest quarter Mar 31, 2026, 213 days old", "A: missing gross_margin", "0 of 1 companies"):
         assert want in bad, (want, bad)
-    print("PASS: What changed (5 shown, Show all, the rule in Details) and Data gaps (one line, or each gap named; 150 days)")
+    print("PASS: What changed chips (layer context, colour pills, icons, Show all, the rule in Details) and Data gaps (one line, or each gap named; 150 days)")
 
 
 if __name__ == "__main__":
     test_layers_listed_as_they_are_without_day_counts()
     test_company_changes_need_a_two_point_move_or_a_new_quarter()
     test_flags_new_and_cleared()
+    test_order_layers_then_flags_then_companies()
     test_compute_uses_each_sessions_last_run_and_not_across_methods()
     test_sections_render()
     print("\nAll changes tests passed.")

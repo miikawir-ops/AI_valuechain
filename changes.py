@@ -14,6 +14,10 @@ previous session's. Listed:
 - new or cleared hype and divergence flags;
 - companies with a newly reported quarter (growth_quarter moved).
 Nothing is compared across a scoring-method change.
+
+Each item is a dict: "kind" (layer, flag, company, quarter, in that display
+order), "layer" and "layer_name", the fields its chip needs, and "text", the
+same line as plain text (the chip's accessible label).
 """
 
 import json
@@ -44,7 +48,8 @@ def _qd(iso: str) -> str:
 
 
 def compare(prev: dict, cur: dict, names: dict = None) -> list:
-    """Changes from one session's record to the next, as display lines."""
+    """Changes from one session's record to the next: layer changes, then new
+    or cleared flags, then company rating/colour changes, then new quarters."""
     names = names or {}
     items = []
     for lid, c in cur["layers"].items():
@@ -52,10 +57,14 @@ def compare(prev: dict, cur: dict, names: dict = None) -> list:
         if not p:
             continue
         n = names.get(lid, lid)
+        base = {"kind": "layer", "layer": lid, "layer_name": n, "ticker": None,
+                "score_from": p["score"], "score_to": c["score"]}
         if p["color"] != c["color"]:
-            items.append(f"{n}: {p['color']} → {c['color']} (score {p['score']:.1f} → {c['score']:.1f})")
+            items.append({**base, "color_from": p["color"], "color_to": c["color"],
+                          "text": f"{n}: {p['color']} → {c['color']} (score {p['score']:.1f} → {c['score']:.1f})"})
         elif _state(p["status"]) != _state(c["status"]):
-            items.append(f"{n}: {_state(p['status'])} → {_state(c['status'])}")
+            items.append({**base, "state_from": _state(p["status"]), "state_to": _state(c["status"]), "color_to": c["color"],
+                          "text": f"{n}: {_state(p['status'])} → {_state(c['status'])}"})
     pc = {x["ticker"]: x for x in prev["companies"]}
     flags, ratings, quarters = [], [], []
     for x in cur["companies"]:
@@ -63,23 +72,30 @@ def compare(prev: dict, cur: dict, names: dict = None) -> list:
         if not y:
             continue
         t = x["ticker"]
+        lid = x.get("layer")
+        base = {"layer": lid, "layer_name": names.get(lid, lid), "ticker": t}
         q0, q1 = y["inputs"].get("growth_quarter"), x["inputs"].get("growth_quarter")
         new_q = bool(q0 and q1 and q0 != q1)
         moved = x["score"] is not None and y["score"] is not None and abs(x["score"] - y["score"]) >= MIN_SCORE_MOVE
-        parts = []
+        parts, item = [], {**base, "kind": "company", "score_from": y["score"], "score_to": x["score"]}
         if x.get("rating") != y.get("rating") and (moved or new_q):
             parts.append(f"rating {y.get('rating') or '—'} → {x.get('rating') or '—'}")
+            item.update(rating_from=y.get("rating"), rating_to=x.get("rating"))
         if x.get("color") != y.get("color") and (moved or new_q):
             parts.append(f"{y.get('color')} → {x.get('color')}")
+            item.update(color_from=y.get("color"), color_to=x.get("color"))
         if parts:
-            ratings.append(f"{t}: {', '.join(parts)} (score {y['score']:.1f} → {x['score']:.1f})")
+            ratings.append({**item, "text": f"{t}: {', '.join(parts)} (score {y['score']:.1f} → {x['score']:.1f})"})
         if x.get("is_hype") != y.get("is_hype"):
-            flags.append(f"{t}: hype flag {'new' if x.get('is_hype') else 'cleared'}")
+            new = bool(x.get("is_hype"))
+            flags.append({**base, "kind": "flag", "flag": "hype", "new": new,
+                          "text": f"{t}: hype flag {'new' if new else 'cleared'}"})
         dx, dy = (x.get("divergence") or {}).get("flag"), (y.get("divergence") or {}).get("flag")
         if bool(dx) != bool(dy):
-            flags.append(f"{t}: divergence flag {'new' if dx else 'cleared'}")
+            flags.append({**base, "kind": "flag", "flag": "divergence", "new": bool(dx),
+                          "text": f"{t}: divergence flag {'new' if dx else 'cleared'}"})
         if new_q:
-            quarters.append(f"{t}: new quarter ({_qd(q1)})")
+            quarters.append({**base, "kind": "quarter", "quarter": q1, "text": f"{t}: new quarter ({_qd(q1)})"})
     return items + flags + ratings + quarters
 
 
