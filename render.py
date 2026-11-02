@@ -640,6 +640,30 @@ def _qdate(iso: str) -> str:
     return f"{d:%b} {d.day}, {d.year}"
 
 
+def _bn(v: float, sign: bool = False) -> str:
+    return f"{'−' if v < 0 else ('+' if sign else '')}${abs(v) / 1e9:.1f}bn"
+
+
+def _funding_html(f: dict | None) -> str:
+    """The funding lines: facts only, no forecast (Ray, 2026-11-02)."""
+    f = f or {}
+    if not f.get("available"):
+        return f'<div class="cx-fund">Funding: not available this run ({f.get("note", "no data")})</div>'
+    if f.get("capex_to_ocf") is None:
+        line = f'Funding: operating cash flow was not positive this quarter; free cash flow {_bn(f["fcf"], True)}.'
+    else:
+        line = (f'Funding: capex was {f["capex_to_ocf"] * 100:.0f}% of operating cash flow this quarter '
+                f'({_bn(f["capex"])} vs {_bn(f["ocf"])}); free cash flow {_bn(f["fcf"], True)}.')
+        if f["capex_to_ocf"] > 1:
+            line += (" The difference came from other sources such as cash on hand or financing; "
+                     "this card doesn't show which.")
+    if f.get("ttm_available") and f.get("ttm_capex_to_ocf") is not None:
+        ttm = f"Last four quarters: capex {f['ttm_capex_to_ocf'] * 100:.0f}% of operating cash flow."
+    else:
+        ttm = f"Last four quarters: not available ({f.get('ttm_note', 'no data')})."
+    return f'<div class="cx-fund">{line}</div><div class="cx-fund">{ttm}</div>'
+
+
 def _qlabel(iso: str) -> str:
     d = datetime.date.fromisoformat(iso)
     return f"Q{(d.month - 1) // 3 + 1}'{d:%y}"
@@ -661,12 +685,15 @@ def _capex_html(cx: dict | None, scored_data: dict) -> str:
         part = "" if cx["included"] == n else f" · {cx['included']} of {n} companies"
         if d:
             head = (f'<div class="capex-dir" style="color:{col}">{arrow} {d.capitalize()}'
-                    f'<span class="cx-pp">{cx["change_pp"]:+.1f} pp vs the previous quarter</span></div>')
+                    f'<span class="cx-pp">{cx["change_pp"]:+.1f} pp vs the previous quarter · '
+                    f'{cx.get("accelerating_companies", 0)} of {sum(1 for c in cx["companies"] if c.get("trend"))} '
+                    f'companies accelerating</span></div>')
         else:
             head = (f'<div class="capex-dir" style="color:#C8D4E8">Direction not measured'
                     f'<span class="cx-pp">{_h.escape(cx.get("direction_note", ""))}</span></div>')
         head += (f'<div class="capex-meta">${cx["total"] / 1e9:.1f}bn in the quarter ending {_qdate(cx["quarter"])} '
                  f'· {cx["yoy"] * 100:+.1f}% vs a year earlier{part}</div>')
+        head += _funding_html(cx.get("funding"))
         hist = cx.get("history") or []
         if hist:
             top = max(abs(h["yoy"]) for h in hist) or 1
@@ -692,8 +719,12 @@ def _capex_html(cx: dict | None, scored_data: dict) -> str:
     cos = []
     for c in cx.get("companies", []):
         if c.get("status") == "included":
+            tr = c.get("trend")
+            trend = (f' <span style="color:{CX_DIR_COLOR[tr]}">{ {"accelerating": "▲", "decelerating": "▼"}.get(tr, "—") } '
+                     f'{c["change_pp"]:+.1f} pp</span>') if tr else ""
+            ratio = f' · capex {c["capex_to_ocf"] * 100:.0f}% of OCF' if c.get("capex_to_ocf") is not None else ""
             cos.append(f'<span class="capex-co"><b>{c["ticker"]}</b> {_qdate(c["quarter"])} · '
-                       f'${c["value"] / 1e9:.1f}bn · {c["yoy"] * 100:+.1f}%</span>')
+                       f'${c["value"] / 1e9:.1f}bn · {c["yoy"] * 100:+.1f}%{trend}{ratio}</span>')
         else:
             note = (f"latest quarter {_qdate(c['latest_quarter'])}" if c.get("status") == "stale" and c.get("latest_quarter")
                     else c.get("note", ""))
@@ -712,6 +743,7 @@ def _capex_html(cx: dict | None, scored_data: dict) -> str:
   <div class="capex-caveat">Reported cash capex, backward-looking · context only, not part of any score</div>
   <details class="cx-details"><summary>Details</summary>
     <p>Capex is a demand signal for the whole chain. It doesn't show which layer needs the most, and it isn't part of any score. The supply side is the highest-scoring of Energy, Semicon, HBM memory and Data center today.</p>
+    <p>Each company's arrow is its own YoY this quarter vs the previous quarter's, ±5 pp. Free cash flow here = operating cash flow − capex, as filed; single-quarter operating cash flow is seasonal (taxes, working capital), so the last four quarters are shown too.</p>
     <p>Company guidance isn't included. Figures are cash capex as filed with the SEC; headline figures in company releases or the press can differ, for example by including finance leases. The four hyperscalers' last reported quarters are summed and compared with the same quarters a year earlier; a company without the comparable quarter is named and left out.</p>
   </details>
 </div>
@@ -898,6 +930,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-pp{{font-size:13px;font-weight:400;color:#C8D4E8}}
 .capex-meta{{font-size:13px;color:#C8D4E8;margin-top:4px}}
 .cx-supply{{font-size:12px;color:#C8D4E8;margin-top:8px}}
+.cx-fund{{font-size:12px;color:#C8D4E8;margin-top:6px;line-height:1.5}}
 .cx-sub{{color:#9AA8C4}}
 .cx-chart-lbl{{font-size:9px;color:#9AA8C4;letter-spacing:.04em;margin-bottom:4px;text-align:center}}
 .cx-bars{{display:flex;align-items:flex-end;gap:10px;height:92px}}

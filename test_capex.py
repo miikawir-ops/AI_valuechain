@@ -138,16 +138,20 @@ def test_card_headline_chart_supply_and_companies():
     best = lambda score, color: {"best": {"score": score, "color": color}}
     scored = {"cloud": best(70.0, "Red"), "compute": best(59.1, "Orange"), "memory": best(56.3, "Orange"),
               "energy": best(39.5, "Green"), "infra": best(38.4, "Green"), "software": best(80.0, "Red")}
-    html = render._capex_html(capex.aggregate(q(REAL)), scored)
-    assert '▲ Accelerating<span class="cx-pp">+20.6 pp vs the previous quarter</span>' in html
+    ocf = {t: {D("2026-09-30"): v * BN} for t, v in OCF_Q3.items()}
+    html = render._capex_html(capex.aggregate(q(REAL), ocf=ocf), scored)
+    assert '▲ Accelerating<span class="cx-pp">+20.6 pp vs the previous quarter · 2 of 4 companies accelerating</span>' in html
+    assert "Funding: capex was 115% of operating cash flow this quarter ($201.9bn vs $175.5bn); free cash flow −$26.4bn." in html
+    assert "other sources such as cash on hand or financing" in html and "Last four quarters: not available" in html
+    assert "▲ +51.7 pp</span> · capex 182% of OCF" in html and "▼ -6.6 pp</span> · capex 68% of OCF" in html
     assert "$201.9bn in the quarter ending Sep 30, 2026 · +107.6% vs a year earlier" in html
     assert 'aria-label="Aggregate capex, YoY by quarter: Q2\'26 +87.0%, Q3\'26 +107.6%"' in html, "chart labelled"
     assert "Supply side: <b" in html and ">Semicon</b> · 59 · Orange" in html, "highest of the capex recipients"
     assert ">Cloud</b> · " not in html and ">AI software</b>" not in html, "never Cloud or software as the supply side"
-    assert "<b>MSFT</b> Sep 30, 2026 · $39.4bn · +103.0%" in html
+    assert "<b>MSFT</b> Sep 30, 2026 · $39.4bn · +103.0%" in html and "capex 68% of OCF" in html
     assert "Reported cash capex, backward-looking · context only, not part of any score" in html
     assert "<details" in html and "finance leases" in html and "guidance isn't included" in html
-    print("PASS: card: headline direction, dollar line, labelled 4-quarter chart, supply side, company chips, Details")
+    print("PASS: card: headline with breadth, dollar line, funding lines, chart, supply side, trend chips, Details")
 
 
 def test_card_names_stale_and_never_shows_zero():
