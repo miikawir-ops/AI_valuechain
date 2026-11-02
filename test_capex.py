@@ -163,6 +163,40 @@ def test_card_names_stale_and_never_shows_zero():
     print("PASS: card: a stale company is named; a failed fetch says 'not available', never $0, 0% or a chart")
 
 
+# Operating cash flow ($bn) for the quarter ending 2026-09-30, EDGAR, 2026-11-02.
+OCF_Q3 = {"MSFT": 58.0, "GOOGL": 42.3, "AMZN": 42.4, "META": 32.8}
+
+
+def test_per_company_trend_and_breadth():
+    r = capex.aggregate(q(REAL))
+    t = {c["ticker"]: (c["change_pp"], c["trend"]) for c in r["companies"]}
+    assert t == {"MSFT": (-6.6, "decelerating"), "GOOGL": (14.3, "accelerating"),
+                 "AMZN": (51.7, "accelerating"), "META": (-1.8, "stable")}, t
+    assert r["accelerating_companies"] == 2
+    print("PASS: each company's own trend at ±5 pp; 2 of 4 accelerating (the aggregate is mostly AMZN)")
+
+
+def test_funding_quarter_and_trailing_four():
+    ocf = {t: {D("2026-09-30"): v * BN} for t, v in OCF_Q3.items()}
+    f = capex.aggregate(q(REAL), ocf=ocf)["funding"]
+    assert f["available"] and abs(f["ocf"] / BN - 175.5) < 0.01 and abs(f["fcf"] / BN - (175.5 - 201.924)) < 0.01, f
+    assert abs(f["capex_to_ocf"] - 201.924 / 175.5) < 0.0005, f["capex_to_ocf"]
+    assert f["ttm_available"] is False and "MSFT" in f["ttm_note"], "one quarter of OCF: no trailing four"
+    # Four quarters of capex and OCF: OCF twice capex each quarter -> 50%.
+    four = {t: {D(k): v * BN for k, v in s.items() if k >= "2025-12-31"} for t, s in REAL.items()}
+    f = capex.aggregate(q(REAL), ocf={t: {d: 2 * v for d, v in s.items()} for t, s in four.items()})["funding"]
+    assert f["ttm_available"] and abs(f["ttm_capex_to_ocf"] - 0.5) < 1e-9, f
+    print("PASS: funding: the quarter's capex vs OCF, and the trailing four quarters, date-matched")
+
+
+def test_funding_missing_ocf_is_named_not_zero():
+    ocf = {t: {D("2026-09-30"): v * BN} for t, v in OCF_Q3.items() if t != "AMZN"}
+    f = capex.aggregate(q(REAL), ocf=ocf)["funding"]
+    assert f["available"] is False and f["note"] == "AMZN: no operating cash flow for 2026-09-30", f
+    assert capex.aggregate(q(REAL))["funding"] == {"available": False, "note": "no operating cash flow data"}
+    print("PASS: funding: a company without OCF for the quarter is named; never a zero")
+
+
 if __name__ == "__main__":
     test_ytd_facts_become_single_quarters()
     test_dollar_aggregate_all_four()
@@ -172,6 +206,9 @@ if __name__ == "__main__":
     test_direction_bands()
     test_no_previous_quarter_means_direction_not_measured()
     test_history_is_aggregate_yoy_for_up_to_four_quarters()
+    test_per_company_trend_and_breadth()
+    test_funding_quarter_and_trailing_four()
+    test_funding_missing_ocf_is_named_not_zero()
     test_card_headline_chart_supply_and_companies()
     test_card_names_stale_and_never_shows_zero()
     print("\nAll capex tests passed.")

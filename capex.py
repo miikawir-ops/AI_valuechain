@@ -21,6 +21,12 @@ never silently dropped or mixed in. Direction is the change in aggregate
 YoY vs the previous quarter, the same companies on both sides, with the
 ±5 pp band of revenue acceleration. Reported capex is backward-looking;
 company guidance isn't included.
+
+Each company's own trend (its YoY this quarter vs last, ±5 pp) and how many
+are accelerating show what drives the aggregate. Funding: operating cash
+flow (OCF) from the same cash-flow data, matched to each company's capex
+quarter, for the quarter and the trailing four quarters (single-quarter
+OCF is seasonal). Free cash flow here = OCF − capex, as filed.
 """
 
 import datetime
@@ -35,6 +41,8 @@ TICKERS = ["MSFT", "GOOGL", "AMZN", "META"]
 # AMZN files purchases of property and equipment as ProductiveAssets.
 CONCEPTS = [("us-gaap", "PaymentsToAcquirePropertyPlantAndEquipment"),
             ("us-gaap", "PaymentsToAcquireProductiveAssets")]
+OCF_CONCEPTS = [("us-gaap", "NetCashProvidedByUsedInOperatingActivities")]
+FUNDING_QUARTERS = 4   # trailing window for the seasonal-proof funding ratio
 FORMS = {"10-Q", "10-K", "10-Q/A", "10-K/A"}
 MIN_COMPANIES = 3      # fewer: no aggregate, "not available" (never a 1-2 company "aggregate")
 DIRECTION_BAND = 0.05  # ±5 pp change in aggregate YoY, the revenue-acceleration band
@@ -65,32 +73,50 @@ def edgar_quarters(rows: list) -> dict:
     return out
 
 
-def yahoo_quarters(ticker: str) -> dict:
+_CACHE: dict = {}   # per fetch(): one Yahoo cash-flow table and one EDGAR facts download per ticker
+
+
+def _cashflow(ticker: str):
+    if ("cf", ticker) not in _CACHE:
+        import yfinance as yf
+        _CACHE[("cf", ticker)] = yf.Ticker(ticker).quarterly_cashflow
+    return _CACHE[("cf", ticker)]
+
+
+def _facts(ticker: str) -> dict:
+    if ("facts", ticker) not in _CACHE:
+        cik = edgar._cik(ticker)
+        _CACHE[("facts", ticker)] = edgar._get(edgar.FACTS_URL.format(cik=cik)).get("facts", {}) if cik else {}
+    return _CACHE[("facts", ticker)]
+
+
+def yahoo_quarters(ticker: str, row: str = "Capital Expenditure") -> dict:
     """{quarter_end: value} from Yahoo's quarterly cash flow (capex is negative there)."""
-    import yfinance as yf
-    cf = yf.Ticker(ticker).quarterly_cashflow
-    if cf is None or cf.empty or "Capital Expenditure" not in cf.index:
-        YAHOO_TABLES[ticker] = "no table" if cf is None or cf.empty else "no row"
+    cf = _cashflow(ticker)
+    if cf is None or cf.empty or row not in cf.index:
+        if row == "Capital Expenditure":
+            YAHOO_TABLES[ticker] = "no table" if cf is None or cf.empty else "no row"
         return {}
-    YAHOO_TABLES[ticker] = "row"
-    return {k.date(): abs(float(v)) for k, v in cf.loc["Capital Expenditure"].items() if v == v}
+    if row == "Capital Expenditure":
+        YAHOO_TABLES[ticker] = "row"
+    return {k.date(): abs(float(v)) if row == "Capital Expenditure" else float(v)
+            for k, v in cf.loc[row].items() if v == v}
 
 
-def company_quarters(ticker: str) -> tuple[dict, str]:
-    """({quarter_end: capex in $}, source). Yahoo's quarters plus the EDGAR
-    quarters Yahoo lacks, from the first concept that matches Yahoo."""
+def _series(ticker: str, row: str, concepts: list, what: str) -> tuple[dict, str]:
+    """Yahoo's quarters plus the EDGAR quarters Yahoo lacks, from the first
+    concept that matches Yahoo within 1% (edgar._matches)."""
     try:
-        yq = yahoo_quarters(ticker)
+        yq = yahoo_quarters(ticker, row)
     except Exception as e:
-        log.warning(f"  {ticker} Yahoo capex fetch failed: {e}")
+        log.warning(f"  {ticker} Yahoo {what} fetch failed: {e}")
         yq = {}
     try:
-        cik = edgar._cik(ticker)
-        facts = edgar._get(edgar.FACTS_URL.format(cik=cik)).get("facts", {}) if cik else {}
+        facts = _facts(ticker)
     except Exception as e:
-        log.warning(f"  {ticker} EDGAR capex fetch failed: {e}")
+        log.warning(f"  {ticker} EDGAR {what} fetch failed: {e}")
         return yq, f"Yahoo only (EDGAR fetch failed: {type(e).__name__})"
-    for ns, concept in CONCEPTS:
+    for ns, concept in concepts:
         series = edgar_quarters(facts.get(ns, {}).get(concept, {}).get("units", {}).get("USD", []))
         if series and yq and edgar._matches(series, yq):
             merged = dict(yq)
@@ -103,6 +129,20 @@ def company_quarters(ticker: str) -> tuple[dict, str]:
     return yq, "Yahoo only (no EDGAR concept matches Yahoo's quarters)"
 
 
+def company_quarters(ticker: str) -> tuple[dict, str]:
+    """({quarter_end: capex in $}, source)."""
+    return _series(ticker, "Capital Expenditure", CONCEPTS, "capex")
+
+
+def company_ocf(ticker: str) -> tuple[dict, str]:
+    """({quarter_end: operating cash flow in $}, source)."""
+    return _series(ticker, "Operating Cash Flow", OCF_CONCEPTS, "operating cash flow")
+
+
+def _prev(series: dict, end: datetime.date):
+    return next((d for d in sorted(series, reverse=True) if 75 <= (end - d).days <= 105), None)
+
+
 def _near(series: dict, target: datetime.date):
     return next((d for d in sorted(series, reverse=True) if abs((d - target).days) <= edgar.DATE_TOL_DAYS), None)
 
@@ -111,13 +151,15 @@ def _year_ago(series: dict, end: datetime.date):
     return next((d for d in sorted(series, reverse=True) if 350 <= (end - d).days <= 380), None)
 
 
-def aggregate(quarters: dict, sources: dict = None) -> dict:
+def aggregate(quarters: dict, sources: dict = None, ocf: dict = None) -> dict:
     """The aggregate from {ticker: {quarter_end: value}}. Pure: no fetching.
 
     available False (with reason) when fewer than MIN_COMPANIES have the
     newest common quarter and its year-earlier quarter. companies always
     lists all four, each "included", "stale" (latest quarter older than the
     aggregate's) or "missing" (no quarters, or no year-earlier quarter).
+    ocf ({ticker: {quarter_end: operating cash flow}}) adds "funding";
+    without it funding is not available.
     """
     sources = sources or {}
     latest = {t: max(q) for t, q in quarters.items() if q}
@@ -156,13 +198,28 @@ def aggregate(quarters: dict, sources: dict = None) -> dict:
            "prev_quarter": None, "prev_yoy": None, "change_pp": None, "direction": None,
            "history": _history(quarters, dict(included))}
 
+    # Each included company's own trend: its YoY this quarter vs its previous quarter's.
+    for r in companies:
+        if r["status"] != "included":
+            continue
+        q, end = quarters[r["ticker"]], datetime.date.fromisoformat(r["quarter"])
+        p = _prev(q, end)
+        pb = _year_ago(q, p) if p else None
+        if p and pb and q[pb]:
+            py = round(q[p] / q[pb] - 1, 4)
+            ch = round(r["yoy"] - py, 4)
+            r.update(prev_yoy=py, change_pp=round(ch * 100, 1),
+                     trend="accelerating" if ch > DIRECTION_BAND else "decelerating" if ch < -DIRECTION_BAND else "stable")
+    out["accelerating_companies"] = sum(1 for r in companies if r.get("trend") == "accelerating")
+    out["funding"] = _funding(quarters, ocf, included, companies)
+
     # Previous quarter, the same companies: each needs the quarter before its
     # aggregate quarter and that quarter's year-earlier one.
     prev_now = prev_base = 0.0
     prev_ends = []
     for t, end in included:
         q = quarters[t]
-        p = next((d for d in sorted(q, reverse=True) if 75 <= (end - d).days <= 105), None)
+        p = _prev(q, end)
         pb = _year_ago(q, p) if p else None
         if not (p and pb and q[pb]):
             out["direction_note"] = f"{t} has no comparable previous quarter"
@@ -175,6 +232,43 @@ def aggregate(quarters: dict, sources: dict = None) -> dict:
     out.update(prev_quarter=max(prev_ends).isoformat(), prev_yoy=prev_yoy, change_pp=round(change * 100, 1),
                direction="accelerating" if change > DIRECTION_BAND else
                          "decelerating" if change < -DIRECTION_BAND else "stable")
+    return out
+
+
+def _funding(quarters: dict, ocf: dict | None, included: list, companies: list) -> dict:
+    """Capex against operating cash flow for the aggregate's companies: the
+    quarter, and the trailing FUNDING_QUARTERS quarters, each company's OCF
+    matched to its capex quarter within edgar.DATE_TOL_DAYS. A company
+    without OCF for a quarter makes that figure not available, named."""
+    if not ocf:
+        return {"available": False, "note": "no operating cash flow data"}
+    out = {"available": False, "ttm_available": False}
+    cap = cash = 0.0
+    rows = {r["ticker"]: r for r in companies}
+    for t, end in included:
+        o = _near(ocf.get(t) or {}, end)
+        if o is None:
+            out["note"] = f"{t}: no operating cash flow for {end.isoformat()}"
+            return out
+        cap += quarters[t][end]
+        cash += ocf[t][o]
+        rows[t]["ocf"] = ocf[t][o]
+        rows[t]["capex_to_ocf"] = round(quarters[t][end] / ocf[t][o], 4) if ocf[t][o] > 0 else None
+    out.update(available=True, capex=cap, ocf=cash, fcf=cash - cap,
+               capex_to_ocf=round(cap / cash, 4) if cash > 0 else None)
+    cap4 = cash4 = 0.0
+    for t, end in included:
+        e = end
+        for _ in range(FUNDING_QUARTERS):
+            o = _near(ocf.get(t) or {}, e) if e else None
+            if e is None or o is None:
+                out["ttm_note"] = f"{t}: no {FUNDING_QUARTERS} consecutive quarters of capex and operating cash flow"
+                return out
+            cap4 += quarters[t][e]
+            cash4 += ocf[t][o]
+            e = _prev(quarters[t], e)
+    out.update(ttm_available=True, ttm_capex=cap4, ttm_ocf=cash4,
+               ttm_capex_to_ocf=round(cap4 / cash4, 4) if cash4 > 0 else None)
     return out
 
 
@@ -193,8 +287,7 @@ def _history(quarters: dict, ends: dict) -> list:
             now += quarters[t][end]
             base += quarters[t][b]
         out.append({"quarter": max(ends.values()).isoformat(), "yoy": round(now / base - 1, 4)})
-        prev = {t: next((d for d in sorted(quarters[t], reverse=True) if 75 <= (end - d).days <= 105), None)
-                for t, end in ends.items()}
+        prev = {t: _prev(quarters[t], end) for t, end in ends.items()}
         if any(p is None for p in prev.values()):
             break
         ends = prev
@@ -205,11 +298,13 @@ def fetch() -> dict:
     """The aggregate for TICKERS, fetched live. Never raises: a failure is
     "not available" with its reason, never a zero."""
     YAHOO_TABLES.clear()
+    _CACHE.clear()
     try:
-        quarters, sources = {}, {}
+        quarters, sources, ocf = {}, {}, {}
         for t in TICKERS:
             quarters[t], sources[t] = company_quarters(t)
-        result = aggregate(quarters, sources)
+            ocf[t], _ = company_ocf(t)
+        result = aggregate(quarters, sources, ocf)
     except Exception as e:
         log.warning(f"  Capex aggregate failed: {e}")
         return {"available": False, "reason": f"fetch failed ({type(e).__name__})",
