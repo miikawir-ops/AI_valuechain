@@ -2478,23 +2478,23 @@
   {
     "date": "2026-11-06",
     "method": "2026-10-yoy-edgar",
-    "time": "00:11",
+    "time": "14:59",
     "action_ticker": "SMCI",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 33.78,
+        "score": 37.52,
         "color": "Green",
         "ratings": {
           "CEG": "C",
-          "VST": "C",
+          "VST": "A",
           "PWR": "B",
           "GEV": "B",
           "ETN": "B"
         }
       },
       "compute": {
-        "score": 50.66,
+        "score": 49.47,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2507,7 +2507,7 @@
         }
       },
       "memory": {
-        "score": 46.87,
+        "score": 46.15,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2529,7 +2529,7 @@
         }
       },
       "cloud": {
-        "score": 30.62,
+        "score": 30.85,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2539,7 +2539,7 @@
         }
       },
       "software": {
-        "score": 30.11,
+        "score": 31.24,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2550,7 +2550,7 @@
         }
       },
       "security": {
-        "score": 30.69,
+        "score": 31.2,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
