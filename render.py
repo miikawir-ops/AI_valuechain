@@ -1399,7 +1399,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div id="about-section" style="display:none;background:#F8F8F7;border:0.5px solid #E0DFDC;
        border-radius:8px;padding:14px;margin-bottom:10px;font-size:12px;color:#5F5E5A;line-height:1.7">
     <div style="font-size:13px;font-weight:500;color:#1A1A1A;margin-bottom:10px">About this dashboard</div>
-    <p style="margin-bottom:8px">A daily signal dashboard tracking the AI supply chain — from power plants to software — identifying where investment opportunities and risks are building.</p>
+    <p style="margin-bottom:8px">A daily signal dashboard tracking the AI supply chain — from power plants to software — showing where bottlenecks and risks are building.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="background:white;border-radius:6px;padding:8px 10px;border:0.5px solid #E0DFDC">
         <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:4px">🔴 Hot / Bottleneck</div>
@@ -1423,7 +1423,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <p style="margin-bottom:10px"><strong>hype</strong> badge on a company — Price up more than 15% in 30 days while revenue grows under 10%, or more than 20 points ahead of its layer peers while revenue growth slows, or up 15% or more and at least 10 points ahead of the NASDAQ while year-over-year revenue growth fell more than 5 points. Lowers that company's rating to C. It doesn't change the layer's colour.</p>
     <p style="margin-bottom:10px"><strong>revenue up, price down</strong> badge on a company — Revenue YoY accelerated more than 5 percentage points last quarter while the price fell 15% or more in 30 days and at least 10 points more than the NASDAQ. Two readings: the market may be pricing a risk that reported revenue doesn't show yet, or the price may have fallen further than the revenue trend implies. Not a recommendation. It changes no score, colour or rating.</p>
     <div style="font-size:11px;font-weight:500;color:#1A1A1A;margin-bottom:6px">Data sources (updated daily)</div>
-    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · News signals — CNBC, MarketWatch, Yahoo Finance company headlines · AI analysis — Google Gemini 2.5</p>
+    <p style="margin-bottom:2px">Stock prices &amp; fundamentals — Yahoo Finance · Revenue, capex and cash flow — SEC EDGAR filings, cross-checked with Yahoo Finance · News signals — CNBC, MarketWatch, Yahoo Finance company headlines · AI analysis — Google Gemini 2.5</p>
     <p style="margin-top:8px;font-size:10px;color:#B4B2A9">Quarterly financials are the latest reported quarter and can be several months old · Not financial advice · Always do your own research</p>
   </div>
   <div id="chain-wrap" style="position:relative">
