@@ -261,7 +261,7 @@ def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
                 result["price"]            = ticker_data.get("price", 0)
                 result["price_30d_return"] = ticker_data.get("price_30d_return")
                 result["vol_spike"]        = ticker_data.get("vol_spike", 1.0)
-                result["news_velocity"]    = ticker_data.get("news_velocity", 0)
+                result["news_velocity"]    = ticker_data.get("news_velocity")   # None: feed failed
                 result["market_cap"]       = ticker_data.get("market_cap", 0) or 0
                 layer_scores.append(result)
             except Exception as e:
@@ -469,7 +469,8 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
         "macro": {k: macro_data.get(k) for k in ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "nasdaq_30d_return", "data_missing")}
                  | {"regime": regime[0] if regime else None, "multiplier": regime[1] if regime else None},
         "layers": layers, "companies": companies, "radar": radar,
-        # What failed this run (named in Data gaps): companies outside their layer score.
+        # What failed this run (named in Data gaps): companies outside their
+        # layer score, news feeds (a company's count missing; generic feeds).
         "fetch_failures": fetch_issues or {},
         "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None,
                    "rule": rule["rule"], "tier": rule["tier"],

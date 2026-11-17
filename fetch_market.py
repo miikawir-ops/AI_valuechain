@@ -68,8 +68,19 @@ class FetchFailureError(RuntimeError):
 
 # What failed in the last run_pipeline() call, reset at its start: shown in
 # the page's Data gaps and stored in scores_detail, never left silent.
-# failed_companies: {layer_id: [ticker]} (fetch raised; not in the layer score).
-FETCH_ISSUES = {"failed_companies": {}}
+# failed_companies: {layer_id: [ticker]} (fetch raised; not in the layer score);
+# failed_ticker_feeds: [ticker] (its news count is missing); failed_generic_feeds: [url].
+FETCH_ISSUES = {"failed_companies": {}, "failed_ticker_feeds": [], "failed_generic_feeds": []}
+
+
+def _feed_failed(feed) -> bool:
+    """A feed that returned nothing because it failed, not because there was
+    no news: feedparser doesn't raise on a dead host or an HTTP error, it
+    sets bozo / status. A feed with entries, or an empty 200, hasn't failed."""
+    if feed.entries:
+        return False
+    status = feed.get("status")
+    return bool(feed.bozo) or (status is not None and status != 200) or status is None
 
 
 def completed_dates(index, now: datetime.datetime = None) -> list:
@@ -274,7 +285,7 @@ TICKER_TO_LAYER = {
 }
  
  
-def fetch_ticker_headlines(tickers: list, max_per_ticker: int = 10) -> list:
+def fetch_ticker_headlines(tickers: list, max_per_ticker: int = 10) -> tuple:
     """
     Fetch Yahoo Finance RSS for each specific ticker.
  
@@ -286,12 +297,20 @@ def fetch_ticker_headlines(tickers: list, max_per_ticker: int = 10) -> list:
  
     Now: headlines are cleanly separated by ticker ownership.
     score_news_velocity() filters by layer_tickers to prevent cross-contamination.
+
+    Returns (headlines, failed_tickers): tickers whose feed failed (raised,
+    or _feed_failed), so their news count is missing rather than a clean 0
+    (ported from RayDar-DataCenter, which counts only exceptions).
     """
     headlines = []
+    failed = set()
     for ticker in tickers:
         url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
         try:
             feed = feedparser.parse(url)
+            if _feed_failed(feed):
+                failed.add(ticker.upper())
+                continue
             for entry in feed.entries[:max_per_ticker]:
                 title   = entry.get("title", "")
                 summary = entry.get("summary", "")[:200]
@@ -303,15 +322,22 @@ def fetch_ticker_headlines(tickers: list, max_per_ticker: int = 10) -> list:
                     })
         except Exception as e:
             log.debug(f"  Ticker feed failed ({ticker}): {e}")
-    return headlines
+            failed.add(ticker.upper())
+    return headlines, failed
  
  
-def fetch_generic_headlines(max_per_feed: int = 20) -> list:
-    """Fetch generic business news as supplementary signal."""
+def fetch_generic_headlines(max_per_feed: int = 20) -> tuple:
+    """Fetch generic business news as supplementary signal. Returns
+    (headlines, failed_feed_urls)."""
     headlines = []
+    failed = []
     for url in GENERIC_FEEDS:
         try:
             feed = feedparser.parse(url)
+            if _feed_failed(feed):
+                log.warning(f"Generic feed failed ({url}): status {feed.get('status')}, {feed.get('bozo_exception')}")
+                failed.append(url)
+                continue
             for entry in feed.entries[:max_per_feed]:
                 title   = entry.get("title", "")
                 summary = entry.get("summary", "")[:200]
@@ -323,20 +349,24 @@ def fetch_generic_headlines(max_per_feed: int = 20) -> list:
                     })
         except Exception as e:
             log.warning(f"Generic feed failed ({url}): {e}")
-    return headlines
+            failed.append(url)
+    return headlines, failed
  
  
-def fetch_all_headlines() -> list:
-    """Fetch ticker-specific (primary) + generic (supplementary) headlines."""
+def fetch_all_headlines() -> tuple:
+    """Fetch ticker-specific (primary) + generic (supplementary) headlines.
+    Returns (headlines, failed_ticker_feeds, failed_generic_feeds)."""
     log.info("  Fetching ticker-specific headlines...")
-    ticker_headlines = fetch_ticker_headlines(ALL_TICKERS, max_per_ticker=10)
+    ticker_headlines, failed_ticker = fetch_ticker_headlines(ALL_TICKERS, max_per_ticker=10)
     log.info(f"  Got {len(ticker_headlines)} ticker-specific headlines")
+    if failed_ticker:
+        log.warning(f"  Ticker feed failed for: {sorted(failed_ticker)}")
  
     log.info("  Fetching generic news headlines...")
-    generic_headlines = fetch_generic_headlines(max_per_feed=20)
+    generic_headlines, failed_generic = fetch_generic_headlines(max_per_feed=20)
     log.info(f"  Got {len(generic_headlines)} generic headlines")
  
-    return ticker_headlines + generic_headlines
+    return ticker_headlines + generic_headlines, failed_ticker, failed_generic
  
  
 def score_news_velocity(
@@ -459,7 +489,8 @@ def quarterly_yoy(revenue: dict) -> tuple:
 
 
 def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
-                      layer_tickers: list = None, session: datetime.date = None):
+                      layer_tickers: list = None, session: datetime.date = None,
+                      failed_ticker_feeds: set = None):
     try:
         t    = yf.Ticker(ticker)
         info = t.info
@@ -665,11 +696,18 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
  
         # News velocity — layer-filtered to prevent cross-contamination
         # Only this layer's ticker headlines + generic headlines are counted
-        news_velocity = score_news_velocity(
-            headlines,
-            layer_keywords,
-            layer_tickers=layer_tickers,   # ← ownership filter
-        )
+        # If this ticker's own feed failed, its count is missing, not a clean
+        # 0. Scored as before (no news points) until the January review
+        # decides how a missing count should score; named in Data gaps.
+        if failed_ticker_feeds and ticker.upper() in failed_ticker_feeds:
+            news_velocity = None
+            data_missing.append("news_velocity")
+        else:
+            news_velocity = score_news_velocity(
+                headlines,
+                layer_keywords,
+                layer_tickers=layer_tickers,   # ← ownership filter
+            )
  
         return {
             "ticker":            ticker,
@@ -865,7 +903,12 @@ def run_pipeline(portfolio_file: str = "portfolio.json", session: datetime.date 
     log.info("Fetching all headlines (ticker-specific + generic)...")
     FETCH_ISSUES.clear()
     FETCH_ISSUES["failed_companies"] = {}
-    headlines = fetch_all_headlines()
+    headlines, failed_ticker_feeds, failed_generic_feeds = fetch_all_headlines()
+    FETCH_ISSUES["failed_ticker_feeds"] = sorted(failed_ticker_feeds)
+    FETCH_ISSUES["failed_generic_feeds"] = list(failed_generic_feeds)
+    if len(failed_ticker_feeds) >= len(ALL_TICKERS) and len(failed_generic_feeds) >= len(GENERIC_FEEDS):
+        raise FetchFailureError("Every news feed failed this run: failing it rather than reading every "
+                                "layer's news as zero")
     results   = {}
     for layer_id, layer_config in AI_CHAIN_LAYERS.items():
         log.info(f"  Layer: {layer_config['name']}")
@@ -878,6 +921,7 @@ def run_pipeline(portfolio_file: str = "portfolio.json", session: datetime.date 
                 layer_config["keywords"],
                 layer_tickers=[ticker],             # ← this ticker's own headlines only
                 session=session,
+                failed_ticker_feeds=failed_ticker_feeds,
             )
             if data:
                 tickers_data.append(data)
@@ -924,7 +968,9 @@ if __name__ == "__main__":
  
     elif args.news:
         print("\nTesting news fetch and velocity scoring (v4 — layer-filtered)...")
-        headlines = fetch_all_headlines()
+        headlines, failed_ticker, failed_generic = fetch_all_headlines()
+        if failed_ticker or failed_generic:
+            print(f"Failed feeds: tickers {sorted(failed_ticker)}, generic {failed_generic}")
         ticker_count  = sum(1 for h in headlines if isinstance(h, dict) and h.get("source") == "ticker")
         generic_count = sum(1 for h in headlines if isinstance(h, dict) and h.get("source") == "generic")
         print(f"\nTotal headlines: {len(headlines)}")
@@ -969,7 +1015,7 @@ if __name__ == "__main__":
             print(f"Unknown layer. Choose from: {list(AI_CHAIN_LAYERS.keys())}")
         else:
             print(f"\nFetching {args.layer} layer only...")
-            headlines = fetch_all_headlines()
+            headlines, _, _ = fetch_all_headlines()
             layer     = AI_CHAIN_LAYERS[args.layer]
             tickers   = []
             for ticker in layer["tickers"]:

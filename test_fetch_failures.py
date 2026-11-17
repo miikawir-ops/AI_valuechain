@@ -13,6 +13,13 @@ missing is not zero, fail loudly when the page would be misleading).
      scores_detail), outside the layer score; more than half failing fails
      the run. Before: it vanished from its layer, and the layer was
      reweighted without a mark (no NVDA: Semicon 57.7 -> 59.1).
+  D. A failed news feed is named in Data gaps; a company whose own feed
+     failed has its news count missing (scored as before until the January
+     review decides how); every feed failing fails the run. feedparser
+     doesn't raise on a dead host or an HTTP 503 (bozo / status instead),
+     so a feed with no entries and an error or non-200 status counts as
+     failed too. Before: all feeds failing read as "no news" on every layer
+     (-1.1 to -7.4 points, Energy 38.6 -> 32.0).
 
 No pytest in this environment — plain script. Run: python test_fetch_failures.py
 """
@@ -102,7 +109,7 @@ def _pipeline(fail):
         if ticker in fail:
             return None
         return {"ticker": ticker, "price": 1.0, "price_30d_return": 0.01, "_session_bar": True, "data_missing": []}
-    with patch("fetch_market.fetch_all_headlines", return_value=[]), \
+    with patch("fetch_market.fetch_all_headlines", return_value=([], set(), [])), \
          patch("fetch_market.apply_growth_history"), \
          patch("fetch_market.fetch_ticker_data", side_effect=fetch):
         return fetch_market.run_pipeline(session=SESSION)
@@ -135,6 +142,72 @@ def test_c_most_companies_failing_fails_the_run():
     print("PASS: C — more than half the companies failing fails the run; half doesn't")
 
 
+class _Feed(dict):
+    def __init__(self, entries=(), bozo=False, status=200):
+        super().__init__(status=status)
+        self.entries, self.bozo = list(entries), bozo
+
+
+def test_d_feed_failure_is_detected_without_an_exception():
+    import fetch_market
+    ok = _Feed([{"title": "Nvidia orders surge", "summary": ""}])
+    dead = _Feed(bozo=True, status=None)          # what feedparser returns for a dead host
+    down = _Feed(status=503)                      # ... and for an HTTP 503
+    quiet = _Feed(status=200)                     # a working feed with no news: not a failure
+    feeds = {"NVDA": ok, "AMD": dead, "AVGO": down, "MU": quiet}
+    with patch("fetch_market.feedparser.parse", side_effect=lambda url: feeds[url.split("s=")[1].split("&")[0]]):
+        heads, failed = fetch_market.fetch_ticker_headlines(list(feeds))
+    assert failed == {"AMD", "AVGO"} and len(heads) == 1, (failed, heads)
+    print("PASS: D — a dead host or HTTP 503 counts as a failed feed (feedparser doesn't raise); an empty 200 doesn't")
+
+
+def test_d_failed_feeds_are_named_and_the_company_news_count_is_missing():
+    import fetch_market
+    from test_nan_handling import _mock_ticker
+    import pandas as pd
+    hist = pd.DataFrame({"Close": [100.0 + i for i in range(70)], "Volume": [1e6] * 70},
+                        index=pd.bdate_range(end="2026-11-16", periods=70))
+    with patch("fetch_market.yf.Ticker", return_value=_mock_ticker(hist)):
+        r = fetch_market.fetch_ticker_data("CEG", [], ["power"], ["CEG"], session=SESSION, failed_ticker_feeds={"CEG"})
+    assert r["news_velocity"] is None and "news_velocity" in r["data_missing"], (r["news_velocity"], r["data_missing"])
+    from score_engine import ScoreEngine
+    e = ScoreEngine({})
+    assert e.calculate_constraints({"news_velocity": None, "capex_div": 0.4}, []) == \
+        e.calculate_constraints({"news_velocity": 0.0, "capex_div": 0.4}, []), "scoring unchanged until January"
+    issues = {"failed_companies": {}, "failed_ticker_feeds": ["CEG"], "failed_generic_feeds": ["https://www.cnbc.com/rss"]}
+    gaps = render._gaps_html({}, {}, SESSION, issues)
+    assert "CEG: news feed failed this run (news count missing)" in gaps, gaps
+    assert "News feed failed this run: www.cnbc.com" in gaps, gaps
+    print("PASS: D — a company's failed feed makes its news count missing (same score); failed feeds named in Data gaps")
+
+
+def test_d_missing_news_count_renders():
+    """A layer whose top company's news count is missing renders "News — hits"
+    and its news-divergence check isn't evaluated (old code: int(None) raised)."""
+    scored = {"energy": {"best": {"ticker": "CEG", "score": 40.0, "color": "Green", "news_velocity": None,
+                                  "fund_delta": -0.1, "status": "x"},
+                         "all_tickers": [{"ticker": "CEG", "score": 40.0, "color": "Green", "news_velocity": None,
+                                          "fund_delta": -0.1, "market_cap": 1, "is_hype": False}]}}
+    layers = json.loads(render._chain_js_data(scored, {}, {}, SESSION))
+    assert layers[0]["news_vel"] is None and layers[0]["divergence"] is False, layers[0]
+    assert 'l.news_vel ?? "—"' in open("render.py", encoding="utf-8").read()
+    print("PASS: D — a missing news count renders as — and skips the news-divergence check")
+
+
+def test_d_every_feed_failing_fails_the_run():
+    import fetch_market
+    tickers = [t for layer in fetch_market.AI_CHAIN_LAYERS.values() for t in layer["tickers"]]
+    with patch("fetch_market.fetch_all_headlines", return_value=([], set(tickers), list(fetch_market.GENERIC_FEEDS))), \
+         patch("fetch_market.apply_growth_history"), \
+         patch("fetch_market.fetch_ticker_data", side_effect=lambda t, *a, **k: {"ticker": t, "_session_bar": True}):
+        try:
+            fetch_market.run_pipeline(session=SESSION)
+            raise AssertionError("the run went on with every news feed failed")
+        except fetch_market.FetchFailureError as e:
+            assert "news feed" in str(e), e
+    print("PASS: D — every news feed failing fails the run")
+
+
 def _tmp_detail():
     return str(Path(tempfile.mkdtemp()) / "scores_detail.jsonl")
 
@@ -148,4 +221,8 @@ if __name__ == "__main__":
     test_b_macro_failure_keeps_the_company_data()
     test_c_failed_company_is_named_outside_the_layer_score()
     test_c_most_companies_failing_fails_the_run()
+    test_d_feed_failure_is_detected_without_an_exception()
+    test_d_failed_feeds_are_named_and_the_company_news_count_is_missing()
+    test_d_missing_news_count_renders()
+    test_d_every_feed_failing_fails_the_run()
     print("\nAll fetch-failure tests passed.")

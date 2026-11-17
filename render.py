@@ -358,7 +358,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             color_changed = False
  
         # News velocity — the layer's own best (highest-scoring) ticker's news, not a scan/fallback
-        news_vel = best.get("news_velocity", 0)
+        news_vel = best.get("news_velocity")   # None: its feed failed (missing, not 0)
  
         fund_delta = best.get("fund_delta")   # None = acceleration not measured
  
@@ -422,7 +422,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
         divergence     = False
         divergence_msg = ""
         # Not evaluated without measured acceleration — no stand-in 0.
-        if fund_delta is None:
+        if fund_delta is None or news_vel is None:
             pass
         elif news_vel >= 4 and fund_delta < -0.05:
             divergence     = True
@@ -445,7 +445,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
             "n2":             n2,
             "score":          score,
             "color":          color,
-            "news_vel":       int(news_vel),
+            "news_vel":       int(news_vel) if news_vel is not None else None,
             "momentum_label": momentum_label,
             "delta_score":    delta_score,
             "prev_color":     prev_color,
@@ -848,14 +848,19 @@ def _gaps_html(scored_data: dict, market_data: dict, session_date, fetch_issues:
     today = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
     raw = {t.get("ticker"): t for ts in (market_data or {}).values() for t in (ts or []) if isinstance(t, dict)}
     rows, total, measured = [], 0, 0
-    for lid, syms in ((fetch_issues or {}).get("failed_companies") or {}).items():
+    issues = fetch_issues or {}
+    for lid, syms in (issues.get("failed_companies") or {}).items():
         for sym in syms:
             rows.append(f"{sym}: fetch failed this run — not in the {LAYER_NAMES.get(lid, (lid,))[0]} layer score")
+    for sym in issues.get("failed_ticker_feeds") or []:
+        rows.append(f"{sym}: news feed failed this run (news count missing)")
+    for url in issues.get("failed_generic_feeds") or []:
+        rows.append(f"News feed failed this run: {url.split('/')[2] if '//' in url else url}")
     for lid in scored_data:
         for t in scored_data[lid].get("all_tickers", []):
             total += 1
             sym, r = t.get("ticker"), raw.get(t.get("ticker"), {})
-            miss = [m for m in (r.get("data_missing") or []) if m not in ("growth_prev", "growth_curr")]
+            miss = [m for m in (r.get("data_missing") or []) if m not in ("growth_prev", "growth_curr", "news_velocity")]
             if t.get("fund_delta") is None:
                 why = ("no revenue growth figure" if r.get("growth_curr") is None
                        else "no year-on-year figure for the previous quarter")
@@ -1832,7 +1837,7 @@ function buildChain() {{
             : "<span style='font-size:10px;color:#B4B2A9'>first run</span>"}}
       </div>
       <div class="lyr-bar"><div class="lyr-fill" style="width:${{pct}}%;background:${{c.border}}"></div></div>
-      <div class="lyr-meta lyr-meta-main">News ${{l.news_vel}} hits · <span title="Revenue acceleration of the layer's top-scoring company (YoY change vs the prior quarter), not price momentum">Rev. acceleration ${{l.momentum_label}}</span></div>
+      <div class="lyr-meta lyr-meta-main">News ${{l.news_vel ?? "—"}} hits · <span title="Revenue acceleration of the layer's top-scoring company (YoY change vs the prior quarter), not price momentum">Rev. acceleration ${{l.momentum_label}}</span></div>
       <div class="lyr-ratings">
         ${{l.tickers.slice(0,3).map(t => `<span class="rating-badge rating-${{t.rating}}" style="font-size:9px;padding:1px 4px" title="${{t.sym}}: ${{t.delta_band==='unmeasured'?'B by default: acceleration not measured':t.rating==='A'?'A: accelerating more than 20 pp, as an Orange/Red company':t.rating==='C'?'C: hype flag, or YoY down more than 5 pp':'B: neither A nor C'}}">${{t.sym}} ${{t.rating}}</span>`).join("")}}
       </div>

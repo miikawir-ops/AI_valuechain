@@ -361,7 +361,7 @@ def _pipeline(empty_for, session=datetime.date(2026, 11, 12)):
     from test_nan_handling import _mock_ticker
     good = _price_bars(130, end="2026-11-12")
     bad = _price_bars(130, end="2026-11-11", empty=("2026-11-12",))
-    with patch("fetch_market.fetch_all_headlines", return_value=[]), \
+    with patch("fetch_market.fetch_all_headlines", return_value=([], set(), [])), \
          patch("fetch_market.apply_growth_history"), \
          patch("fetch_market.yf.Ticker", side_effect=lambda sym: _mock_ticker(bad if sym in empty_for else good)):
         return fetch_market.run_pipeline(session=session)
@@ -395,7 +395,7 @@ def test_push_run_at_the_empty_bar_hour_fails_without_deploying():
     with patch("fetch_market.yf.Ticker", side_effect=lambda sym: calendar if sym == "^GSPC" else _mock_ticker(bad)), \
          patch("fetch_market.fetch_trading_sessions", side_effect=lambda now=None: real_sessions(_at("2026-11-13T01:17"))), \
          patch("render.load_scores_history", return_value=[{"date": "2026-11-11"}]), \
-         patch("fetch_market.fetch_all_headlines", return_value=[]), \
+         patch("fetch_market.fetch_all_headlines", return_value=([], set(), [])), \
          patch("fetch_market.apply_growth_history"), \
          patch("main.stage_score") as score, patch("main.stage_render") as rend, \
          patch("main.save_scores_detail") as detail:
