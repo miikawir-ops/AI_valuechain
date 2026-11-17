@@ -2,8 +2,17 @@ name: Daily AI Valuechain Update
  
 on:
   schedule:
+    # GitHub starts these hours late: in Nov 2026 the evening run started
+    # 219-390 min after its cron time (median 269). Yahoo empties the bar of
+    # the session that just closed after 00:00 UTC (seen 00:02-01:58), and a
+    # run then fails on purpose (no deploy). With Nov's delays, 30 20 started
+    # 0 of 11 runs between the close (21:00 UTC in winter) and midnight, 8 in
+    # that window; 0 18 starts 9 of 11 there, 2 in the window, 0 before the
+    # close (Ray, 2026-11-17; tools/run_times.py re-checks from scores_detail).
+    # If delays shrink back to October's (145-240 min), a winter run can start
+    # before the close and re-score the previous session, which is harmless.
     - cron: '0 6 * * 1-5'
-    - cron: '30 20 * * 1-5'
+    - cron: '0 18 * * 1-5'
   workflow_dispatch:
   # A code push runs the pipeline itself (manual dispatches didn't always
   # register). The bot's commit-back uses the default GITHUB_TOKEN, which
