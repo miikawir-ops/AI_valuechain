@@ -7,6 +7,8 @@ missing is not zero, fail loudly when the page would be misleading).
      and an empty scoring result is never saved over a stored session.
      Before: the run exited 0 and published a page with no layers under
      "Data: close of <session>", overwriting that session's stored entry.
+  B. A macro fetch failure keeps the company data, every macro input
+     missing and named. Before: the fetched company data was thrown away.
 
 No pytest in this environment — plain script. Run: python test_fetch_failures.py
 """
@@ -76,10 +78,25 @@ def test_a_empty_result_is_never_saved_over_a_stored_session():
     print("PASS: A — an empty scoring result is refused; the stored session entry is unchanged")
 
 
+def test_b_macro_failure_keeps_the_company_data():
+    import fetch_market
+    market = {"energy": [{"ticker": "CEG", "price": 262.38}]}
+    with patch("fetch_market.run_pipeline", return_value=market), \
+         patch("fetch_market.fetch_macro", side_effect=ConnectionError("macro outage")):
+        got_market, macro = main.stage_fetch(SESSION)
+    assert got_market == market, "the company data was discarded"
+    keys = ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "nasdaq_30d_return")
+    assert all(macro[k] is None for k in keys) and sorted(macro["data_missing"]) == sorted(keys), macro
+    macro["data_missing"].append("x")
+    assert "x" not in main.MACRO_DEFAULTS["data_missing"], "the shared defaults were handed out, not a copy"
+    print("PASS: B — a macro fetch failure keeps the company data; each macro input missing and named")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
     test_a_company_fetch_stage_failure_fails_the_run()
     test_a_empty_scoring_result_fails_the_run()
     test_a_empty_result_is_never_saved_over_a_stored_session()
+    test_b_macro_failure_keeps_the_company_data()
     print("\nAll fetch-failure tests passed.")

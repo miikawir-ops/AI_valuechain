@@ -42,7 +42,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
  
-# Used when the whole fetch stage fails: every macro input missing, never a
+# Used when the macro fetch fails: every macro input missing, never a
 # made-up value (the multiplier then applies no dampening, regime "Unknown").
 MACRO_DEFAULTS = {
     "vix":               None,
@@ -223,7 +223,13 @@ def stage_fetch(session: datetime.date = None) -> tuple[dict, dict]:
     log.info("[1/4] Fetching market data...")
     from fetch_market import run_pipeline, fetch_macro
     market_data = run_pipeline("portfolio.json", session=session)
-    macro_data  = fetch_macro(session=session)
+    # A macro failure keeps the company data: each macro input is missing and
+    # named (regime "Unknown", no dampening), never a made-up value.
+    try:
+        macro_data = fetch_macro(session=session)
+    except Exception as e:
+        log.error(f"  Macro fetch failed: {e} — every macro input missing this run")
+        macro_data = {**MACRO_DEFAULTS, "data_missing": list(MACRO_DEFAULTS["data_missing"])}
     log.info(f"  Fetched {len(market_data)} layers, macro: VIX={macro_data.get('vix')}")
     return market_data, macro_data
  
