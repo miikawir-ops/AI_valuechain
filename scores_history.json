@@ -2484,12 +2484,12 @@
   {
     "date": "2026-11-16",
     "method": "2026-10-yoy-edgar",
-    "time": "19:46",
+    "time": "19:57",
     "action_ticker": "CEG",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 41.27,
+        "score": 41.12,
         "color": "Orange",
         "ratings": {
           "CEG": "A",
@@ -2500,7 +2500,7 @@
         }
       },
       "compute": {
-        "score": 49.74,
+        "score": 49.21,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2513,7 +2513,7 @@
         }
       },
       "memory": {
-        "score": 46.58,
+        "score": 46.59,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2535,7 +2535,7 @@
         }
       },
       "cloud": {
-        "score": 31.05,
+        "score": 31.06,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
