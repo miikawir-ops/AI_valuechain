@@ -402,7 +402,7 @@ def _code_commit() -> str | None:
 
 def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, session_date,
                        radar_data: list, analysis: str, path: str = SCORES_DETAIL_FILE,
-                       analysis_run: dict = None) -> dict:
+                       analysis_run: dict = None, fetch_issues: dict = None) -> dict:
     """Append one line per run: every company's scoring inputs, sub-scores
     and result, the macro inputs and regime, the radar ranking, the signal
     pick (with that session's close, for item 8's entry prices) and any
@@ -469,6 +469,8 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
         "macro": {k: macro_data.get(k) for k in ("vix", "yield_10y_change", "nasdaq_vs_spx_20d", "nasdaq_30d_return", "data_missing")}
                  | {"regime": regime[0] if regime else None, "multiplier": regime[1] if regime else None},
         "layers": layers, "companies": companies, "radar": radar,
+        # What failed this run (named in Data gaps): companies outside their layer score.
+        "fetch_failures": fetch_issues or {},
         "signal": {"ticker": pick, "close": lookup.get(pick, {}).get("price") if pick else None,
                    "rule": rule["rule"], "tier": rule["tier"],
                    "explanation_withheld": any("SIGNAL TO WATCH" in w.upper() for w in withheld)},
@@ -488,13 +490,13 @@ def save_scores_detail(market_data: dict, macro_data: dict, scored_data: dict, s
 
 def stage_render(scored_data: dict, analysis: str, macro_data: dict,
                  session_date, market_data: dict = None, radar_data: list = None, track: dict = None,
-                 capex_data: dict = None, changes_data: dict = None):
+                 capex_data: dict = None, changes_data: dict = None, fetch_issues: dict = None):
     log.info("[4/4] Rendering and delivering report...")
     try:
         from render import generate_dashboard, deliver
         html_path = generate_dashboard(
             scored_data, analysis, macro_data, session_date,
-            market_data or {}, radar_data or [], track, capex_data, changes_data
+            market_data or {}, radar_data or [], track, capex_data, changes_data, fetch_issues
         )
         deliver(analysis, html_path)
         log.info(f"  Dashboard saved: {html_path}")
@@ -532,6 +534,8 @@ def run_full_pipeline(score_only: bool = False):
     check_not_older_than_stored(session_date)
 
     market_data, macro_data = stage_fetch(session_date)
+    import fetch_market
+    fetch_issues = json.loads(json.dumps(fetch_market.FETCH_ISSUES))   # this run's, for Data gaps and scores_detail
 
     # Deliberately outside stage_fetch()'s own try/except, which swallows
     # exceptions into an empty-data fallback — this needs to crash the run
@@ -573,7 +577,7 @@ def run_full_pipeline(score_only: bool = False):
     try:
         import analyze
         save_scores_detail(market_data, macro_data, scored_data, session_date, radar_data, analysis,
-                           analysis_run=dict(analyze.LAST_RUN))
+                           analysis_run=dict(analyze.LAST_RUN), fetch_issues=fetch_issues)
     except Exception as e:
         log.error(f"  scores_detail not written: {e}")
     # Track record (item 8): after scores_detail has this run's line. Its own
@@ -595,7 +599,8 @@ def run_full_pipeline(score_only: bool = False):
         changes_data = changes.compute(SCORES_DETAIL_FILE, session_date, {k: v[0] for k, v in render.LAYER_NAMES.items()})
     except Exception as e:
         log.error(f"  what-changed not built: {e}")
-    stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data, track, capex_data, changes_data)
+    stage_render(scored_data, analysis, macro_data, session_date, market_data, radar_data, track, capex_data,
+                 changes_data, fetch_issues)
  
     elapsed = (datetime.datetime.now() - start).seconds
     log.info(f"\n✅ Pipeline complete in {elapsed}s")

@@ -9,6 +9,10 @@ missing is not zero, fail loudly when the page would be misleading).
      "Data: close of <session>", overwriting that session's stored entry.
   B. A macro fetch failure keeps the company data, every macro input
      missing and named. Before: the fetched company data was thrown away.
+  C. A company whose fetch fails stays a named record (Data gaps,
+     scores_detail), outside the layer score; more than half failing fails
+     the run. Before: it vanished from its layer, and the layer was
+     reweighted without a mark (no NVDA: Semicon 57.7 -> 59.1).
 
 No pytest in this environment — plain script. Run: python test_fetch_failures.py
 """
@@ -92,6 +96,49 @@ def test_b_macro_failure_keeps_the_company_data():
     print("PASS: B — a macro fetch failure keeps the company data; each macro input missing and named")
 
 
+def _pipeline(fail):
+    import fetch_market
+    def fetch(ticker, *a, **k):
+        if ticker in fail:
+            return None
+        return {"ticker": ticker, "price": 1.0, "price_30d_return": 0.01, "_session_bar": True, "data_missing": []}
+    with patch("fetch_market.fetch_all_headlines", return_value=[]), \
+         patch("fetch_market.apply_growth_history"), \
+         patch("fetch_market.fetch_ticker_data", side_effect=fetch):
+        return fetch_market.run_pipeline(session=SESSION)
+
+
+def test_c_failed_company_is_named_outside_the_layer_score():
+    import fetch_market
+    out = _pipeline({"NVDA"})
+    assert "NVDA" not in [t["ticker"] for t in out["compute"]], "a failed company is not scored"
+    assert fetch_market.FETCH_ISSUES["failed_companies"] == {"compute": ["NVDA"]}, fetch_market.FETCH_ISSUES
+    gaps = render._gaps_html({}, {}, SESSION, fetch_market.FETCH_ISSUES)
+    assert "NVDA: fetch failed this run — not in the Semicon layer score" in gaps, gaps
+    rec = main.save_scores_detail({}, dict(main.MACRO_DEFAULTS), {}, SESSION, [], "", path=_tmp_detail(),
+                                  fetch_issues=fetch_market.FETCH_ISSUES)
+    assert rec["fetch_failures"]["failed_companies"] == {"compute": ["NVDA"]}, rec.get("fetch_failures")
+    out = _pipeline(set())
+    assert fetch_market.FETCH_ISSUES["failed_companies"] == {}, "issues are reset each run"
+    print("PASS: C — a failed company is named in Data gaps and scores_detail, outside the layer score")
+
+
+def test_c_most_companies_failing_fails_the_run():
+    import fetch_market
+    tickers = [t for layer in fetch_market.AI_CHAIN_LAYERS.values() for t in layer["tickers"]]
+    try:
+        _pipeline(set(tickers[: len(tickers) // 2 + 1]))
+        raise AssertionError("the run went on with most companies failing")
+    except fetch_market.FetchFailureError as e:
+        assert f"{len(tickers) // 2 + 1} of {len(tickers)}" in str(e), e
+    _pipeline(set(tickers[: len(tickers) // 2]))   # exactly half: the run goes on
+    print("PASS: C — more than half the companies failing fails the run; half doesn't")
+
+
+def _tmp_detail():
+    return str(Path(tempfile.mkdtemp()) / "scores_detail.jsonl")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
@@ -99,4 +146,6 @@ if __name__ == "__main__":
     test_a_empty_scoring_result_fails_the_run()
     test_a_empty_result_is_never_saved_over_a_stored_session()
     test_b_macro_failure_keeps_the_company_data()
+    test_c_failed_company_is_named_outside_the_layer_score()
+    test_c_most_companies_failing_fails_the_run()
     print("\nAll fetch-failure tests passed.")

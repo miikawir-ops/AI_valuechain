@@ -62,6 +62,16 @@ class SessionDataError(RuntimeError):
     """Most companies have no bar for the session the run belongs to."""
 
 
+class FetchFailureError(RuntimeError):
+    """More than half the companies' fetches failed this run."""
+
+
+# What failed in the last run_pipeline() call, reset at its start: shown in
+# the page's Data gaps and stored in scores_detail, never left silent.
+# failed_companies: {layer_id: [ticker]} (fetch raised; not in the layer score).
+FETCH_ISSUES = {"failed_companies": {}}
+
+
 def completed_dates(index, now: datetime.datetime = None) -> list:
     """The dates in a daily-bar index whose US session has closed: any date
     before today (US/Eastern), and today once 16:00 ET has passed. A row
@@ -853,6 +863,8 @@ def run_pipeline(portfolio_file: str = "portfolio.json", session: datetime.date 
     """{layer_id: [ticker dicts]}, prices cut at `session`. Raises
     SessionDataError if most companies have no bar for it."""
     log.info("Fetching all headlines (ticker-specific + generic)...")
+    FETCH_ISSUES.clear()
+    FETCH_ISSUES["failed_companies"] = {}
     headlines = fetch_all_headlines()
     results   = {}
     for layer_id, layer_config in AI_CHAIN_LAYERS.items():
@@ -869,9 +881,18 @@ def run_pipeline(portfolio_file: str = "portfolio.json", session: datetime.date 
             )
             if data:
                 tickers_data.append(data)
+            else:
+                FETCH_ISSUES["failed_companies"].setdefault(layer_id, []).append(ticker)
         tickers_data      = add_peer_outperformance(tickers_data)
         results[layer_id] = tickers_data
         log.info(f"    {len(tickers_data)}/{len(layer_tickers)} tickers OK")
+    failed = [t for ts in FETCH_ISSUES["failed_companies"].values() for t in ts]
+    total  = sum(len(layer["tickers"]) for layer in AI_CHAIN_LAYERS.values())
+    if failed:
+        log.warning(f"  Company fetch failed for {failed}: named in Data gaps, not in their layer scores")
+    if len(failed) > MAX_NO_SESSION_BAR_SHARE * total:
+        raise FetchFailureError(f"{len(failed)} of {total} company fetches failed ({', '.join(failed)}): "
+                                "failing the run rather than publishing layers built from a minority")
     fetched = [t for ts in results.values() for t in ts]
     no_bar  = [t["ticker"] for t in fetched if not t.get("_session_bar", True)]
     if fetched and len(no_bar) > MAX_NO_SESSION_BAR_SHARE * len(fetched):

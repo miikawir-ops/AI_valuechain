@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as tmp:
         # The saved capex result (capex.fetch()) goes to code that renders the card.
         import inspect
         params = inspect.signature(render.generate_dashboard).parameters
-        kw = {k: d[k] for k in ("capex", "changes") if k in d and k in params}
+        kw = {k: d[k] for k in ("capex", "changes", "fetch_issues") if k in d and k in params}
         render.generate_dashboard(scored, "(Replay: Gemini analysis not run.)", d["macro"], sessions[-1], d["market"], [], **kw)
         page = open("index.html", encoding="utf-8").read()
         hist = json.load(open("scores_history.json"))

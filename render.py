@@ -841,12 +841,16 @@ def _change_chip(i) -> str:
             f'title="{esc(i["text"])}" aria-label="{esc(i["text"])}. Open the layer">{who} {what}</button>')
 
 
-def _gaps_html(scored_data: dict, market_data: dict, session_date) -> str:
-    """One consolidated list: acceleration not measured, a quarter older than
+def _gaps_html(scored_data: dict, market_data: dict, session_date, fetch_issues: dict = None) -> str:
+    """One consolidated list: companies whose fetch failed (outside their
+    layer score), acceleration not measured, a quarter older than
     DATA_GAP_DAYS, missing fields. One quiet line when there are none."""
     today = session_date.date() if isinstance(session_date, datetime.datetime) else session_date
     raw = {t.get("ticker"): t for ts in (market_data or {}).values() for t in (ts or []) if isinstance(t, dict)}
     rows, total, measured = [], 0, 0
+    for lid, syms in ((fetch_issues or {}).get("failed_companies") or {}).items():
+        for sym in syms:
+            rows.append(f"{sym}: fetch failed this run — not in the {LAYER_NAMES.get(lid, (lid,))[0]} layer score")
     for lid in scored_data:
         for t in scored_data[lid].get("all_tickers", []):
             total += 1
@@ -902,7 +906,7 @@ def regime_label(scored_data: dict, macro_data: dict) -> str:
 
 def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, session_date,
                        market_data: dict = None, radar_data: list = None, track: dict = None,
-                       capex: dict = None, changes: dict = None) -> str:
+                       capex: dict = None, changes: dict = None, fetch_issues: dict = None) -> str:
     if market_data is None:
         market_data = {}
     if radar_data is None:
@@ -973,7 +977,7 @@ def generate_dashboard(scored_data: dict, analysis: str, macro_data: dict, sessi
     track_js               = json.dumps(track or {"current": [], "old": []})
     capex_html             = _capex_html(capex, scored_data)
     changes_html           = _changes_html(changes)
-    gaps_html              = _gaps_html(scored_data, market_data, session_date)
+    gaps_html              = _gaps_html(scored_data, market_data, session_date, fetch_issues)
     main_sections_js, action_js = _analysis_sections(analysis)
     has_yesterday          = "true" if yesterday else "false"
     method_break_js        = "true" if method_break else "false"
