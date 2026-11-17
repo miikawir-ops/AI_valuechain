@@ -214,14 +214,20 @@ def _layer_color_from_score(score: float, top_delta: float | None) -> tuple[str,
         return "Green", "Neutral — healthy growth, no constraint pressure"
  
  
-def stage_fetch() -> tuple[dict, dict]:
+def stage_fetch(session: datetime.date = None) -> tuple[dict, dict]:
+    """Prices cut at `session`. Missing session bars for most companies
+    (SessionDataError) fail the run: no commit, no deploy, the live page
+    stays on its last good build."""
     log.info("[1/4] Fetching market data...")
+    from fetch_market import SessionDataError
     try:
         from fetch_market import run_pipeline, fetch_macro
-        market_data = run_pipeline("portfolio.json")
-        macro_data  = fetch_macro()
+        market_data = run_pipeline("portfolio.json", session=session)
+        macro_data  = fetch_macro(session=session)
         log.info(f"  Fetched {len(market_data)} layers, macro: VIX={macro_data.get('vix')}")
         return market_data, macro_data
+    except SessionDataError:
+        raise
     except Exception as e:
         log.error(f"  Fetch failed: {e} — using empty data")
         return {}, MACRO_DEFAULTS
@@ -500,22 +506,36 @@ def stage_render(scored_data: dict, analysis: str, macro_data: dict,
         print("="*60)
  
  
+def check_not_older_than_stored(session_date) -> None:
+    """A run never writes a session older than the newest stored one: it
+    would put one session's data under another's date (DataCenter R101)."""
+    import render
+    newest = max((e.get("date", "") for e in render.load_scores_history()), default="")
+    if session_date.isoformat() < newest:
+        raise RuntimeError(f"Session {session_date} is older than the newest stored session {newest}: "
+                           "refusing to rewrite an earlier session")
+
+
 def run_full_pipeline(score_only: bool = False):
     start = datetime.datetime.now()
     log.info(f"\n{'='*55}")
     log.info(f"  AI Investment Agent — {start.strftime('%A %B %d %Y %H:%M')}")
     log.info(f"{'='*55}")
  
-    market_data, macro_data = stage_fetch()
+    # One session for the whole page, from the exchange calendar and the
+    # clock, decided before any price is fetched; every series is cut there.
+    from fetch_market import assert_no_nan, fetch_trading_sessions
+    sessions = fetch_trading_sessions()
+    session_date = sessions[-1]
+    log.info(f"  Last completed session: {session_date}")
+    check_not_older_than_stored(session_date)
+
+    market_data, macro_data = stage_fetch(session_date)
 
     # Deliberately outside stage_fetch()'s own try/except, which swallows
     # exceptions into an empty-data fallback — this needs to crash the run
     # instead, so a bad fetch never reaches render/publish.
-    from fetch_market import assert_no_nan, fetch_trading_sessions
     assert_no_nan(market_data)
-    sessions = fetch_trading_sessions()
-    session_date = sessions[-1]
-    log.info(f"  Last completed session: {session_date}")
 
     scored_data = stage_score(market_data, macro_data, sessions)
  
@@ -536,9 +556,9 @@ def run_full_pipeline(score_only: bool = False):
     log.info("[2.5/4] Running Next Nvidia Radar...")
     try:
         from next_nvidia import run_radar, load_cached_radar
-        radar_data = load_cached_radar()
+        radar_data = load_cached_radar(session_date)
         if not radar_data:
-            radar_data = run_radar(verbose=False)
+            radar_data = run_radar(verbose=False, session=session_date)
         log.info(f"  Radar: top pick = {radar_data[0]['ticker'] if radar_data else 'none'}")
     except Exception as e:
         log.warning(f"  Radar failed: {e}")

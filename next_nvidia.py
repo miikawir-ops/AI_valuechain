@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from fetch_market import drop_unfinished_bar, merged_revenue, yoy_series
+from fetch_market import session_bars, merged_revenue, yoy_series
 
 log = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ RADAR_UNIVERSE = [
 RADAR_CACHE_FILE = "next_nvidia_cache.json"
 
 
-def fetch_multi_quarter_data(ticker: str) -> dict:
+def fetch_multi_quarter_data(ticker: str, session: datetime.date = None) -> dict:
     """
     Fetch 4 quarters of revenue data to compute multi-quarter acceleration.
     Returns growth rates for Q1 (most recent) through Q4 (oldest available).
@@ -103,10 +103,11 @@ def fetch_multi_quarter_data(ticker: str) -> dict:
         t = yf.Ticker(ticker)
         info = t.info
 
-        # Price and returns from completed sessions (no live quote, no partial
-        # bar); a return that can't be computed is None, not 0.
-        hist = drop_unfinished_bar(t.history(period="6mo"), label=ticker)
-        closes = hist["Close"].dropna().tolist() if not hist.empty else []
+        # Price and returns cut at the run's session (no live quote, no partial
+        # bar); without a bar for that session they're missing (None, no
+        # sparkline), never the session before. Not computable is None, not 0.
+        hist, has_session = session_bars(t.history(period="6mo"), session, label=ticker)
+        closes = hist["Close"].dropna().tolist() if has_session else []
         price = closes[-1] if closes else None
         ret_1mo = round((closes[-1]/closes[-21]-1)*100, 1) if len(closes) >= 21 else None
         ret_3mo = round((closes[-1]/closes[-63]-1)*100, 1) if len(closes) >= 63 else None
@@ -234,7 +235,7 @@ def compute_nvidia_score(data: dict, accel: dict) -> float:
     return round(composite, 1)
 
 
-def run_radar(verbose: bool = True) -> list:
+def run_radar(verbose: bool = True, session: datetime.date = None) -> list:
     """
     Run the full Next Nvidia Radar.
     Returns top 5 companies ranked by Nvidia-likeness score.
@@ -247,7 +248,7 @@ def run_radar(verbose: bool = True) -> list:
         ticker = entry["ticker"]
         if verbose:
             print(f"  Scoring {ticker}...")
-        data = fetch_multi_quarter_data(ticker)
+        data = fetch_multi_quarter_data(ticker, session)
         if not data.get("ok"):
             continue
 
@@ -297,6 +298,7 @@ def run_radar(verbose: bool = True) -> list:
     Path(RADAR_CACHE_FILE).write_text(json.dumps({
         "date":  datetime.datetime.now().strftime("%Y-%m-%d"),
         "time":  datetime.datetime.now().strftime("%H:%M"),
+        "session": session.isoformat() if session else None,   # the cache is reused only for this session
         "top5":  ranked[:5],
         "all":   ranked,          # ← full list with sparklines for every ticker
     }, indent=2, default=str))
@@ -313,8 +315,9 @@ def run_radar(verbose: bool = True) -> list:
     return ranked
 
 
-def load_cached_radar() -> list:
-    """Load today's cached radar results if available.
+def load_cached_radar(session: datetime.date = None) -> list:
+    """Load the cached radar results for this session (with a session) or
+    today's run date (without), if available: one session date for the page.
 
     Returns the FULL ranked list (not just top5) so that wildcard candidates
     sitting outside the top 5 (e.g. APP) still carry their sparkline data
@@ -325,7 +328,9 @@ def load_cached_radar() -> list:
         return []
     try:
         data = json.loads(p.read_text())
-        if data.get("date") == datetime.datetime.now().strftime("%Y-%m-%d"):
+        fresh = (data.get("session") == session.isoformat() if session
+                 else data.get("date") == datetime.datetime.now().strftime("%Y-%m-%d"))
+        if fresh:
             # Prefer full list; fall back to top5 for older cache files
             return data.get("all", data.get("top5", []))
     except Exception:

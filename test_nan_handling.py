@@ -56,8 +56,10 @@ def test_trailing_nan_row_is_dropped_and_does_not_propagate():
     and price_momentum come from the real, complete history underneath it
     — not from the polluted series."""
     n_days = 70
-    # Fixed past dates, not today(): drop_unfinished_bar also drops a bar
-    # dated today until 16:00 ET, which would make this time-of-day dependent.
+    # Fixed past dates, not today(): a bar dated today doesn't count until
+    # 16:00 ET, which would make this time-of-day dependent. The run's
+    # session is the day before the empty row (since the run-date fix, an
+    # empty row dated the session itself makes the prices missing instead).
     dates  = pd.date_range(end=FIXED_END, periods=n_days, freq="D")
     closes = [100.0 + i * 0.5 for i in range(n_days)]
     volumes = [1_000_000.0 for _ in range(n_days)]
@@ -84,7 +86,8 @@ def test_trailing_nan_row_is_dropped_and_does_not_propagate():
 
     with patch("fetch_market.yf.Ticker", return_value=_mock_ticker(hist)):
         result = fetch_market.fetch_ticker_data(
-            "TEST", headlines=[], layer_keywords=["test"], layer_tickers=["TEST"]
+            "TEST", headlines=[], layer_keywords=["test"], layer_tickers=["TEST"],
+            session=dates[-2].date(),
         )
 
     assert result is not None, "fetch_ticker_data returned None unexpectedly"

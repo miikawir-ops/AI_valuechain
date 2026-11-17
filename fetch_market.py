@@ -35,36 +35,71 @@ from zoneinfo import ZoneInfo
 
 log = logging.getLogger(__name__)
 
-# ── Session dating (ported from RayDar-DataCenter, ledger R33b/R40/R41) ───────
-# Every daily-bar fetch drops a bar dated today (US/Eastern) until the
-# session has closed, so a run during US trading hours scores the last
-# completed session, not a partial one. Early-close days (13:00 ET) are
-# treated as closing at 16:00: a run between 13:00 and 16:00 on those days
-# uses the previous session, which is conservative rather than wrong.
+# ── Session dating (ported from RayDar-DataCenter, ledger R33b/R40/R41/R101) ──
+# A run's data belongs to the last completed US session, decided once per run
+# from the exchange calendar (^GSPC's daily rows: one per session) and the
+# clock in US/Eastern, never from the run's own date or from which bars
+# happen to be filled: a session is complete once its date is past, or it is
+# today and 16:00 ET has passed. Every price series (companies, radar, macro,
+# the NASDAQ benchmark, track-record closes) is then cut at that session, and
+# a series without a usable bar for it is missing data, never the session
+# before under the new date (2026-11-13 01:17 UTC: Yahoo had emptied the
+# 11-12 bar for every ticker, the empty bars were dropped, and 11-11 prices
+# were published as 11-12; DataCenter ledger R101). Early-close days (13:00
+# ET) are treated as closing at 16:00: a run between 13:00 and 16:00 on those
+# days uses the previous session, which is conservative rather than wrong.
 US_EASTERN           = ZoneInfo("America/New_York")
 SESSION_CLOSE_ET     = datetime.time(16, 0)
 SESSION_REFERENCE    = "^GSPC"   # trading calendar: one daily bar per US session
 MAX_SESSION_AGE_DAYS = 7
+# More than this share of companies without a bar for the session means
+# Yahoo hasn't got the session's bars, not that a few companies lack them:
+# the run fails (no commit, no deploy) instead of publishing without prices.
+MAX_NO_SESSION_BAR_SHARE = 0.5
 
 
-def drop_unfinished_bar(hist, now: datetime.datetime = None, label: str = ""):
-    """Return the daily bars without trailing bars that aren't a completed
-    session: today's bar while today's US session hasn't closed, and any
-    trailing row whose Close is NaN, whatever its date (the 00:00 UTC
-    empty bar that put NaN on every ticker of the live page). `now` is for
-    tests; default is the current time."""
-    if hist is None or hist.empty:
-        return hist
+class SessionDataError(RuntimeError):
+    """Most companies have no bar for the session the run belongs to."""
+
+
+def completed_dates(index, now: datetime.datetime = None) -> list:
+    """The dates in a daily-bar index whose US session has closed: any date
+    before today (US/Eastern), and today once 16:00 ET has passed. A row
+    counts by its date alone, empty or not: Yahoo blanks the Close of the
+    session that has just closed for a while after 00:00 UTC, and that
+    session still happened. `now` is for tests."""
     now_et = (now or datetime.datetime.now(datetime.timezone.utc)).astimezone(US_EASTERN)
-    while not hist.empty:
-        unfinished = hist.index[-1].date() == now_et.date() and now_et.time() < SESSION_CLOSE_ET
-        if unfinished or pd.isna(hist["Close"].iloc[-1]):
-            log.info(f"  {label or 'bars'}: dropped {'unfinished' if unfinished else 'empty (NaN close)'} "
-                     f"bar dated {hist.index[-1].date()}")
-            hist = hist.iloc[:-1]
-        else:
-            break
-    return hist
+    today, closed = now_et.date(), now_et.time() >= SESSION_CLOSE_ET
+    return [d for d in (ts.date() for ts in index) if d < today or (d == today and closed)]
+
+
+def session_bars(hist, session: datetime.date = None, label: str = "", now: datetime.datetime = None):
+    """(bars, has_session): the daily bars up to and including `session`,
+    with trailing empty (NaN Close) rows removed, and whether the last bar
+    left is that session's. Without a session (tools, the CLI) it is the
+    series' own last completed date. When has_session is False the caller
+    treats the series as missing for this run: the bar before is another
+    session's price, not this one's."""
+    if hist is None or hist.empty:
+        return hist, False
+    if session is None:
+        done = completed_dates(hist.index, now)
+        if not done:
+            return hist.iloc[0:0], False
+        session = done[-1]
+    later = [ts.date() > session for ts in hist.index]
+    if any(later):
+        log.info(f"  {label or 'bars'}: dropped {sum(later)} bar(s) after session {session}")
+        hist = hist[[not x for x in later]]
+    while not hist.empty and pd.isna(hist["Close"].iloc[-1]):
+        log.info(f"  {label or 'bars'}: dropped empty (NaN close) bar dated {hist.index[-1].date()}")
+        hist = hist.iloc[:-1]
+    has_session = not hist.empty and hist.index[-1].date() == session
+    if not has_session:
+        last = hist.index[-1].date() if not hist.empty else None
+        log.warning(f"  {label or 'bars'}: no bar for session {session} (last usable: {last}) — "
+                    "treated as missing this run, not as that session's price")
+    return hist, has_session
 
 
 def fetch_trading_sessions(now: datetime.datetime = None) -> list:
@@ -75,16 +110,28 @@ def fetch_trading_sessions(now: datetime.datetime = None) -> list:
 
     Raises instead of returning an empty or stale calendar — every
     date-keyed output depends on it, so the run fails loudly rather than
-    silently falling back to the UTC run date."""
+    silently falling back to the UTC run date.
+
+    A session's row counts even when its Close is empty (completed_dates). If
+    Yahoo has no row at all yet for the weekday that just closed, the session
+    is the one before: every series is then cut there too, so the page is a
+    session behind but never mis-dated, and main refuses to write a session
+    older than the newest stored one."""
     try:
         bars = yf.Ticker(SESSION_REFERENCE).history(period="1mo")
-        hist = drop_unfinished_bar(bars, now, SESSION_REFERENCE)
+        sessions = completed_dates(bars.index, now) if bars is not None else []
     except Exception as e:
         raise RuntimeError(f"Trading-session calendar unavailable ({SESSION_REFERENCE} daily bars): {e}") from e
-    if hist is None or hist.empty:
+    if not sessions:
         raise RuntimeError(f"Trading-session calendar unavailable: {SESSION_REFERENCE} returned no completed daily bars")
-    sessions = [ts.date() for ts in hist.index]
-    today_et = (now or datetime.datetime.now(datetime.timezone.utc)).astimezone(US_EASTERN).date()
+    now_et   = (now or datetime.datetime.now(datetime.timezone.utc)).astimezone(US_EASTERN)
+    today_et = now_et.date()
+    expected = today_et if now_et.time() >= SESSION_CLOSE_ET else today_et - datetime.timedelta(days=1)
+    while expected.weekday() >= 5:
+        expected -= datetime.timedelta(days=1)
+    if sessions[-1] < expected:
+        log.warning(f"  {SESSION_REFERENCE} has no row for {expected} (a market holiday, or Yahoo hasn't "
+                    f"added it yet): the run's session is {sessions[-1]}")
     if (today_et - sessions[-1]).days > MAX_SESSION_AGE_DAYS:
         raise RuntimeError(f"Trading-session calendar is stale: latest {SESSION_REFERENCE} session is "
                            f"{sessions[-1]}, more than {MAX_SESSION_AGE_DAYS} days before {today_et}")
@@ -402,7 +449,7 @@ def quarterly_yoy(revenue: dict) -> tuple:
 
 
 def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
-                      layer_tickers: list = None):
+                      layer_tickers: list = None, session: datetime.date = None):
     try:
         t    = yf.Ticker(ticker)
         info = t.info
@@ -414,7 +461,11 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
  
         data_missing: list = []
 
-        hist = drop_unfinished_bar(t.history(period="6mo"), label=ticker)
+        # Cut at the run's session; without a bar for it every price value
+        # is missing, not the session before under this session's date.
+        hist, has_session = session_bars(t.history(period="6mo"), session, label=ticker)
+        if not has_session and hist is not None:
+            hist = hist.iloc[0:0]
 
         closes  = hist["Close"].tolist() if not hist.empty else []
         if closes:
@@ -441,7 +492,9 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             price_30d = None
 
         vol_avg   = sum(volumes[-20:]) / 20 if len(volumes) >= 20 else None
-        vol_spike = round(volumes[-1] / vol_avg, 2) if vol_avg and volumes else 1.0
+        vol_spike = round(volumes[-1] / vol_avg, 2) if vol_avg and volumes else None
+        if vol_spike is None:
+            data_missing.append("vol_spike")   # scored as before (no points), now named
  
         # Momentum: the last 5 sessions' return against the average (compound)
         # 5-session pace of the last 63 sessions (~90 days); 1.0 means exactly
@@ -543,9 +596,9 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         try:
             ud = t.upgrades_downgrades
             if ud is not None and "ToGrade" in ud.columns and not ud.empty:
-                session = hist.index[-1].date() if not hist.empty else datetime.date.today()
+                upto    = session or (hist.index[-1].date() if not hist.empty else datetime.date.today())
                 dates   = pd.Index([ts.date() for ts in ud.index])
-                inside  = (dates > session - datetime.timedelta(days=ANALYST_WINDOW_DAYS)) & (dates <= session)
+                inside  = (dates > upto - datetime.timedelta(days=ANALYST_WINDOW_DAYS)) & (dates <= upto)
                 recent  = ud[inside].sort_index().tail(10)
                 analyst_upgrades = int(recent["ToGrade"].isin(BUY_GRADES).sum())
         except Exception as e:
@@ -636,9 +689,10 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
             "analyst_count":     info.get("numberOfAnalystOpinions", 0),
             "next_earnings":     next_earnings,
             "sector":            info.get("sector", "N/A"),
-            "data_date":         datetime.datetime.now().strftime("%Y-%m-%d"),
+            "data_date":         hist.index[-1].date().isoformat() if not hist.empty else None,
             "data_age_note":     "Quarterly financials are the latest reported quarter and can be several months old",
             "data_missing":      data_missing,
+            "_session_bar":      has_session,
         }
  
     except Exception as e:
@@ -688,13 +742,15 @@ def assert_no_nan(market_data: dict) -> None:
         raise ValueError(f"NaN in fetched market data at: {shown}{more} — refusing to render/publish.")
 
 
-def fetch_macro() -> dict:
+def fetch_macro(session: datetime.date = None) -> dict:
     """
     Each macro signal is fetched independently, so one failure can't blank
     out the others (a single shared try used to discard already-fetched
     signals and return hardcoded defaults for everything). A missing signal
     is None, named in data_missing — never a made-up number (no VIX 20, no
     zeros), per CLAUDE.md's fetch-failure rule. Ported from RayDar-DataCenter.
+    Every series is cut at the run's session; one without a bar for it is
+    missing too, not the session before.
     """
     log.info("  Fetching macro signals...")
     result = {"vix": None, "yield_10y_change": None, "nasdaq_vs_spx_20d": None, "nasdaq_30d_return": None}
@@ -703,15 +759,15 @@ def fetch_macro() -> dict:
     try:
         # Last completed session's close, not the live quote — the same
         # session every other daily series is scored on.
-        vix = drop_unfinished_bar(yf.Ticker("^VIX").history(period="5d"), label="^VIX")
-        if not vix.empty:
+        vix, ok = session_bars(yf.Ticker("^VIX").history(period="5d"), session, label="^VIX")
+        if ok:
             result["vix"] = round(float(vix["Close"].iloc[-1]), 2)
     except Exception as e:
         log.warning(f"  VIX fetch error: {e}")
 
     try:
-        tnx = drop_unfinished_bar(yf.Ticker("^TNX").history(period="35d"), label="^TNX")
-        if not tnx.empty and len(tnx) >= 21:
+        tnx, ok = session_bars(yf.Ticker("^TNX").history(period="35d"), session, label="^TNX")
+        if ok and len(tnx) >= 21:
             result["yield_10y_change"] = round(
                 (tnx["Close"].iloc[-1] - tnx["Close"].iloc[-21]) * 100, 2
             )
@@ -719,9 +775,9 @@ def fetch_macro() -> dict:
         log.warning(f"  10Y yield fetch error: {e}")
 
     try:
-        nasdaq = drop_unfinished_bar(yf.Ticker("^IXIC").history(period="25d"), label="^IXIC")
-        spx    = drop_unfinished_bar(yf.Ticker("^GSPC").history(period="25d"), label="^GSPC")
-        if len(nasdaq) >= 20 and len(spx) >= 20:
+        nasdaq, nq_ok = session_bars(yf.Ticker("^IXIC").history(period="25d"), session, label="^IXIC")
+        spx, spx_ok   = session_bars(yf.Ticker("^GSPC").history(period="25d"), session, label="^GSPC")
+        if nq_ok and spx_ok and len(nasdaq) >= 20 and len(spx) >= 20:
             nasdaq_ret = nasdaq["Close"].iloc[-1] / nasdaq["Close"].iloc[-20] - 1
             spx_ret    = spx["Close"].iloc[-1]    / spx["Close"].iloc[-20]    - 1
             result["nasdaq_vs_spx_20d"] = round(nasdaq_ret - spx_ret, 4)
@@ -731,7 +787,8 @@ def fetch_macro() -> dict:
     # NASDAQ over the same 21 closes as each company's price_30d_return —
     # the benchmark for the price-revenue divergence flag. Not a regime input.
     try:
-        nq = drop_unfinished_bar(yf.Ticker("^IXIC").history(period="45d"), label="^IXIC")["Close"].dropna()
+        nq, ok = session_bars(yf.Ticker("^IXIC").history(period="45d"), session, label="^IXIC")
+        nq = nq["Close"].dropna() if ok else []
         if len(nq) >= 21 and nq.iloc[-21]:
             result["nasdaq_30d_return"] = round(float(nq.iloc[-1] / nq.iloc[-21] - 1), 4)
     except Exception as e:
@@ -792,7 +849,9 @@ def apply_growth_history(results: dict, path: str = GROWTH_HISTORY_FILE) -> None
     p.write_text(json.dumps(hist, indent=1, sort_keys=True))
 
 
-def run_pipeline(portfolio_file: str = "portfolio.json") -> dict:
+def run_pipeline(portfolio_file: str = "portfolio.json", session: datetime.date = None) -> dict:
+    """{layer_id: [ticker dicts]}, prices cut at `session`. Raises
+    SessionDataError if most companies have no bar for it."""
     log.info("Fetching all headlines (ticker-specific + generic)...")
     headlines = fetch_all_headlines()
     results   = {}
@@ -806,12 +865,21 @@ def run_pipeline(portfolio_file: str = "portfolio.json") -> dict:
                 ticker, headlines,
                 layer_config["keywords"],
                 layer_tickers=[ticker],             # ← this ticker's own headlines only
+                session=session,
             )
             if data:
                 tickers_data.append(data)
         tickers_data      = add_peer_outperformance(tickers_data)
         results[layer_id] = tickers_data
         log.info(f"    {len(tickers_data)}/{len(layer_tickers)} tickers OK")
+    fetched = [t for ts in results.values() for t in ts]
+    no_bar  = [t["ticker"] for t in fetched if not t.get("_session_bar", True)]
+    if fetched and len(no_bar) > MAX_NO_SESSION_BAR_SHARE * len(fetched):
+        raise SessionDataError(f"{len(no_bar)} of {len(fetched)} companies have no bar for session {session} "
+                               f"({', '.join(no_bar)}): Yahoo hasn't got the session's bars yet. Failing the "
+                               "run rather than publishing without prices or under the wrong date")
+    for t in fetched:
+        t.pop("_session_bar", None)
     apply_growth_history(results)
     return results
  

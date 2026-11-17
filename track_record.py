@@ -104,11 +104,11 @@ def old_method_runs(history: list, method_version: str) -> list:
 def _closes(ticker: str, start: datetime.date, end: datetime.date) -> dict:
     """{session: split-adjusted close} from yfinance; {} on failure."""
     import yfinance as yf
-    from fetch_market import drop_unfinished_bar
+    from fetch_market import session_bars
     try:
         h = yf.Ticker(ticker).history(start=start - datetime.timedelta(days=5), end=end + datetime.timedelta(days=1),
                                       auto_adjust=False)
-        h = drop_unfinished_bar(h, label=ticker)
+        h, _ = session_bars(h, end, label=ticker)   # cut at the latest session; an empty bar there is missing
         return {ts.date(): float(v) for ts, v in h["Close"].dropna().items()}
     except Exception as e:
         log.warning(f"  track record: {ticker} closes not fetched ({e})")
