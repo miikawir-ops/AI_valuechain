@@ -1057,7 +1057,15 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .wc-more summary{{cursor:pointer;color:#185FA5;font-weight:500;margin-top:2px;width:max-content}}
 .wc-rule{{color:#5F5E5A;font-size:10px;margin-top:4px}}
 .gaps-ok{{font-size:10px;color:#5F5E5A;margin-top:10px}}
-.hedge-chip{{display:inline-block;font-size:9px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:4px;margin:3px 0}}
+.hedge-chip{{display:block;width:max-content;max-width:100%;font-size:9px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:4px;margin:3px 0}}
+.hedge-chip[open]{{width:auto}}
+.hedge-chip summary{{cursor:pointer;list-style:none}}
+.hedge-chip summary::-webkit-details-marker{{display:none}}
+.hedge-chip summary::after{{content:" ▾"}}
+.hedge-chip[open] summary::after{{content:" ▴"}}
+.hc-short{{display:none}}
+.hc-more{{padding:3px 0 2px;line-height:1.4;font-size:10px}}
+@media(max-width:768px){{.hc-long{{display:none}}.hc-short{{display:inline}}}}
 .wch-box{{background:#FFFFFF;border-left:3px solid #7F77DD}}
 .wch-chips{{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px}}
 .wch-chip{{display:inline-flex;align-items:center;gap:4px;background:#F8F8F7;border:0.5px solid #D3D1C7;border-radius:8px;
@@ -1881,7 +1889,9 @@ function buildExpand() {{
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
       <div class="ex-name">${{t.name}}</div>
-      ${{t.hedge_marks ? `<div class="hedge-chip" title="${{t.hedge_marks}}">Revenue includes hedge marks; YoY can swing on them</div>` : ""}}
+      ${{t.hedge_marks ? `<details class="hedge-chip" onclick="event.stopPropagation()"><summary title="${{t.hedge_marks}}">
+        <span class="hc-long">Revenue includes hedge marks; YoY can swing on them</span><span class="hc-short">Hedge marks in revenue</span></summary>
+        <div class="hc-more">Revenue includes hedge marks; YoY can swing on them. ${{t.hedge_marks}}.</div></details>` : ""}}
       ${{t.run_rate ? `<div style="font-size:10px;font-weight:600;color:#27500A;margin:3px 0;
           padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
         Run rate $${{t.run_rate}}B/yr</div>` : ""}}

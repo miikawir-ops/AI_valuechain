@@ -95,6 +95,8 @@ def test_hedge_mark_chip_and_footer_link():
     assert set(render.HEDGE_MARK_REVENUE) == {"VST", "CEG"}
     page = _render_page()
     assert "Revenue includes hedge marks; YoY can swing on them" in page and "t.hedge_marks ?" in page
+    assert '<span class="hc-short">Hedge marks in revenue</span>' in page and 'class="hc-more"' in page, "short on phones, source on tap"
+    assert "@media(max-width:768px){{.hc-long" not in page and "@media(max-width:768px){.hc-long{display:none}" in page
     assert '<a href="https://www.linkedin.com/in/miika-wires-84055a44/" target="_blank" rel="noopener"' in page
     print("PASS: hedge-marks chip for VST and CEG only; footer links LinkedIn")
 
