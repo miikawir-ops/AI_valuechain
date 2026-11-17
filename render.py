@@ -131,6 +131,16 @@ def rating_forecast(current_rating: str, delta: float, delta_band: str,
     # A, B and C are the only ratings company_rating returns.
  
  
+# Companies whose reported operating revenue includes unrealized hedge
+# marks, verified in their 10-Q notes (Ray, 2026-11-17). Display-only: a chip
+# on the card, never a score, colour or rating input. ticker -> source note.
+HEDGE_MARK_REVENUE = {
+    "VST": "Vistra Q3 2026 10-Q: commodity derivative gains and losses are reported in operating revenues "
+           "(unrealized: +$519m in Q3 2026, −$562m in Q2 2026)",
+    "CEG": "Constellation Q3 2026 10-Q: operating revenues include unrealized losses of $362m (Q3 2026) "
+           "and $320m (Q2 2026)",
+}
+
 LAYER_NAMES = {
     "energy":   ("Energy",      "power infra"),
     "compute":  ("Semicon",     "& chip design"),
@@ -379,6 +389,7 @@ def _chain_js_data(scored_data: dict, market_data: dict, yesterday: dict, sessio
                 "gross_margin_pct": round(raw["gross_margin"] * 100, 1) if raw.get("gross_margin") is not None else None,
                 "price_div":  t_scored.get("divergence") if (t_scored.get("divergence") or {}).get("flag") else None,
                 "hype":       t_hype,
+                "hedge_marks": HEDGE_MARK_REVENUE.get(sym),
                 "color":      t_color,
                 "sparkline":  sparkline,
                 "rating":       t_rating,
@@ -1046,6 +1057,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .wc-more summary{{cursor:pointer;color:#185FA5;font-weight:500;margin-top:2px;width:max-content}}
 .wc-rule{{color:#5F5E5A;font-size:10px;margin-top:4px}}
 .gaps-ok{{font-size:10px;color:#5F5E5A;margin-top:10px}}
+.hedge-chip{{display:inline-block;font-size:9px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:4px;margin:3px 0}}
 .wch-box{{background:#FFFFFF;border-left:3px solid #7F77DD}}
 .wch-chips{{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px}}
 .wch-chip{{display:inline-flex;align-items:center;gap:4px;background:#F8F8F7;border:0.5px solid #D3D1C7;border-radius:8px;
@@ -1869,6 +1881,7 @@ function buildExpand() {{
         <span style="font-size:9px;color:#B4B2A9">tap for insight ↓</span>
       </div>
       <div class="ex-name">${{t.name}}</div>
+      ${{t.hedge_marks ? `<div class="hedge-chip" title="${{t.hedge_marks}}">Revenue includes hedge marks; YoY can swing on them</div>` : ""}}
       ${{t.run_rate ? `<div style="font-size:10px;font-weight:600;color:#27500A;margin:3px 0;
           padding:2px 6px;background:#EAF3DE;border-radius:4px;display:inline-block">
         Run rate $${{t.run_rate}}B/yr</div>` : ""}}

@@ -88,9 +88,21 @@ def test_a_and_upgrade_wording_use_the_company_colour():
     print("PASS: A hover and upgrade forecast say 'Orange/Red company'")
 
 
+def test_hedge_mark_chip_and_footer_link():
+    """VST and CEG report unrealized hedge marks inside operating revenue
+    (verified in their Q3 2026 10-Qs, Ray 2026-11-17): a display-only chip.
+    The footer links LinkedIn."""
+    assert set(render.HEDGE_MARK_REVENUE) == {"VST", "CEG"}
+    page = _render_page()
+    assert "Revenue includes hedge marks; YoY can swing on them" in page and "t.hedge_marks ?" in page
+    #LINKEDIN
+    print("PASS: hedge-marks chip for VST and CEG only; footer links LinkedIn")
+
+
 if __name__ == "__main__":
     import logging
     logging.disable(logging.CRITICAL)
+    test_hedge_mark_chip_and_footer_link()
     test_layer_card_says_revenue_acceleration_not_momentum()
     test_b_fallback_forecast_is_neutral_not_stable()
     test_a_and_upgrade_wording_use_the_company_colour()
