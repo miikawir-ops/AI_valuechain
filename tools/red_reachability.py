@@ -8,7 +8,7 @@ on 2 of the 3 sessions before; quarterly fundamentals don't move between
 sessions, so a quarter above 65 also passes that, other inputs unchanged).
 
 Assumptions, all stated in the output:
-- weights: each company's latest market cap (scores_detail.jsonl), held fixed;
+- weights: each company's latest market cap (scores_detail.jsonl, errata runs excluded), held fixed;
 - gross-margin change isn't in this history: margin bonus 0 ("low") or the
   maximum 100 ("high"), bracketing the real value;
 - the high-margin x1.08 uses each company's latest gross margin;
@@ -38,10 +38,8 @@ SINCE = datetime.date(2021, 1, 1)
 eng = ScoreEngine({})
 W = eng.weights
 
-last = None
-for line in open("scores_detail.jsonl", encoding="utf-8"):
-    if line.strip():
-        last = json.loads(line)
+from tools.detail_runs import load_runs   # scores_detail.jsonl without the errata runs
+last = load_runs()[-1]
 latest = {c["ticker"]: c["inputs"] for c in last["companies"]}
 
 

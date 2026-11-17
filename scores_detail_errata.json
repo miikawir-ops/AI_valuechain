@@ -1,0 +1,15 @@
+{
+  "about": "Runs in scores_detail.jsonl whose data is wrong. scores_detail.jsonl is append-only and never edited; analyses exclude these runs (tools/detail_runs.py). Each was replaced by a later run of the same session before any other session's run read it, so the track record, What changed and colour confirmation (each session's last run) never used them.",
+  "runs": [
+    {"run_utc": "2026-10-29T00:07:51Z", "session": "2026-10-28", "prices_from_session": "2026-10-27",
+     "reason": "Yahoo's empty-bar window: the session's bars were empty for every ticker, dropping them published the previous session's prices under this session (all 35 companies). Fixed in 253d12c."},
+    {"run_utc": "2026-10-30T00:02:27Z", "session": "2026-10-29", "prices_from_session": "2026-10-28",
+     "reason": "Yahoo's empty-bar window: the session's bars were empty for every ticker, dropping them published the previous session's prices under this session (all 35 companies). Fixed in 253d12c."},
+    {"run_utc": "2026-11-06T01:03:43Z", "session": "2026-11-05", "prices_from_session": "2026-11-04",
+     "reason": "Yahoo's empty-bar window: the session's bars were empty for every ticker, dropping them published the previous session's prices under this session (all 35 companies). Fixed in 253d12c."},
+    {"run_utc": "2026-11-12T01:58:30Z", "session": "2026-11-11", "prices_from_session": "2026-11-10",
+     "reason": "Yahoo's empty-bar window: the session's bars were empty for every ticker, dropping them published the previous session's prices under this session (all 35 companies). Fixed in 253d12c."},
+    {"run_utc": "2026-11-13T01:17:57Z", "session": "2026-11-12", "prices_from_session": "2026-11-11",
+     "reason": "Yahoo's empty-bar window: the session's bars were empty for every ticker, dropping them published the previous session's prices under this session (all 35 companies). Fixed in 253d12c."}
+  ]
+}
