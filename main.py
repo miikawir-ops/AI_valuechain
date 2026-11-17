@@ -215,22 +215,17 @@ def _layer_color_from_score(score: float, top_delta: float | None) -> tuple[str,
  
  
 def stage_fetch(session: datetime.date = None) -> tuple[dict, dict]:
-    """Prices cut at `session`. Missing session bars for most companies
-    (SessionDataError) fail the run: no commit, no deploy, the live page
-    stays on its last good build."""
+    """Prices cut at `session`. A failing company fetch stage, or missing
+    session bars for most companies (SessionDataError), fails the run: no
+    commit, no deploy, the live page stays on its last good build. It used
+    to return empty data, which published a page with no layers under the
+    session's date and overwrote that session's stored entry (2026-11-17)."""
     log.info("[1/4] Fetching market data...")
-    from fetch_market import SessionDataError
-    try:
-        from fetch_market import run_pipeline, fetch_macro
-        market_data = run_pipeline("portfolio.json", session=session)
-        macro_data  = fetch_macro(session=session)
-        log.info(f"  Fetched {len(market_data)} layers, macro: VIX={macro_data.get('vix')}")
-        return market_data, macro_data
-    except SessionDataError:
-        raise
-    except Exception as e:
-        log.error(f"  Fetch failed: {e} — using empty data")
-        return {}, MACRO_DEFAULTS
+    from fetch_market import run_pipeline, fetch_macro
+    market_data = run_pipeline("portfolio.json", session=session)
+    macro_data  = fetch_macro(session=session)
+    log.info(f"  Fetched {len(market_data)} layers, macro: VIX={macro_data.get('vix')}")
+    return market_data, macro_data
  
  
 def stage_score(market_data: dict, macro_data: dict, sessions: list) -> dict:
@@ -538,6 +533,8 @@ def run_full_pipeline(score_only: bool = False):
     assert_no_nan(market_data)
 
     scored_data = stage_score(market_data, macro_data, sessions)
+    if not scored_data:
+        raise RuntimeError("No layer could be scored: failing the run rather than publishing an empty page")
  
     if score_only:
         log.info("--score flag: stopping after scoring")

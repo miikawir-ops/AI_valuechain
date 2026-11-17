@@ -213,6 +213,10 @@ def _date_key(session_date) -> str:
 
 
 def save_scores_history(scored_data: dict, session_date, action_ticker: str = "", action_price: float = None):
+    # An empty result is never saved: it would replace the session's stored
+    # entry with no layers, and confirmation would then read it as missing.
+    if not scored_data:
+        raise ValueError(f"Empty scoring result for {_date_key(session_date)}: not saved over the stored history")
     history = load_scores_history()
     session_key = _date_key(session_date)
     # An entry stored under another method is kept as published: it's what
