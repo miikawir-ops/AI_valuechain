@@ -45,7 +45,7 @@ SITE_TITLE       = "RayDar — AI value chain intelligence"
 SITE_DESCRIPTION = ("RayDar tracks the AI value chain, from power and chips to cloud and software, and flags "
                     "where revenue acceleration meets supply constraints. Updated on weekdays. Not financial advice.")
 OG_IMAGE_ALT     = "RayDar — AI value chain intelligence. Dark radar-style title card."
-AUTHOR_LINKEDIN_URL = ""   # Ray's LinkedIn profile URL; the footer links it only once set
+AUTHOR_LINKEDIN_URL = "https://www.linkedin.com/in/miika-wires-84055a44/"   # the footer links "LinkedIn" to it
 MAX_HISTORY_DAYS    = 30
 EARNINGS_BADGE_DAYS = 14   # card shows a ticker's earnings date only this close to the session
 UNMEASURED_NOTE_SHARE = 0.25   # layer card names unmeasured acceleration above this market-cap share
