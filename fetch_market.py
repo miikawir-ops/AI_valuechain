@@ -565,13 +565,18 @@ def fetch_ticker_data(ticker: str, headlines: list, layer_keywords: list,
         except Exception as e:
             log.debug(f"  {ticker} calendar error: {e}")
 
-        short_int_change = 0.0
+        # No shortPercentOfFloat (failed or empty fetch) is missing, not 0.0:
+        # None + data_missing, like the 30d return (Ray, 2026-11-17). The
+        # score treats it as before (no points), now named in data_status.
+        short_int_change = None
         try:
             short_info = info.get("shortPercentOfFloat")
-            if short_info:
+            if short_info is not None:
                 short_int_change = round((short_info - 0.05) * -1, 4)
-        except Exception:
-            short_int_change = 0.0
+        except Exception as e:
+            log.debug(f"  {ticker} short interest error: {e}")
+        if short_int_change is None:
+            data_missing.append("short_int_change")
  
         capex_div = 0.0
         try:

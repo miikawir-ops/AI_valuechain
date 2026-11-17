@@ -245,6 +245,32 @@ def test_missing_macro_input_is_left_out_of_the_multiplier():
     print("PASS: a missing macro input is left out of the vote and named; scoring still works")
 
 
+def test_failed_short_interest_fetch_is_missing_not_zero():
+    """No shortPercentOfFloat (a failed or empty fetch) is a missing input:
+    None, named in data_missing, so the page's data gaps show it. The old
+    code wrote 0.0 without marking it, the same silent stand-in the 30d
+    return fix removed. Scoring is unchanged: a missing value adds no
+    short-interest points, as 0.0 didn't, and is named in data_status."""
+    n_days = 70
+    dates = pd.date_range(end=FIXED_END, periods=n_days, freq="D")
+    hist  = pd.DataFrame({"Close": [100.0 + i * 0.5 for i in range(n_days)],
+                          "Volume": [1_000_000.0] * n_days}, index=dates)
+    with patch("fetch_market.yf.Ticker", return_value=_mock_ticker(hist)):   # no shortPercentOfFloat in info
+        r = fetch_market.fetch_ticker_data("NOSI", headlines=[], layer_keywords=["x"], layer_tickers=["NOSI"])
+    assert r["short_int_change"] is None, f"failed short-interest fetch became {r['short_int_change']!r}, not None"
+    assert "short_int_change" in r["data_missing"], f"not marked missing: {r['data_missing']}"
+    with patch("fetch_market.yf.Ticker", return_value=_mock_ticker(hist, shortPercentOfFloat=0.08)):
+        ok = fetch_market.fetch_ticker_data("SI", headlines=[], layer_keywords=["x"], layer_tickers=["SI"])
+    assert ok["short_int_change"] == -0.03 and "short_int_change" not in ok["data_missing"], ok["short_int_change"]
+    from score_engine import ScoreEngine
+    base = {"vol_spike": 1.2, "price_act": 0.01, "analyst_upgrades": 1, "price_momentum": 1.3, "price_30d_return": 0.05}
+    m0, m1 = [], []
+    e = ScoreEngine({})
+    assert e.calculate_smart_money({**base, "short_int_change": None}, m0) == e.calculate_smart_money({**base, "short_int_change": 0.0}, m1)
+    assert "short_int_change" in m0 and "short_int_change" not in m1
+    print("PASS: a failed short-interest fetch is None + data_missing, not 0.0; the smart-money score is unchanged")
+
+
 if __name__ == "__main__":
     test_trailing_nan_row_is_dropped_and_does_not_propagate()
     test_mid_series_nan_is_marked_missing_not_nan()
@@ -252,5 +278,6 @@ if __name__ == "__main__":
     test_price_is_the_last_completed_close_not_the_live_quote()
     test_short_history_30d_return_is_missing_not_zero()
     test_failed_macro_fetch_is_missing_not_a_default()
+    test_failed_short_interest_fetch_is_missing_not_zero()
     test_missing_macro_input_is_left_out_of_the_multiplier()
     print("\nAll NaN-handling tests passed.")
