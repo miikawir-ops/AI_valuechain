@@ -265,9 +265,11 @@ AI_CHAIN_LAYERS = {
     },
 }
  
+# Removed 2026-11-18 (Ray), both dead, so no headline was lost: Reuters'
+# feeds.reuters.com (host doesn't resolve; last archived 2020-06) and
+# finance.yahoo.com/news/rssindex (404 since at least 2026-10-11). A
+# replacement would add headlines and change scores: a January decision.
 GENERIC_FEEDS = [
-    "https://feeds.reuters.com/reuters/businessNews",
-    "https://finance.yahoo.com/news/rssindex",
     "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines",
     "https://www.cnbc.com/id/20910258/device/rss/rss.html",
 ]
