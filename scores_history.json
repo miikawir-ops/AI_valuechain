@@ -2485,12 +2485,12 @@
   {
     "date": "2026-11-17",
     "method": "2026-10-yoy-edgar",
-    "time": "21:07",
+    "time": "15:00",
     "action_ticker": "CEG",
     "action_price": null,
     "scores": {
       "energy": {
-        "score": 41.23,
+        "score": 41.2,
         "color": "Orange",
         "ratings": {
           "CEG": "A",
@@ -2501,7 +2501,7 @@
         }
       },
       "compute": {
-        "score": 49.39,
+        "score": 50.63,
         "color": "Orange",
         "ratings": {
           "NVDA": "A",
@@ -2514,7 +2514,7 @@
         }
       },
       "memory": {
-        "score": 47.17,
+        "score": 45.29,
         "color": "Orange",
         "ratings": {
           "MU": "A",
@@ -2536,7 +2536,7 @@
         }
       },
       "cloud": {
-        "score": 30.32,
+        "score": 31.47,
         "color": "Green",
         "ratings": {
           "MSFT": "B",
@@ -2546,7 +2546,7 @@
         }
       },
       "software": {
-        "score": 30.37,
+        "score": 30.14,
         "color": "Green",
         "ratings": {
           "PLTR": "B",
@@ -2557,7 +2557,7 @@
         }
       },
       "security": {
-        "score": 32.29,
+        "score": 30.96,
         "color": "Green",
         "ratings": {
           "CRWD": "B",
